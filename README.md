@@ -35,4 +35,4 @@
 
 ## 贡献指南
 
-欢迎提交 Issue 和 Pull Request。
+欢迎提交 Issue。
