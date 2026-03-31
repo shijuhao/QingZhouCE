@@ -3,4 +3,4 @@
 
 ## 许可证
 
-本项目采用 [GPL v3](LICENSE) 协议。
+本项目采用 [GPL v3 or later](LICENSE) 协议。
