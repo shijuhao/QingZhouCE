@@ -9,7 +9,6 @@ plugins {
 
 android {
     namespace = "com.example.toolbox"
-
     compileSdk {
         version = release(36)
     }
@@ -19,7 +18,6 @@ android {
         minSdk = 23
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -44,17 +42,10 @@ android {
             )
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
-    androidResources {
-        localeFilters.clear()
-        localeFilters.addAll(listOf("zh", "en"))
-    }
-
     packaging {
         resources {
             excludes.addAll(
