@@ -71,8 +71,6 @@ import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.example.toolbox.R
 import com.example.toolbox.webview.WebViewActivity
-import com.example.toolbox.data.settings.VersionUpdate
-import com.example.toolbox.data.settings.updateLogs
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.example.toolbox.utils.AppIconViewer
 import com.example.toolbox.utils.MarkdownRenderer
