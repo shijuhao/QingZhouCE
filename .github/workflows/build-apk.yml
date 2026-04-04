@@ -16,14 +16,28 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build APK
+      - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      - name: Upload APK
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload Signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: app/build/outputs/apk/release/*.apk
+          name: app-release-signed
+          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
