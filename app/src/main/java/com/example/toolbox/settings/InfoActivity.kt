@@ -30,6 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TextSnippet
 import androidx.compose.material.icons.filled.Close
@@ -245,6 +246,17 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                 title = "版本号",
                                 subtitle = context.getAppVersionInfo().versionName,
                                 onClick = {}
+                            )
+                        },
+                        {
+                            SettingsItemCell(
+                                icon = Icons.Default.Code,
+                                title = "源代码仓库",
+                                subtitle = "https://github.com/shijuhao/QingZhouCE",
+                                onClick = {
+                                    val intent = Intent(Intent.ACTION_VIEW, "https://github.com/shijuhao/QingZhouCE".toUri())
+                                    context.startActivity(intent)
+                                }
                             )
                         },
                         {
