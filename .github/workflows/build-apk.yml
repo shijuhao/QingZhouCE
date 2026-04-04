@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Signed APK
 
 on:
   workflow_dispatch:
@@ -16,14 +16,24 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build APK
-        run: ./gradlew assembleRelease
+      - name: Build and Sign APK
+        run: |
+          ./gradlew assembleRelease
+        env:
+          KEYSTORE_PATH: keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload APK
+      - name: Upload Signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
+          name: app-release-signed
           path: app/build/outputs/apk/release/*.apk

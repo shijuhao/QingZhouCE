@@ -47,6 +47,12 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    androidResources {
+        localeFilters.clear()
+        localeFilters.addAll(listOf("zh", "en"))
+    }
+
     packaging {
         resources {
             excludes.addAll(
