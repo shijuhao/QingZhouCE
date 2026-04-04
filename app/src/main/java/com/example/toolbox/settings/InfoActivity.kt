@@ -269,22 +269,11 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     }
                                 }
                             )
-                        },
-                        {
-                            SettingsItemCell(
-                                icon = Icons.AutoMirrored.Filled.TextSnippet,
-                                title = "更新日志",
-                                subtitle = "查看应用更新日志",
-                                onClick = {
-                                    showUpdateLogDialog = true
-                                }
-                            )
-                        },
+                        }
                     )
                 )
             }
 
-            // 应用简介部分
             item {
                 SettingsGroup(
                     title = "应用简介",
