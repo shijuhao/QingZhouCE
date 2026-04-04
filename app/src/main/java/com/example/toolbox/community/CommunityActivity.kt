@@ -58,7 +58,6 @@ class CommunityActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val userId = intent.getIntExtra("userId", 0)
         val token = TokenManager.get(this) ?: ""
 
         enableEdgeToEdge()
@@ -69,12 +68,17 @@ class CommunityActivity : ComponentActivity() {
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
 
-                val currentCategoryId by remember { derivedStateOf { state.categoryId } }
+                LaunchedEffect(drawerState.isOpen) {
+                    if (drawerState.isOpen && token.isNotEmpty()) {
+                        viewModel.fetchCategories(token)
+                    }
+                }
+
+                val currentCategoryId = state.categoryId
                 var currentCategoryName by remember { mutableStateOf("轻昼") }
 
                 viewModel.initWebSocket(token)
 
-                // 加载分类数据
                 LaunchedEffect(Unit) {
                     if (token.isNotEmpty()) {
                         viewModel.fetchCategories(token)
@@ -98,7 +102,6 @@ class CommunityActivity : ComponentActivity() {
                 ) {
                     Surface {
                         CommunityScreen(
-                            userId = userId,
                             token = token,
                             drawerState = drawerState,
                             currentCategoryId = currentCategoryId,
@@ -118,7 +121,7 @@ class CommunityActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 123 && resultCode == RESULT_OK) {
             Toast.makeText(this, "发布成功", Toast.LENGTH_SHORT).show()
-            refreshTrigger++ // 触发界面刷新
+            refreshTrigger++
         }
     }
 }
@@ -242,66 +245,69 @@ fun DrawerContent(
             }
         )
 
-        when {
-            state.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+        PullToRefreshBox(
+            isRefreshing = state.isLoading,
+            onRefresh = {
+                scope.launch {
+                    viewModel.fetchCategories(token)
                 }
-            }
-
-            state.errorMessage != null -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "加载失败: ${state.errorMessage}",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { viewModel.fetchCategories(token) }
+            },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when {
+                state.errorMessage != null -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("重试")
+                        Text(
+                            text = "加载失败: ${state.errorMessage}",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { viewModel.fetchCategories(token) }
+                        ) {
+                            Text("重试")
+                        }
                     }
                 }
-            }
 
-            else -> {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    LazyColumn(
+                else -> {
+                    Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(state.categories) { category ->
-                            CategoryItem(
-                                category = category,
-                                onItemClick = {
-                                    onCategorySelected(category.id, category.name)
-                                }
-                            )
-                        }
-
-                        item {
-                            Spacer(modifier = Modifier.height(systemBarsPadding.calculateBottomPadding()))
-                        }
-                    }
-
-                    if (tagStatus == 1 || tagStatus == 4) {
-                        FloatingActionButton(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(16.dp).padding(bottom = systemBarsPadding.calculateBottomPadding()),
-                            onClick = {
-                                showCreateDialog = true
-                            }
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            Icon(Icons.Default.Add, "新建分区")
+                            items(state.categories) { category ->
+                                CategoryItem(
+                                    select = state.categoryId == category.id,
+                                    category = category,
+                                    onItemClick = {
+                                        onCategorySelected(category.id, category.name)
+                                    }
+                                )
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(systemBarsPadding.calculateBottomPadding()))
+                            }
+                        }
+
+                        if (tagStatus == 1 || tagStatus == 4) {
+                            FloatingActionButton(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(16.dp)
+                                    .padding(bottom = systemBarsPadding.calculateBottomPadding()),
+                                onClick = {
+                                    showCreateDialog = true
+                                }
+                            ) {
+                                Icon(Icons.Default.Add, "新建分区")
+                            }
                         }
                     }
                 }
@@ -314,7 +320,6 @@ fun DrawerContent(
 @Composable
 fun CommunityScreen(
     modifier: Modifier = Modifier,
-    userId: Int,
     token: String,
     drawerState: DrawerState,
     currentCategoryId: Int,
@@ -324,6 +329,8 @@ fun CommunityScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    val userId = TokenManager.getUserID(context)
 
     val state by viewModel.state.collectAsState()
 
@@ -607,7 +614,6 @@ fun CommunityScreen(
                                 ) {
                                     MessageItem(
                                         message = msg,
-                                        currentUserId = userId,
                                         onLike = {
                                             viewModel.toggleLike(
                                                 token = token,

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -26,24 +27,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.toolbox.R
+import com.example.toolbox.TokenManager
 import com.example.toolbox.data.community.Category
 import com.example.toolbox.data.community.Message
 import com.example.toolbox.mine.getLevelIconRes
 import com.example.toolbox.utils.MarkdownRenderer
+import kotlinx.coroutines.launch
 
 @Composable
 fun CategoryItem(
+    select: Boolean,
     category: Category,
     onItemClick: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        onClick = onItemClick,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            .clickable{
+                onItemClick()
+            }
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .then(
+                if (select)
+                    Modifier.border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                else
+                    Modifier
+            ),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -89,19 +100,21 @@ fun CategoryItem(
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        shape = CircleShape
+            if (category.stats.has_unread) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = CircleShape
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "${category.stats.unread_count}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "#${category.id}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                }
             }
         }
     }
@@ -110,7 +123,6 @@ fun CategoryItem(
 @Composable
 fun MessageItem(
     message: Message,
-    currentUserId: Int,
     onLike: () -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
@@ -119,9 +131,12 @@ fun MessageItem(
     onImageClick: (List<String>, Int) -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val colorScheme = MaterialTheme.colorScheme
     var showMenu by remember { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
+
+    val currentUserId = TokenManager.getUserID(context)
 
     val usernameColor = when (message.tag_status) {
         1 -> colorScheme.error
@@ -270,6 +285,25 @@ fun MessageItem(
                             },
                             leadingIcon = { 
                                 Icon(Icons.Default.ContentCopy, null, Modifier.size(18.dp)) 
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("+1") },
+                            onClick = {
+                                scope.launch {
+                                    val success = TokenManager.get(context)
+                                        ?.let { addOne(messageId = message.message_id, token = it) }
+
+                                    if (success == true) {
+                                        Toast.makeText(context, "已+1", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "+1失败", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.AddCircle, null, Modifier.size(18.dp))
                             }
                         )
                         

@@ -1,5 +1,6 @@
 package com.example.toolbox.community
 
+import android.util.Log
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.AppJson
 import com.example.toolbox.data.community.ApiResponse
@@ -14,6 +15,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 suspend fun loadCategories(
     client: OkHttpClient,
@@ -139,6 +142,49 @@ suspend fun postReply(
     client.newCall(request).execute().use { response ->
         if (!response.isSuccessful) {
             throw Exception("回复失败")
+        }
+    }
+}
+
+suspend fun addOne(token: String, messageId: Int): Boolean {
+    val client = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .build()
+
+    val jsonBody = JSONObject().toString()
+    val mediaType = "application/json; charset=utf-8".toMediaType()
+    val requestBody = jsonBody.toRequestBody(mediaType)
+
+    val request = Request.Builder()
+        .url("${ApiAddress}add_one/$messageId")
+        .post(requestBody)
+        .addHeader("x-access-token", token)
+        .build()
+
+    return withContext(Dispatchers.IO) {
+        try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext false
+                }
+
+                val responseBody = response.body.string()
+                if (responseBody.isBlank()) {
+                    return@withContext false
+                }
+
+                val jsonResponse = try {
+                    JSONObject(responseBody)
+                } catch (_: Exception) {
+                    return@withContext false
+                }
+
+                jsonResponse.optBoolean("success", false)
+            }
+        } catch (e: Exception) {
+            Log.e("NetworkError", "请求失败", e)
+            false
         }
     }
 }

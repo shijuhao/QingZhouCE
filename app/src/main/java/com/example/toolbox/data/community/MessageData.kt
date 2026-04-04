@@ -1,6 +1,14 @@
+@file:Suppress("PropertyName")
+
 package com.example.toolbox.data.community
 
 import kotlinx.serialization.Serializable
+
+@Serializable
+data class CategoryStats(
+    val has_unread: Boolean = false,
+    val unread_count: Int = 0
+)
 
 @Serializable
 data class Category(
@@ -9,6 +17,7 @@ data class Category(
     val description: String,
     val avatar_url: String,
     val created_at: String,
+    val stats: CategoryStats,
     val latest_message: LatestMessage?
 )
 

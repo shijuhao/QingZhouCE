@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,8 @@ class CustomErrorActivity : ComponentActivity() {
 
         val crashDetails = CustomActivityOnCrash.getAllErrorDetailsFromIntent(this, intent)
         val config = CustomActivityOnCrash.getConfigFromIntent(intent)
+
+        enableEdgeToEdge()
 
         setContent {
             ToolBoxTheme {
@@ -61,16 +64,15 @@ fun ErrorScreen(
     var expanded by remember { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-            .padding(16.dp)
+    Surface(
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .systemBarsPadding()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(

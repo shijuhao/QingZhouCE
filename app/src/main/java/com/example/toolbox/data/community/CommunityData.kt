@@ -1,8 +1,5 @@
 package com.example.toolbox.data.community
 
-import com.example.toolbox.data.community.Category
-import com.example.toolbox.data.community.Message
-
 data class CommunityState(
     val categories: List<Category> = emptyList(),
     val messages: List<Message> = emptyList(),

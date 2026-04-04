@@ -1,3 +1,5 @@
+@file:Suppress("AssignedValueIsNeverRead")
+
 package com.example.toolbox.functionPage
 
 import android.content.Context
@@ -6,6 +8,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -203,7 +206,12 @@ fun HomeScreen(
                                 )
                             }
                             item {
-                                Spacer(modifier = Modifier.height(WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()))
+                                Spacer(
+                                    modifier = Modifier.height(
+                                        WindowInsets.navigationBars.asPaddingValues()
+                                            .calculateBottomPadding()
+                                    )
+                                )
                             }
                         }
                     }
@@ -229,11 +237,9 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // 获取 ViewModel
                         val viewModel: YiYanViewModel = viewModel()
                         val aWordText = viewModel.hitokoto.collectAsState().value
 
-                        // 获取当前日期
                         val currentDate = Date()
                         val dayFormat = SimpleDateFormat("d", Locale.getDefault())
                         val yearWeekFormat = SimpleDateFormat("MMMM yyyy", Locale.ENGLISH)
@@ -260,15 +266,19 @@ fun HomeScreen(
                                         .padding(top = 12.dp, start = 15.dp)
                                 )
 
-                                Text(
-                                    text = aWordText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp, start = 15.dp, bottom = 12.dp)
-                                )
+                                Row {
+                                    Spacer(modifier = Modifier.width(15.dp))
+                                    Text(
+                                        text = aWordText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .basicMarquee()
+                                            .padding(top = 8.dp, bottom = 12.dp)
+                                    )
+                                }
                             }
 
                             Column(
@@ -299,7 +309,6 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(10.dp))
                 }
 
-                // 收藏分类
                 item {
                     FavoriteCategoryCard(
                         favoritesExpanded = expandedState["我的收藏"] == true,
@@ -314,7 +323,6 @@ fun HomeScreen(
                     )
                 }
 
-                // 正常功能分类列表
                 itemsIndexed(functionData) { index, category ->
                     val isExpanded = expandedState[category.name] == true
                     CategoryCard(
@@ -332,7 +340,11 @@ fun HomeScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()))
+                    Spacer(
+                        modifier = Modifier.height(
+                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                        )
+                    )
                 }
             }
 
@@ -353,7 +365,6 @@ fun HomeScreen(
         }
     }
 
-    // 收藏对话框 (保持不变)
     if (showFavoriteDialog && functionToFavorite != null) {
         val isFavorite = FavoriteManager.isFavorite(context, functionToFavorite!!.activity)
         AlertDialog(
@@ -373,7 +384,8 @@ fun HomeScreen(
                             } else {
                                 FavoriteManager.addFavorite(context, functionToFavorite!!.activity)
                             }
-                            favoriteFunctions = FavoriteManager.getFavoriteFunctions(context, allFunctions)
+                            favoriteFunctions =
+                                FavoriteManager.getFavoriteFunctions(context, allFunctions)
                             showFavoriteDialog = false
                         }
                         .padding(16.dp)
@@ -543,7 +555,8 @@ private fun CategoryCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = category.icon?.toPainter() ?: rememberVectorPainter(Icons.Default.Functions),
+                        painter = category.icon?.toPainter()
+                            ?: rememberVectorPainter(Icons.Default.Functions),
                         null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp)
