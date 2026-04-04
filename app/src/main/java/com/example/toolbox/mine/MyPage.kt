@@ -29,7 +29,6 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AssignmentTurnedIn
 import androidx.compose.material.icons.outlined.Leaderboard
@@ -569,68 +568,6 @@ fun ProfileScreen(
                                 }
                             }
                         )
-                    }
-
-                    if (userInfo.tagStatus == 1 || userInfo.tagStatus == 4) {
-                        item {
-                            ItemGroup(
-                                title = "管理员面板",
-                                items = buildList<@Composable () -> Unit> {
-                                    add {
-                                        ListItem(
-                                            headlineContent = { Text("审核资源") },
-                                            supportingContent = {
-                                                Text(text = if (userInfo.hasPendingAudit == 1) "有资源待审核" else "暂无资源待审核")
-                                            },
-                                            leadingContent = {
-                                                Icon(
-                                                    imageVector = Icons.Default.Category,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            },
-                                            colors = ListItemDefaults.colors(
-                                                containerColor = if (userInfo.hasPendingAudit == 1) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-                                            ),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    val intent = Intent(
-                                                        context,
-                                                        ReviewResourcesActivity::class.java
-                                                    )
-                                                    context.startActivity(intent)
-                                                }
-                                        )
-                                    }
-                                    add {
-                                        ListItem(
-                                            headlineContent = { Text("查看举报") },
-                                            supportingContent = { Text("查看所有举报") },
-                                            leadingContent = {
-                                                Icon(
-                                                    imageVector = Icons.Default.Report,
-                                                    contentDescription = "举报",
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            },
-                                            colors = ListItemDefaults.colors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                                            ),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    val intent = Intent(
-                                                        context,
-                                                        ViewReportActivity::class.java
-                                                    )
-                                                    context.startActivity(intent)
-                                                }
-                                        )
-                                    }
-                                }
-                            )
-                        }
                     }
                 }
 
