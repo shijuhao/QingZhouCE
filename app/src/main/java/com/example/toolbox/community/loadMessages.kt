@@ -81,9 +81,8 @@ suspend fun toggleLike(
 
     client.newCall(request).execute().use { response ->
         if (!response.isSuccessful) {
-            throw Exception("操作失败")
+            return@withContext Pair(wasLiked, currentLikeCount)
         }
-        // 计算新的点赞状态
         val newIsLiked = !wasLiked
         val newLikeCount = if (newIsLiked) currentLikeCount + 1 else currentLikeCount - 1
         Pair(newIsLiked, newLikeCount)

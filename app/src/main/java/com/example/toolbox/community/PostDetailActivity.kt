@@ -29,7 +29,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.Terrain
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -147,7 +149,7 @@ class PostDetailActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PostDetailScreen(
     messageId: Int,
@@ -164,6 +166,13 @@ fun PostDetailScreen(
     var showMenu by remember { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
     var showShareSheet by remember { mutableStateOf(false) }
+
+    var replyText by remember { mutableStateOf("") }
+    var isLiked by remember { mutableStateOf(false) }
+    var likeCount by remember { mutableIntStateOf(0) }
+    var isLiking by remember { mutableStateOf(false) }
+    var isReplying by remember { mutableStateOf(false) }
+    val client = remember { OkHttpClient() }
 
     var pendingBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
@@ -221,13 +230,82 @@ fun PostDetailScreen(
                     }
                     val res = it.body.string()
                         .let { string -> AppJson.json.decodeFromString<LocalApiResponse>(string) }
-                    if (res.success) uiState = res.message_info else errorState = res.message
+                    if (res.success) {
+                        uiState = res.message_info
+                        // 更新点赞状态
+                        res.message_info?.let { msg ->
+                            isLiked = msg.is_liked
+                            likeCount = msg.like_count
+                        }
+                    } else {
+                        errorState = res.message
+                    }
                 }
             }
         })
     }
 
     LaunchedEffect(messageId, refreshTrigger) { load() }
+
+    fun handleLike() {
+        if (isLiking) return
+        if (token == null) {
+            Toast.makeText(context, "请先登录", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        scope.launch {
+            isLiking = true
+            try {
+                val (newIsLiked, newLikeCount) = toggleLike(
+                    client = client,
+                    token = token,
+                    messageId = messageId,
+                    wasLiked = isLiked,
+                    currentLikeCount = likeCount
+                )
+                isLiked = newIsLiked
+                likeCount = newLikeCount
+            } catch (e: Exception) {
+                Toast.makeText(context, "点赞失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isLiking = false
+            }
+        }
+    }
+
+    fun handleReply() {
+        if (replyText.isBlank()) {
+            Toast.makeText(context, "请输入回复内容", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (token == null) {
+            Toast.makeText(context, "请先登录", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        scope.launch {
+            isReplying = true
+            try {
+                postReply(
+                    client = client,
+                    token = token,
+                    content = replyText,
+                    categoryId = uiState?.category?.id ?: 0,
+                    refId = messageId,
+                    isPrivate = false,
+                    targetUserId = 0
+                )
+                Toast.makeText(context, "回复成功", Toast.LENGTH_SHORT).show()
+                replyText = ""
+                load()
+            } catch (e: Exception) {
+                Toast.makeText(context, "回复失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isReplying = false
+            }
+        }
+    }
 
     fun editMessage() {
         val intent = Intent(context, PostArticleActivity::class.java).apply {
@@ -300,16 +378,13 @@ fun PostDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = if (uiState?.is_private == true) "私密帖子详情" else "帖子详情",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        if (uiState != null) Text(
-                            text = "ID: ${uiState?.message_id}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                    Text(if (uiState?.is_private == true) "私密帖子详情" else "帖子详情")
+                },
+                subtitle = {
+                    if (uiState != null) Text(
+                        text = "ID: ${uiState?.message_id}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onBack) {
@@ -365,43 +440,128 @@ fun PostDetailScreen(
                                         Modifier.size(18.dp)
                                     )
                                 })
-                                if (it1.sender_info.id == TokenManager.getUserID(context)) {
-                                    DropdownMenuItem(
-                                        text = { Text("编辑留言") },
-                                        onClick = { showMenu = false; editMessage() },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Default.Edit,
-                                                null,
-                                                Modifier.size(18.dp)
-                                            )
-                                        })
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                "删除留言",
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        },
-                                        onClick = { showMenu = false; messageToDelete = true },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                null,
-                                                Modifier.size(18.dp),
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
-                                        })
-                                }
+                            if (it1.sender_info.id == TokenManager.getUserID(context)) {
+                                DropdownMenuItem(
+                                    text = { Text("编辑留言") },
+                                    onClick = { showMenu = false; editMessage() },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            null,
+                                            Modifier.size(18.dp)
+                                        )
+                                    })
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "删除留言",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = { showMenu = false; messageToDelete = true },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            null,
+                                            Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    })
+                            }
                         }
                     }
                 }
             )
+        },
+        bottomBar = {
+            Surface(
+                shadowElevation = 8.dp,
+                tonalElevation = 3.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        IconButton(
+                            onClick = { handleLike() },
+                            enabled = !isLiking,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "点赞",
+                                tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        if (likeCount > 0) {
+                            Text(
+                                text = likeCount.toString(),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(end = 6.dp)
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = replyText,
+                        onValueChange = { replyText = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp),
+                        placeholder = { Text("写下你的回复...", fontSize = 14.sp) },
+                        shape = RoundedCornerShape(24.dp),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent
+                        )
+                    )
+
+                    IconButton(
+                        onClick = { handleReply() },
+                        enabled = replyText.isNotBlank() && !isReplying,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        if (isReplying) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "发送",
+                                tint = if (replyText.isNotBlank())
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     ) { innerPadding ->
         Box(
             modifier = Modifier
-                .padding(top = innerPadding.calculateTopPadding())
+                .padding(innerPadding)
                 .fillMaxSize()
         ) {
             if (errorState != null) {
@@ -626,21 +786,14 @@ fun MessageContent(
 
     Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)) {
         if (msg.is_private) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                shape = RoundedCornerShape(4.dp)
-            ) {
-                Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Lock,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(" 私密消息", fontSize = 12.sp)
-                    if (msg.visible_to != null) Text(" (指定用户可见)", fontSize = 11.sp)
-                }
+            Row(Modifier.fillMaxWidth().padding(start = 8.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(" 私密消息", fontSize = 12.sp)
+                if (msg.visible_to != null) Text(" (指定用户可见)", fontSize = 11.sp)
             }
         }
 
@@ -726,14 +879,6 @@ fun MessageContent(
             ) {
                 Text("查看编辑记录 (${msg.edit_records.size})")
             }
-        }
-
-        if (!screenShotMode) {
-            Spacer(
-                modifier = Modifier.height(
-                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                )
-            )
         }
     }
 }
