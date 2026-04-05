@@ -104,8 +104,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
     var showUpdateLogDialog by remember { mutableStateOf(false) }
     var showUserRulesDialog by remember { mutableStateOf(false) }
 
-    val scrollBehavior =
-        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     val userRules = stringResource(R.string.user_rules)
 
@@ -122,25 +121,19 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                 )
             },
             text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "更新日志：",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Column(
+                    MarkdownRenderer.Render(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text(
-                            text = updateInfo?.releaseNotes?.ifEmpty { "暂无更新日志" } ?: "暂无更新日志",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
+                            .verticalScroll(rememberScrollState()),
+                        content = updateInfo?.releaseNotes?.ifEmpty { "暂无更新日志" } ?: "暂无更新日志"
+                    )
                 }
             },
             confirmButton = {
@@ -173,9 +166,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                 )
             },
             confirmButton = {
-                TextButton(
-                    onClick = { showUserRulesDialog = false }
-                ) {
+                TextButton(onClick = { showUserRulesDialog = false }) {
                     Text("确定")
                 }
             }
@@ -188,9 +179,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = {
-                    Text("关于")
-                },
+                title = { Text("关于") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
                         Icon(
@@ -227,9 +216,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     AppIconViewer()
-
                                     Spacer(modifier = Modifier.height(16.dp))
-
                                     Text(
                                         text = stringResource(id = R.string.app_name),
                                         style = MaterialTheme.typography.headlineSmall.copy(
@@ -305,7 +292,6 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                 )
             }
 
-            // 开发者信息部分
             item {
                 SettingsGroup(
                     title = "开发者信息",
@@ -315,7 +301,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                 icon = Icons.Default.Person,
                                 title = "开发者",
                                 subtitle = "JuHao",
-                                onClick = { /* 开发者名称通常不可点击 */ }
+                                onClick = {}
                             )
                         },
                         {
@@ -331,11 +317,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     try {
                                         context.startActivity(intent)
                                     } catch (_: Exception) {
-                                        Toast.makeText(
-                                            context,
-                                            "无法打开邮件应用",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        Toast.makeText(context, "无法打开邮件应用", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             )
@@ -361,17 +343,9 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     val intent = Intent(Intent.ACTION_SEND).apply {
                                         type = "text/plain"
                                         putExtra(Intent.EXTRA_SUBJECT, "推荐工具箱应用")
-                                        putExtra(
-                                            Intent.EXTRA_TEXT,
-                                            "我正在使用一款很实用的工具箱应用，推荐给你"
-                                        )
+                                        putExtra(Intent.EXTRA_TEXT, "我正在使用一款很实用的工具箱应用，推荐给你")
                                     }
-                                    context.startActivity(
-                                        Intent.createChooser(
-                                            intent,
-                                            "分享应用"
-                                        )
-                                    )
+                                    context.startActivity(Intent.createChooser(intent, "分享应用"))
                                 }
                             )
                         }
@@ -388,9 +362,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                 icon = Icons.Default.Person,
                                 title = "隐私政策",
                                 subtitle = "查看隐私政策条款",
-                                onClick = {
-                                    showUserRulesDialog = true
-                                }
+                                onClick = { showUserRulesDialog = true }
                             )
                         },
                         {
@@ -408,7 +380,6 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                 )
             }
 
-            // 版权信息部分 - 自定义布局，但遵循 SettingsGroup 样式
             item {
                 SettingsGroup(
                     title = null,
@@ -425,9 +396,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-
                                 Spacer(modifier = Modifier.height(4.dp))
-
                                 Text(
                                     text = "All Rights Reserved",
                                     style = MaterialTheme.typography.bodySmall,
