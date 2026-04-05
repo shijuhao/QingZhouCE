@@ -37,12 +37,11 @@ object MarkdownRenderer {
         modifier: Modifier = Modifier,
         content: String,
         onLinkClick: ((String) -> Unit)? = null,
-        onImageClick: ((String, String) -> Unit)? = null  // 参数: url, alt
+        onImageClick: ((String, String) -> Unit)? = null
     ) {
         val context = LocalContext.current
         val defaultUriHandler = LocalUriHandler.current
 
-        // 自定义 URI 处理器（链接点击）
         val customUriHandler = remember(onLinkClick) {
             object : UriHandler {
                 override fun openUri(uri: String) {
@@ -64,7 +63,6 @@ object MarkdownRenderer {
             }
         }
 
-        // 自定义图片组件（处理图片点击）
         val components = markdownComponents(
             image = { componentData ->
                 val imageUrl = componentData.content
@@ -75,11 +73,9 @@ object MarkdownRenderer {
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
                         .clickable {
-                            Log.d(TAG, "图片被点击: $imageUrl")
                             onImageClick?.invoke(imageUrl, altText)
                         }
                 ) {
-                    // 使用 Coil 加载图片
                     AsyncImage(
                         model = imageUrl,
                         contentDescription = altText.ifEmpty { null },
@@ -126,7 +122,6 @@ object MarkdownRenderer {
         }
     }
 
-    // 辅助函数：从 AST 节点获取 alt 文本
     private fun org.intellij.markdown.ast.ASTNode.getAltTextFromNode(content: String): String {
         val linkTextNode = findChildOfType(org.intellij.markdown.MarkdownElementTypes.LINK_TEXT)
         if (linkTextNode != null) {

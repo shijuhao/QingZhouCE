@@ -125,15 +125,31 @@ import java.io.IOException
 class UserInfoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val userId = parseUserId(intent)
         enableEdgeToEdge()
-
-        val userId = intent.getIntExtra("userId", 0)
 
         setContent {
             ToolBoxTheme {
-                UserInfoScreen(userId = userId)
+                if (userId == 0) {
+                    LaunchedEffect(Unit) {
+                        Toast.makeText(this@UserInfoActivity, "无效的用户ID", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                } else {
+                    UserInfoScreen(userId = userId)
+                }
             }
         }
+    }
+
+    private fun parseUserId(intent: Intent): Int {
+        intent.getIntExtra("userId", 0).takeIf { it != 0 }?.let { return it }
+
+        if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+            val uri = intent.data!!
+            uri.getQueryParameter("id")?.toIntOrNull()?.let { return it }
+        }
+        return 0
     }
 }
 
