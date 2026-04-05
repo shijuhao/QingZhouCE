@@ -68,14 +68,12 @@ class CommunityViewModel : ViewModel() {
     private var communitySocket: CommunitySocket? = null
 
     fun initWebSocket(token: String) {
+        if (communitySocket?.isConnected() == true) return
+
         communitySocket?.disconnect()
         communitySocket = CommunitySocket(
             onStatusChanged = { isConnected ->
-                if (!isConnected) {
-                    _state.update { it.copy(wsConnectState = 1) }
-                } else {
-                    _state.update { it.copy(wsConnectState = 2) }
-                }
+                _state.update { it.copy(wsConnectState = if (isConnected) 2 else 1) }
             },
             onEvent = { type, msg, id, count ->
                 handleSocketEvent(type, msg, id, count, state.value.categoryId)

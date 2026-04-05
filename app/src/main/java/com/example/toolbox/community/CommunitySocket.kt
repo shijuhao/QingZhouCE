@@ -33,6 +33,8 @@ class CommunitySocket(
         }
     }
 
+    fun isConnected(): Boolean = socket?.connected() == true
+
     fun connect(token: String?, categoryId: Int) {
         this.currentToken = token
         this.currentCategoryId = categoryId
