@@ -171,7 +171,7 @@ fun MessageItem(
                         .clickable {
                             context.startActivity(
                                 Intent(context, UserInfoActivity::class.java).apply {
-                                    putExtra("username", message.username)
+                                    putExtra("userId", message.userid)
                                 }
                             )
                         },
