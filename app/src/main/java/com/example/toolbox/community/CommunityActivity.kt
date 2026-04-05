@@ -74,7 +74,7 @@ class CommunityActivity : ComponentActivity() {
                     }
                 }
 
-                val currentCategoryId = state.categoryId
+                val currentCategoryId by remember { derivedStateOf { state.categoryId } }
                 var currentCategoryName by remember { mutableStateOf("轻昼") }
 
                 viewModel.initWebSocket(token)
