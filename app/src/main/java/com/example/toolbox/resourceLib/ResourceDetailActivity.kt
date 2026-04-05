@@ -192,7 +192,7 @@ fun Greeting(item: ResourceItem) {
                             .clickable {
                                 context.startActivity(
                                     Intent(context, UserInfoActivity::class.java).apply {
-                                        putExtra("username", item.developer_name)
+                                        putExtra("userId", item.developer_info.id)
                                     }
                                 )
                             }
@@ -210,7 +210,7 @@ fun Greeting(item: ResourceItem) {
 
                         Column {
                             Text(
-                                item.developer_name,
+                                item.developer_info.nickname,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(

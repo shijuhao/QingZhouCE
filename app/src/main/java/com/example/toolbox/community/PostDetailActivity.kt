@@ -365,8 +365,7 @@ fun PostDetailScreen(
                                         Modifier.size(18.dp)
                                     )
                                 })
-                            it1.sender_info?.let {
-                                if (it.id == TokenManager.getUserID(context)) {
+                                if (it1.sender_info.id == TokenManager.getUserID(context)) {
                                     DropdownMenuItem(
                                         text = { Text("编辑留言") },
                                         onClick = { showMenu = false; editMessage() },
@@ -394,7 +393,6 @@ fun PostDetailScreen(
                                             )
                                         })
                                 }
-                            }
                         }
                     }
                 }
@@ -646,7 +644,16 @@ fun MessageContent(
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    val intent = Intent(context, UserInfoActivity::class.java)
+                    intent.putExtra("userId", msg.sender_info.id)
+                    context.startActivity(intent)
+                }
+        ) {
             AsyncImage(
                 model = msg.avatar_url,
                 imageLoader = softwareImageLoader,

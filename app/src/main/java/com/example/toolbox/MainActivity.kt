@@ -174,6 +174,7 @@ fun MyApplicationApp() {
     val uiStatus by mainViewModel.uiStatus.collectAsState()
     val showDialog = uiStatus.showUserDialog
     val userName = userInfo.name
+    val userId = userInfo.id
     val userAvatar = userInfo.avatar
 
     val showSidebar by mainViewModel.showSidebar.collectAsState()
@@ -271,6 +272,7 @@ fun MyApplicationApp() {
 
             UserBottomSheet(
                 show = showDialog,
+                userId = userId,
                 userName = userName,
                 userAvatar = userAvatar,
                 onDismiss = { mainViewModel.changeUserDialogStatus(false) }

@@ -26,7 +26,7 @@ data class MessageInfo(
     val visible_to: List<Int>?,
     val category: CategoryInfo,
     val like_users: List<LikeUser>?,
-    val sender_info: SenderInfo?,
+    val sender_info: SenderInfo,
     val is_edited: Int,
     val edit_records: List<LocalEditRecord>?,
     val referenced_message: ReferencedMessageInfo?

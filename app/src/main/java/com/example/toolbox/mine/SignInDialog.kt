@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,7 +34,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.FormBody
@@ -48,7 +46,7 @@ import java.util.concurrent.TimeUnit
 fun SignInDialog(
     hasSigned: Int,
     onDismiss: () -> Unit,
-    onUserClick: (String) -> Unit = {}
+    onUserClick: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val token = TokenManager.get(context)
@@ -208,7 +206,7 @@ fun SignInDialog(
                                 RankListItem(
                                     rank = index + 1,
                                     rankItem = item,
-                                    onClick = { onUserClick(item.username) }
+                                    onClick = { onUserClick(item.userId) }
                                 )
                             }
                         }
@@ -387,7 +385,7 @@ private suspend fun signInRequest(
                 return@withContext
             }
 
-            if (body.isNullOrEmpty()) {
+            if (body.isEmpty()) {
                 withContext(Dispatchers.Main) {
                     onResult(Result.failure(Exception("服务器返回空数据")))
                 }

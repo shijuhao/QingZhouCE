@@ -55,15 +55,7 @@ class RankActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ToolBoxTheme {
-                val context = LocalContext.current
-
-                RankScreen(
-                    onUserClick = { username ->
-                        val intent = Intent(context, UserInfoActivity::class.java)
-                        intent.putExtra("username", username)
-                        context.startActivity(intent)
-                    }
-                )
+                RankScreen()
             }
         }
     }
@@ -71,7 +63,7 @@ class RankActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RankScreen(onUserClick: (String) -> Unit) {
+fun RankScreen() {
     val context = LocalContext.current
     val tabs = listOf("等级榜", "财富榜", "活跃榜", "投稿榜")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
@@ -119,18 +111,17 @@ fun RankScreen(onUserClick: (String) -> Unit) {
             state = pagerState,
             modifier = Modifier.padding(top = innerPadding.calculateTopPadding())
         ) { pageIndex ->
-            RankList(type = pageIndex, onUserClick = onUserClick)
+            RankList(type = pageIndex)
         }
     }
 }
 
 @Composable
-fun RankList(type: Int, onUserClick: (String) -> Unit) {
+fun RankList(type: Int) {
     var userList by remember { mutableStateOf(listOf<RankUser>()) }
     var isRefreshing by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
 
-    // 对应 Lua 中的接口
     val apiUrl = when (type) {
         0 -> "${ApiAddress}level_rank"
         1 -> "${ApiAddress}wealth_rank"
@@ -175,7 +166,7 @@ fun RankList(type: Int, onUserClick: (String) -> Unit) {
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             itemsIndexed(userList) { index, user ->
-                RankItem(index + 1, user, type, onUserClick)
+                RankItem(index + 1, user, type)
             }
             item {
                 Spacer(modifier = Modifier.height(WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()))
@@ -197,12 +188,18 @@ fun getLevelIconRes(levelStr: String): Int {
 }
 
 @Composable
-fun RankItem(rank: Int, user: RankUser, type: Int, onUserClick: (String) -> Unit) {
+fun RankItem(rank: Int, user: RankUser, type: Int) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
-            .clickable { onUserClick(user.name) },
+            .clickable {
+                val intent = Intent(context, UserInfoActivity::class.java)
+                intent.putExtra("userId", user.userId)
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
@@ -227,9 +224,8 @@ fun RankItem(rank: Int, user: RankUser, type: Int, onUserClick: (String) -> Unit
                 color = rankColor
             )
 
-            // 头像
             AsyncImage(
-                model = user.tx,
+                model = user.avatar,
                 contentDescription = null,
                 modifier = Modifier
                     .size(45.dp)
@@ -240,7 +236,6 @@ fun RankItem(rank: Int, user: RankUser, type: Int, onUserClick: (String) -> Unit
 
             Spacer(Modifier.width(12.dp))
 
-            // 用户名与数值
             Column(modifier = Modifier.weight(1f)) {
                 Text(user.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 val detailText = when (type) {

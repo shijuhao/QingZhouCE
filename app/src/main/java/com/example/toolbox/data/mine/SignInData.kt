@@ -12,6 +12,7 @@ data class RankingResponse(
 data class RankItem(
     val username: String,
     @SerialName("avatar_url") val avatarUrl: String,
+    @SerialName("user_id") val userId: Int = 0,
     val gold: Int,
     @SerialName("consecutive_check_ins") val consecutiveCheckIns: Int,
     @SerialName("total_check_ins") val totalCheckIns: Int

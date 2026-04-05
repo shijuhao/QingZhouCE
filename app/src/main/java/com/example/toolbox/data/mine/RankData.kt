@@ -12,7 +12,8 @@ data class RankResponse(
 @Serializable
 data class RankUser(
     @SerialName("username") val name: String = "",
-    @SerialName("avatar_url") val tx: String = "",
+    @SerialName("avatar_url") val avatar: String = "",
+    @SerialName("user_id") val userId: Int = 0,
     val gold: Int = 0,
     @SerialName("activity_points") val activityPoint: Int = 0,
     @SerialName("resource_count") val resourceCount: Int = 0,

@@ -15,6 +15,7 @@ data class ResourceResponse(
 @Serializable
 data class DeveloperInfo(
     val avatar_url: String,
+    val id: Int,
     val nickname: String
 ) : Parcelable
 

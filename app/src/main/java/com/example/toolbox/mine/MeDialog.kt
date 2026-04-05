@@ -40,6 +40,7 @@ import com.example.toolbox.settings.UserSettingsActivity
 @Composable
 fun UserBottomSheet(
     userName: String,
+    userId: Int,
     userAvatar: String,
     show: Boolean,
     onDismiss: () -> Unit,
@@ -93,16 +94,15 @@ fun UserBottomSheet(
                                 }
                             }
 
-                            // 查看主页
                             add {
                                 SettingsItemCell(
                                     title = "查看主页",
                                     icon = Icons.Default.Person,
                                     subtitle = "查看我的主页",
                                     onClick = {
-                                        onDismiss() // 点击后通常需要关闭 Sheet
+                                        onDismiss()
                                         val intent = Intent(context, UserInfoActivity::class.java)
-                                        intent.putExtra("username", userName)
+                                        intent.putExtra("userId", userId)
                                         context.startActivity(intent)
                                     }
                                 )

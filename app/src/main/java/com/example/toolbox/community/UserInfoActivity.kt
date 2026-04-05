@@ -122,18 +122,16 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
-private var userAvatar = ""
-
 class UserInfoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val username = intent.getStringExtra("username") ?: ""
+        val userId = intent.getIntExtra("userId", 0)
 
         setContent {
             ToolBoxTheme {
-                UserInfoScreen(username = username)
+                UserInfoScreen(userId = userId)
             }
         }
     }
@@ -144,7 +142,7 @@ class UserInfoActivity : ComponentActivity() {
     ExperimentalMaterial3ExpressiveApi::class
 )
 @Composable
-fun UserInfoScreen(username: String) {
+fun UserInfoScreen(userId: Int) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val coroutineScope = rememberCoroutineScope()
@@ -177,7 +175,7 @@ fun UserInfoScreen(username: String) {
 
                 scope.launch {
                     try {
-                        loadNextPage(context, username, page) { newMsgs ->
+                        loadNextPage(context, userId, page) { newMsgs ->
                             if (newMsgs.isEmpty()) {
                                 canLoadMore = false
                             } else {
@@ -202,7 +200,7 @@ fun UserInfoScreen(username: String) {
 
     // 初始化加载数据
     LaunchedEffect(Unit) {
-        loadUserInfo(context, username) { info, msgs, res ->
+        loadUserInfo(context, userId) { info, msgs, res ->
             userInfo = info
             messages = msgs
             resources = res
@@ -295,7 +293,7 @@ fun UserInfoScreen(username: String) {
     val onRefresh: () -> Unit = {
         isRefreshing = true
         scope.launch {
-            loadUserInfo(context, username) { info, msgs, res ->
+            loadUserInfo(context, userId) { info, msgs, res ->
                 userInfo = info
                 messages = msgs
                 resources = res
@@ -1055,7 +1053,7 @@ fun ResourceItem(resource: ResourceItem, onClick: () -> Unit) {
 // 网络请求相关函数
 suspend fun loadUserInfo(
     context: Context,
-    username: String,
+    userId: Int,
     onResult: (UserInfo?, List<UserMessage>, List<ResourceItem>) -> Unit
 ) {
     withContext(Dispatchers.IO) {
@@ -1064,17 +1062,16 @@ suspend fun loadUserInfo(
 
         try {
             // 获取用户信息
-            val userInfo = token?.let { fetchUserInfo(client, it, username) }
+            val userInfo = token?.let { fetchUserInfo(client, it, userId) }
 
-            userInfo?.let { userAvatar = it.avatar }
             // 获取用户帖子
             val messages = userInfo?.let {
-                getUserMessages(client, token, it.username, it.avatar)
+                getUserMessages(client, token, it.userId)
             } ?: emptyList()
 
             // 获取用户资源
             val resources = userInfo?.let {
-                getUserResources(client, token, it.username)
+                getUserResources(client, token, it.userId)
             } ?: emptyList()
 
             withContext(Dispatchers.Main) {
@@ -1092,7 +1089,7 @@ suspend fun loadUserInfo(
 private suspend fun fetchUserInfo(
     client: OkHttpClient,
     token: String,
-    username: String
+    userId: Int
 ): UserInfo? {
     return withContext(Dispatchers.IO) {
         try {
@@ -1100,7 +1097,7 @@ private suspend fun fetchUserInfo(
                 .url("${ApiAddress}user_info")
                 .post(
                     JSONObject().apply {
-                        put("username", username)
+                        put("user_id", userId)
                     }.toString().toRequestBody("application/json".toMediaType())
                 )
                 .addHeader("x-access-token", token)
@@ -1146,8 +1143,7 @@ private suspend fun fetchUserInfo(
 private suspend fun getUserMessages(
     client: OkHttpClient,
     token: String,
-    username: String,
-    useravatar: String,
+    userId: Int,
     page: Int = 1
 ): List<UserMessage> = withContext(Dispatchers.IO) {
     try {
@@ -1157,7 +1153,7 @@ private suspend fun getUserMessages(
                 JSONObject().apply {
                     put("per_page", 25)
                     put("page", page)
-                    put("username", username)
+                    put("user_id", userId)
                 }.toString().toRequestBody("application/json".toMediaType())
             )
             .addHeader("x-access-token", token)
@@ -1215,8 +1211,8 @@ private suspend fun getUserMessages(
             messages.add(
                 UserMessage(
                     id = msgJson.getInt("message_id"),
-                    username = username,
-                    avatar = useravatar,
+                    username = msgJson.getString("username"),
+                    avatar = msgJson.getString("avatar_url"),
                     content = contentText,
                     type = messageType,
                     images = images,
@@ -1246,14 +1242,14 @@ private suspend fun getUserMessages(
 
 suspend fun loadNextPage(
     context: Context,
-    username: String,
+    userId: Int,
     page: Int,
     onResult: (List<UserMessage>) -> Unit
 ) {
     val client = OkHttpClient()
     val token = TokenManager.get(context)
 
-    val msgs = token?.let { getUserMessages(client, it, username, userAvatar, page + 1) }
+    val msgs = token?.let { getUserMessages(client, it, userId, page + 1) }
     msgs?.let { onResult(it) }
 }
 
@@ -1330,13 +1326,13 @@ private suspend fun performReportUser(
 private suspend fun getUserResources(
     client: OkHttpClient,
     token: String,
-    username: String
+    userId: Int
 ): List<ResourceItem> = withContext(Dispatchers.IO) {
     try {
         val request = Request.Builder()
-            .url("${ApiAddress}get_user_resources_by_username")
+            .url("${ApiAddress}get_user_resources")
             .post(
-                JSONObject().apply { put("username", username) }
+                JSONObject().apply { put("user_id", userId) }
                     .toString()
                     .toRequestBody("application/json".toMediaType())
             )
