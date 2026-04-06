@@ -42,7 +42,8 @@ class SettingsActivity : ComponentActivity() {
 }
 
 data class ActionData(
-    var isOpenCancelTips: Boolean = false
+    var isOpenCancelTips: Boolean = false,
+    var isDisabledNotice: Boolean = false
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +59,8 @@ fun SettingsScreen(
     val actionData = ActionData()
     actionData.isOpenCancelTips = prefs.getBoolean("exit_confirmation", false)
     var isOpenCancelTips by remember { mutableStateOf(actionData.isOpenCancelTips) }
+    actionData.isDisabledNotice = prefs.getBoolean("disabled_community_notices", false)
+    var isDisabledNotice by remember { mutableStateOf(actionData.isDisabledNotice) }
 
     Scaffold(
         modifier = modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -105,6 +108,22 @@ fun SettingsScreen(
                                     isOpenCancelTips = actionData.isOpenCancelTips
                                     prefs.edit().apply {
                                         putBoolean("exit_confirmation", isOpenCancelTips)
+                                        apply()
+                                    }
+                                }
+                            )
+                        },
+                        {
+                            SettingsSwitchItem(
+                                icon = Icons.Default.Notifications,
+                                title = "禁用社区通知",
+                                subtitle = "不再显示通知按钮",
+                                checked = isDisabledNotice,
+                                onCheckedChange = {
+                                    actionData.isDisabledNotice = !actionData.isDisabledNotice
+                                    isDisabledNotice = actionData.isDisabledNotice
+                                    prefs.edit().apply {
+                                        putBoolean("disabled_community_notices", isDisabledNotice)
                                         apply()
                                     }
                                 }

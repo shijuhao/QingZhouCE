@@ -2,7 +2,7 @@
 
 package com.example.toolbox.mine
 
-import android.content.Context
+import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -110,6 +110,8 @@ fun ProfileScreen(
     onStart: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val prefs = context.getSharedPreferences("app_preferences", MODE_PRIVATE)
+    var isDisabledNotice by remember { mutableStateOf(prefs.getBoolean("disabled_community_notices", false)) }
 
     var userToken: String? by remember { mutableStateOf(TokenManager.get(context) ?: "null") }
     var userTokenOld: String? by remember { mutableStateOf(TokenManager.getOld(context) ?: "null") }
@@ -130,6 +132,7 @@ fun ProfileScreen(
 
     OnResumeScreen(
         onResume = {
+            isDisabledNotice = prefs.getBoolean("disabled_community_notices", false)
             val currentToken = TokenManager.get(context) ?: "null"
             if (currentToken != "null") {
                 userToken = currentToken
@@ -245,7 +248,7 @@ fun ProfileScreen(
                                         } else {
                                             val prefs = context.getSharedPreferences(
                                                 "app_preferences",
-                                                Context.MODE_PRIVATE
+                                                MODE_PRIVATE
                                             )
                                             prefs.edit().apply {
                                                 remove("token")
@@ -455,29 +458,31 @@ fun ProfileScreen(
                                     )
                                 }
 
-                                add {
-                                    ListItem(
-                                        headlineContent = {
-                                            Text(text = if (userInfo.notice == 1) "有新通知" else "通知")
-                                        },
-                                        leadingContent = {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Notifications,
-                                                contentDescription = "通知",
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        },
-                                        colors = ListItemDefaults.colors(
-                                            containerColor = if (userInfo.notice == 1) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                val intent =
-                                                    Intent(context, NoticeActivity::class.java)
-                                                context.startActivity(intent)
-                                            }
-                                    )
+                                if (!isDisabledNotice) {
+                                    add {
+                                        ListItem(
+                                            headlineContent = {
+                                                Text(text = if (userInfo.notice == 1) "有新通知" else "通知")
+                                            },
+                                            leadingContent = {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Notifications,
+                                                    contentDescription = "通知",
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            },
+                                            colors = ListItemDefaults.colors(
+                                                containerColor = if (userInfo.notice == 1) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+                                            ),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    val intent =
+                                                        Intent(context, NoticeActivity::class.java)
+                                                    context.startActivity(intent)
+                                                }
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -178,7 +178,6 @@ fun MessageItem(
                     contentScale = ContentScale.Crop
                 )
 
-                // 用户信息
                 Column(
                     modifier = Modifier
                         .padding(start = 12.dp)
@@ -395,7 +394,6 @@ fun MessageItem(
                 }
             }
 
-            // 引用回复卡片
             if (message.is_referenced && message.referenced_message != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
