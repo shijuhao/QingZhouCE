@@ -109,51 +109,38 @@ fun InfoScreen(modifier: Modifier = Modifier) {
     val userRules = stringResource(R.string.user_rules)
 
     if (showUpdateDialog && updateInfo != null) {
-        AlertDialog(
-            onDismissRequest = { showUpdateDialog = false },
-            title = {
-                Text(
-                    text = if (updateInfo?.isPreRelease == true) {
-                        "发现新预发布版 ${updateInfo?.version}"
-                    } else {
-                        "发现新版本 ${updateInfo?.version}"
-                    }
-                )
-            },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "更新日志：",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    MarkdownRenderer.Render(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState()),
-                        content = updateInfo?.releaseNotes?.ifEmpty { "暂无更新日志" } ?: "暂无更新日志"
-                    )
+    AlertDialog(
+        onDismissRequest = { showUpdateDialog = false },
+        title = {
+            Text(
+                text = if (updateInfo?.isPreRelease == true) {
+                    "发现新预发布版 ${updateInfo?.version}"
+                } else {
+                    "发现新版本 ${updateInfo?.version}"
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, updateInfo?.releaseUrl?.toUri())
-                        context.startActivity(intent)
-                        showUpdateDialog = false
-                    }
-                ) {
-                    Text("前往下载")
+            )
+        },
+        text = {
+            Text("是否前往下载最新版本？")
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, updateInfo?.releaseUrl?.toUri())
+                    context.startActivity(intent)
+                    showUpdateDialog = false
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUpdateDialog = false }) {
-                    Text("稍后")
-                }
+            ) {
+                Text("前往下载")
             }
-        )
-    }
+        },
+        dismissButton = {
+            TextButton(onClick = { showUpdateDialog = false }) {
+                Text("稍后")
+            }
+        }
+    )
+}
 
     if (showUserRulesDialog) {
         AlertDialog(
@@ -255,7 +242,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     lifecycleScope?.launch {
                                         val info = checkForUpdateWithDetails(
                                             context = context,
-                                            includePreRelease = false
+                                            includePreRelease = true
                                         )
                                         if (info != null) {
                                             updateInfo = info
@@ -319,18 +306,6 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     } catch (_: Exception) {
                                         Toast.makeText(context, "无法打开邮件应用", Toast.LENGTH_SHORT).show()
                                     }
-                                }
-                            )
-                        },
-                        {
-                            SettingsItemCell(
-                                icon = Icons.Default.Web,
-                                title = "官方网站",
-                                subtitle = "http://text.kt-network.cn/qingzhou",
-                                onClick = {
-                                    val intent = Intent(context, WebViewActivity::class.java)
-                                    intent.putExtra("url", "http://text.kt-network.cn/qingzhou")
-                                    context.startActivity(intent)
                                 }
                             )
                         },
