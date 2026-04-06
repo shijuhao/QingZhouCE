@@ -5,16 +5,10 @@
 ## 📱 界面预览
 
 <div align="center">
-  <table>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/f9552e3a-9d2c-4a17-977f-95d45d31d910" width="250" alt="主界面"/></td>
-      <td><img src="https://github.com/user-attachments/assets/2bc3ecc8-8413-4f63-903e-684ef250bc67" width="250" alt="资源库页面"/></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/3bdd8808-23b8-4e4a-ae4d-445b22d864c1" width="250" alt="我的页面"/></td>
-      <td><img src="https://github.com/user-attachments/assets/edd49415-8b90-47d5-ab87-5ab21d6a3fd2" width="250" alt="帖子列表页面"/></td>
-    </tr>
-  </table>
+  <img src="https://github.com/user-attachments/assets/f9552e3a-9d2c-4a17-977f-95d45d31d910" width="200" hspace="5"/>
+  <img src="https://github.com/user-attachments/assets/2bc3ecc8-8413-4f63-903e-684ef250bc67" width="200" hspace="5"/>
+  <img src="https://github.com/user-attachments/assets/3bdd8808-23b8-4e4a-ae4d-445b22d864c1" width="200" hspace="5"/>
+  <img src="https://github.com/user-attachments/assets/edd49415-8b90-47d5-ab87-5ab21d6a3fd2" width="200" hspace="5"/>
 </div>
 
 ## 🛠️ 技术栈
