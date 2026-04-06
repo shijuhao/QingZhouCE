@@ -25,7 +25,8 @@
       <td align="center"><img src=".github/images/4.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>我的页面</b></td>
     </tr>
     <tr>
-      <td align="center" colspan="2"><img src=".github/images/5.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>设置页面</b></td>
+      <td align="center" colspan="2"><img src=".github/images/5.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>帖子列表页面</b></td>
+      <td align="center" colspan="2"><img src=".github/images/6.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>设置页面</b></td>
     </tr>
    </table>
 </div>
