@@ -4,13 +4,21 @@
 
 ## 📱 界面预览
 
-<p align="center">
-  <img src=".github/images/1.jpg" width="200" />
-  <img src=".github/images/2.jpg" width="200" />
-  <img src=".github/images/3.jpg" width="200" />
-  <img src=".github/images/4.jpg" width="200" />
-  <img src=".github/images/5.jpg" width="200" />
-</p>
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><img src=".github/images/1.jpg" width="200" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+      <td align="center"><img src=".github/images/2.jpg" width="200" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src=".github/images/3.jpg" width="200" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+      <td align="center"><img src=".github/images/4.jpg" width="200" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+    </tr>
+    <tr>
+      <td align="center" colspan="2"><img src=".github/images/5.jpg" width="200" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+    </tr>
+  </table>
+</div>
 
 ## 🛠️ 技术栈
 
