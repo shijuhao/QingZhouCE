@@ -151,9 +151,9 @@ fun ProfileScreen(
                 isShowSignInDialog = false
                 userToken?.let { mainViewModel.refreshUserInfo(it) }
             },
-            onUserClick = { username ->
+            onUserClick = { userId ->
                 val intent = Intent(context, UserInfoActivity::class.java)
-                intent.putExtra("username", username)
+                intent.putExtra("userId", userId)
                 context.startActivity(intent)
             }
         )
