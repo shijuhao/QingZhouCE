@@ -352,7 +352,7 @@ fun MainNoticeScreen(
                                         text = "系统通知",
                                         icon = Icons.Default.Key,
                                         color = Color(0xFF9E9E9E),
-                                        onClick = { onNavigateToType("设备登录", "0,7,8,9,10") },
+                                        onClick = { onNavigateToType("系统通知", "0,7,8,9,10") },
                                         modifier = Modifier.fillMaxWidth(),
                                         unreadCount = systemUnreadCount
                                     )
