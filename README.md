@@ -5,7 +5,7 @@
 ## 📱 界面预览
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/shijuhao/QingZhouCE/main/.github/images/1.jpg" width="200" />
+  <img src=".github/images/1.jpg" width="200" />
   <img src=".github/images/2.jpg" width="200" style="margin: 5px;" />
   <br />
   <img src=".github/images/3.jpg" width="200" style="margin: 5px;" />
