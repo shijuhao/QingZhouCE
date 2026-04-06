@@ -54,7 +54,7 @@ data class MessageContent(
     val type: String,
     val text: String?,
     val url: String?,
-    val title: String?,
+    val title: String = "",
     val content: String?,
     val images: List<String>?
 )
