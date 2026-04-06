@@ -191,7 +191,7 @@ class MessageDetailActivity : ComponentActivity() {
                                             .clickable {
                                                 startActivity(
                                                     Intent(this, UserInfoActivity::class.java).apply {
-                                                        putExtra("username", uiState.otherUser!!.username)
+                                                        putExtra("userId", uiState.otherUser!!.id)
                                                     }
                                                 )
                                             }
