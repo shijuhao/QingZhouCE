@@ -4,13 +4,15 @@
 
 ## 📱 界面预览
 
-| 主界面 | 资源库页面 |
-|:---:|:---:|
-| ![主界面](https://github.com/user-attachments/assets/f9552e3a-9d2c-4a17-977f-95d45d31d910) | ![资源库页面](https://github.com/user-attachments/assets/2bc3ecc8-8413-4f63-903e-684ef250bc67) |
-
-| 我的页面 | 帖子列表页面 |
-|:---:|:---:|
-| ![我的页面](https://github.com/user-attachments/assets/3bdd8808-23b8-4e4a-ae4d-445b22d864c1) | ![帖子列表页面](https://github.com/user-attachments/assets/edd49415-8b90-47d5-ab87-5ab21d6a3fd2) |
+<div align="center">
+  <img src=".github/images/1.jpg" width="200" style="margin: 5px;" />
+  <img src=".github/images/2.jpg" width="200" style="margin: 5px;" />
+  <br />
+  <img src=".github/images/3.jpg" width="200" style="margin: 5px;" />
+  <img src=".github/images/4.jpg" width="200" style="margin: 5px;" />
+  <br />
+  <img src=".github/images/5.jpg" width="200" style="margin: 5px;" />
+</div>
 
 ## 🛠️ 技术栈
 
