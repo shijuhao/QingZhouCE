@@ -1048,7 +1048,7 @@ fun ContentRenderer(
     when (content.type) {
         "image" -> {}
         "post" -> {
-            Text("[帖子] ${content.title}", fontWeight = FontWeight.Bold)
+            Text(content.title, style = MaterialTheme.typography.bodyLarge)
             if (msg.is_markdown) MarkdownText(content.content ?: "") else Text(
                 content.content ?: "", style = MaterialTheme.typography.bodyLarge
             )
