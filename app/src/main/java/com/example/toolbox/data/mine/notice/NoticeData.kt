@@ -19,6 +19,18 @@ data class Notification(
     val friendRequestInfo: FriendRequestInfo? = null
 )
 
+data class SummaryData(
+    val totalUnread: Int,
+    val typeUnreadCounts: Map<String, Int>,
+    val typeUnreadDetails: List<TypeUnreadDetail>
+)
+
+data class TypeUnreadDetail(
+    val type: Int,
+    val typeName: String,
+    val unreadCount: Int
+)
+
 // 发送者信息
 data class Sender(
     val id: Int = 0,                    // 发送者ID，系统通知为0
@@ -60,3 +72,4 @@ data class FriendRequestInfo(
     val status: Int,                    // 0-待处理，1-已接受，2-已拒绝，3-已删除
     val createdAt: String
 )
+

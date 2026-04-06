@@ -7,7 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,7 +24,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -36,6 +34,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -53,6 +52,8 @@ import com.example.toolbox.TokenManager
 import com.example.toolbox.data.mine.notice.LikeInfo
 import com.example.toolbox.data.mine.notice.Notification
 import com.example.toolbox.data.mine.notice.Sender
+import com.example.toolbox.data.mine.notice.SummaryData
+import com.example.toolbox.data.mine.notice.TypeUnreadDetail
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -97,6 +98,9 @@ fun NoticeNavHost(
 ) {
     val navController = rememberNavController()
 
+    var isNavigating by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
     NavHost(
         navController = navController,
         startDestination = "main"
@@ -105,7 +109,14 @@ fun NoticeNavHost(
             MainNoticeScreen(
                 onBack = onBack,
                 onNavigateToType = { typeName, typeValue ->
-                    navController.navigate("type/$typeName?type=$typeValue")
+                    if (!isNavigating) {
+                        isNavigating = true
+                        navController.navigate("type/$typeName?type=$typeValue")
+                        scope.launch {
+                            delay(500)
+                            isNavigating = false
+                        }
+                    }
                 },
                 okHttpClient = okHttpClient,
                 apiUrl = apiUrl
@@ -120,10 +131,24 @@ fun NoticeNavHost(
         ) { backStackEntry ->
             val typeName = backStackEntry.arguments?.getString("typeName") ?: ""
             val typeValue = backStackEntry.arguments?.getString("type") ?: ""
+
             TypeNoticeScreen(
                 typeName = typeName,
                 typeValue = typeValue,
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    if (!isNavigating) {
+                        if (navController.previousBackStackEntry != null) {
+                            isNavigating = true
+                            navController.popBackStack()
+                            scope.launch {
+                                delay(500)
+                                isNavigating = false
+                            }
+                        } else {
+                            onBack()
+                        }
+                    }
+                },
                 okHttpClient = okHttpClient,
                 apiUrl = apiUrl
             )
@@ -150,22 +175,41 @@ fun MainNoticeScreen(
     var isLoadingMore by remember { mutableStateOf(false) }
     var hasMore by remember { mutableStateOf(true) }
 
+    // ========== 新增：存储各类型未读数量 ==========
+    var likeUnreadCount by remember { mutableIntStateOf(0) }      // 类型2
+    var resourceUnreadCount by remember { mutableIntStateOf(0) }  // 类型4,5
+    var followUnreadCount by remember { mutableIntStateOf(0) }    // 类型6
+    var systemUnreadCount by remember { mutableIntStateOf(0) }    // 类型0,7,8,9,10
+    // ==========================================
+
     val lazyListState = rememberLazyListState()
 
-    // 加载数据
     LaunchedEffect(Unit) {
         token?.let {
-            loadNotificationsV2(
+            loadNotificationsV2WithSummary(
                 notifications = notifications,
                 okHttpClient = okHttpClient,
                 apiUrl = apiUrl,
                 token = it,
                 page = 1,
-                type = "3",
+                type = "3",  // 保持不变
                 clearList = true
-            ) { newItemsCount ->
+            ) { newItemsCount, summary ->
                 isLoading = false
                 hasMore = newItemsCount > 0
+
+                if (summary != null) {
+                    val typeCounts = summary.typeUnreadCounts
+                    likeUnreadCount = typeCounts["2"] ?: 0
+                    resourceUnreadCount = (typeCounts["4"] ?: 0) + (typeCounts["5"] ?: 0)
+                    followUnreadCount = typeCounts["6"] ?: 0
+                    systemUnreadCount = (typeCounts["0"] ?: 0) +
+                            (typeCounts["7"] ?: 0) +
+                            (typeCounts["8"] ?: 0) +
+                            (typeCounts["9"] ?: 0) +
+                            (typeCounts["10"] ?: 0)
+                }
+                // ======================================
             }
         }
     }
@@ -185,7 +229,7 @@ fun MainNoticeScreen(
                     ) {
                         isLoadingMore = true
                         token?.let {
-                            loadNotificationsV2(
+                            loadNotificationsV2WithSummary(
                                 notifications = notifications,
                                 okHttpClient = okHttpClient,
                                 apiUrl = apiUrl,
@@ -193,7 +237,7 @@ fun MainNoticeScreen(
                                 page = currentPage + 1,
                                 type = "3",
                                 clearList = false
-                            ) { newItemsCount ->
+                            ) { newItemsCount, _ ->
                                 if (newItemsCount > 0) {
                                     currentPage++
                                 } else {
@@ -224,38 +268,6 @@ fun MainNoticeScreen(
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding())
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                NoticeTypeButton(
-                    text = "点赞通知",
-                    icon = Icons.Default.Favorite,
-                    onClick = { onNavigateToType("点赞通知", "2") },
-                    modifier = Modifier.weight(1f)
-                )
-                NoticeTypeButton(
-                    text = "资源通知",
-                    icon = Icons.Default.Inbox,
-                    onClick = { onNavigateToType("资源通知", "4,5") },
-                    modifier = Modifier.weight(1f)
-                )
-                NoticeTypeButton(
-                    text = "关注通知",
-                    icon = Icons.Default.Person,
-                    onClick = { onNavigateToType("关注通知", "6") },
-                    modifier = Modifier.weight(1f)
-                )
-                NoticeTypeButton(
-                    text = "设备登录",
-                    icon = Icons.Default.Key,
-                    onClick = { onNavigateToType("设备登录", "0") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
             Box(modifier = Modifier.fillMaxSize()) {
                 if (isLoading) {
                     Box(
@@ -278,7 +290,7 @@ fun MainNoticeScreen(
                             onRefresh = {
                                 isRefreshing = true
                                 token?.let {
-                                    loadNotificationsV2(
+                                    loadNotificationsV2WithSummary(
                                         notifications = notifications,
                                         okHttpClient = okHttpClient,
                                         apiUrl = apiUrl,
@@ -286,10 +298,22 @@ fun MainNoticeScreen(
                                         page = 1,
                                         type = "3",
                                         clearList = true
-                                    ) { newItemsCount ->
+                                    ) { newItemsCount, summary ->
                                         isRefreshing = false
                                         currentPage = 1
                                         hasMore = newItemsCount > 0
+
+                                        if (summary != null) {
+                                            val typeCounts = summary.typeUnreadCounts
+                                            likeUnreadCount = typeCounts["2"] ?: 0
+                                            resourceUnreadCount = (typeCounts["4"] ?: 0) + (typeCounts["5"] ?: 0)
+                                            followUnreadCount = typeCounts["6"] ?: 0
+                                            systemUnreadCount = (typeCounts["0"] ?: 0) +
+                                                    (typeCounts["7"] ?: 0) +
+                                                    (typeCounts["8"] ?: 0) +
+                                                    (typeCounts["9"] ?: 0) +
+                                                    (typeCounts["10"] ?: 0)
+                                        }
                                     }
                                 }
                             },
@@ -299,6 +323,41 @@ fun MainNoticeScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 state = lazyListState
                             ) {
+                                item{
+                                    NoticeTypeButton(
+                                        text = "点赞通知",
+                                        icon = Icons.Default.Favorite,
+                                        color = Color(0xFFE57373),
+                                        onClick = { onNavigateToType("点赞通知", "2") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        unreadCount = likeUnreadCount
+                                    )
+                                    NoticeTypeButton(
+                                        text = "资源通知",
+                                        icon = Icons.Default.Inbox,
+                                        color = Color(0xFF81C784),
+                                        onClick = { onNavigateToType("资源通知", "4,5") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        unreadCount = resourceUnreadCount
+                                    )
+                                    NoticeTypeButton(
+                                        text = "关注通知",
+                                        icon = Icons.Default.Person,
+                                        color = Color(0xFF64B5F6),
+                                        onClick = { onNavigateToType("关注通知", "6") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        unreadCount = followUnreadCount
+                                    )
+                                    NoticeTypeButton(
+                                        text = "系统通知",
+                                        icon = Icons.Default.Key,
+                                        color = Color(0xFF9E9E9E),
+                                        onClick = { onNavigateToType("设备登录", "0,7,8,9,10") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        unreadCount = systemUnreadCount
+                                    )
+                                }
+
                                 items(notifications) { notification ->
                                     NotificationItem(
                                         notification = notification,
@@ -378,7 +437,7 @@ fun TypeNoticeScreen(
 
     LaunchedEffect(Unit) {
         token?.let {
-            loadNotificationsV2(
+            loadNotificationsV2WithSummary(
                 notifications = notifications,
                 okHttpClient = okHttpClient,
                 apiUrl = apiUrl,
@@ -386,7 +445,7 @@ fun TypeNoticeScreen(
                 page = 1,
                 type = typeValue,
                 clearList = true
-            ) { newItemsCount ->
+            ) { newItemsCount, _ ->
                 isLoading = false
                 hasMore = newItemsCount > 0
             }
@@ -407,7 +466,7 @@ fun TypeNoticeScreen(
                     ) {
                         isLoadingMore = true
                         token?.let {
-                            loadNotificationsV2(
+                            loadNotificationsV2WithSummary(
                                 notifications = notifications,
                                 okHttpClient = okHttpClient,
                                 apiUrl = apiUrl,
@@ -415,7 +474,7 @@ fun TypeNoticeScreen(
                                 page = currentPage + 1,
                                 type = typeValue,
                                 clearList = false
-                            ) { newItemsCount ->
+                            ) { newItemsCount, _ ->
                                 if (newItemsCount > 0) {
                                     currentPage++
                                 } else {
@@ -467,7 +526,7 @@ fun TypeNoticeScreen(
                         onRefresh = {
                             isRefreshing = true
                             token?.let {
-                                loadNotificationsV2(
+                                loadNotificationsV2WithSummary(
                                     notifications = notifications,
                                     okHttpClient = okHttpClient,
                                     apiUrl = apiUrl,
@@ -475,7 +534,7 @@ fun TypeNoticeScreen(
                                     page = 1,
                                     type = typeValue,
                                     clearList = true
-                                ) { newItemsCount ->
+                                ) { newItemsCount, _ ->
                                     isRefreshing = false
                                     currentPage = 1
                                     hasMore = newItemsCount > 0
@@ -547,17 +606,53 @@ fun TypeNoticeScreen(
 fun NoticeTypeButton(
     modifier: Modifier = Modifier,
     text: String,
+    color: Color,
     icon: ImageVector,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    unreadCount: Int = 0  // ========== 新增参数 ==========
 ) {
-    Button(
+    Surface(
         onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp)
+        modifier = modifier
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(text, fontSize = 12.sp)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = color,
+                contentColor = Color(0xFFFFFFFF)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Text(
+                modifier = Modifier.weight(1f),
+                text = text,
+                fontSize = 16.sp,
+                fontWeight = if (unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+                color = if (unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+
+            if (unreadCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error)
+                )
+            }
+        }
     }
 }
 
@@ -566,16 +661,11 @@ fun NotificationItem(
     notification: Notification,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isNew) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
-        )
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
@@ -583,7 +673,6 @@ fun NotificationItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 头像（如果有）
             if (notification.sender != null && notification.sender.avatarUrl.isNotBlank()) {
                 Image(
                     painter = rememberAsyncImagePainter(notification.sender.avatarUrl),
@@ -594,7 +683,6 @@ fun NotificationItem(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // 默认图标
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -614,7 +702,6 @@ fun NotificationItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // 内容
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -646,7 +733,6 @@ fun NotificationItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // 显示时间（可选）
                 if (notification.timestamp.isNotBlank()) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
@@ -675,7 +761,7 @@ private fun getIconForType(type: Int): ImageVector {
     }
 }
 
-private fun loadNotificationsV2(
+private fun loadNotificationsV2WithSummary(
     notifications: SnapshotStateList<Notification>,
     okHttpClient: OkHttpClient,
     apiUrl: String,
@@ -683,12 +769,10 @@ private fun loadNotificationsV2(
     page: Int,
     type: String?,
     clearList: Boolean,
-    onComplete: (Int) -> Unit
+    onComplete: (Int, SummaryData?) -> Unit  // 修改回调，增加 summary 参数
 ) {
-    // 在IO线程启动协程执行网络请求
     CoroutineScope(Dispatchers.IO).launch {
         try {
-            // 构建URL，添加type参数（如果有）
             val urlBuilder = "${apiUrl}v2/notifications?page=$page&per_page=20"
             val finalUrl = if (!type.isNullOrBlank()) "$urlBuilder&type=$type" else urlBuilder
 
@@ -697,7 +781,6 @@ private fun loadNotificationsV2(
                 .addHeader("x-access-token", token)
                 .build()
 
-            // 执行网络请求（已在IO线程）
             val response = okHttpClient.newCall(request).execute()
 
             if (response.isSuccessful) {
@@ -705,6 +788,47 @@ private fun loadNotificationsV2(
                 val jsonObject = JSONObject(responseBody)
                 val data = jsonObject.getJSONObject("data")
                 val notificationsArray = data.getJSONArray("notifications")
+
+                // ========== 新增：解析 summary ==========
+                var summaryData: SummaryData? = null
+                if (data.has("summary")) {
+                    val summaryObj = data.getJSONObject("summary")
+                    val totalUnread = summaryObj.optInt("total_unread", 0)
+
+                    // 解析 type_unread_counts
+                    val typeUnreadCounts = mutableMapOf<String, Int>()
+                    val countsObj = summaryObj.optJSONObject("type_unread_counts")
+                    if (countsObj != null) {
+                        val keys = countsObj.keys()
+                        while (keys.hasNext()) {
+                            val key = keys.next()
+                            typeUnreadCounts[key] = countsObj.optInt(key, 0)
+                        }
+                    }
+
+                    // 解析 type_unread_details（可选，暂时不用）
+                    val typeUnreadDetails = mutableListOf<TypeUnreadDetail>()
+                    val detailsArray = summaryObj.optJSONArray("type_unread_details")
+                    if (detailsArray != null) {
+                        for (i in 0 until detailsArray.length()) {
+                            val detailObj = detailsArray.getJSONObject(i)
+                            typeUnreadDetails.add(
+                                TypeUnreadDetail(
+                                    type = detailObj.optInt("type", 0),
+                                    typeName = detailObj.optString("type_name", ""),
+                                    unreadCount = detailObj.optInt("unread_count", 0)
+                                )
+                            )
+                        }
+                    }
+
+                    summaryData = SummaryData(
+                        totalUnread = totalUnread,
+                        typeUnreadCounts = typeUnreadCounts,
+                        typeUnreadDetails = typeUnreadDetails
+                    )
+                }
+                // ========================================
 
                 val newNotifications = mutableListOf<Notification>()
 
@@ -767,7 +891,7 @@ private fun loadNotificationsV2(
                                 "$username 给你点赞"
                             }
                         }
-                        3 -> content ?: "${sender?.username ?: "用户"} 回复了你的评论"
+                        3 -> content.ifBlank { "${sender?.username ?: "用户"} 回复了你的评论" }
                         6 -> "${sender?.username ?: "用户"} 关注了你"
                         else -> content.ifBlank { "您有一条新通知" }
                     }
@@ -787,25 +911,22 @@ private fun loadNotificationsV2(
                     )
                 }
 
-                // 切换到主线程更新UI
                 withContext(Dispatchers.Main) {
                     if (clearList) {
                         notifications.clear()
                     }
                     notifications.addAll(newNotifications)
-                    onComplete(newNotifications.size)
+                    onComplete(newNotifications.size, summaryData)  // 传递 summary 数据
                 }
             } else {
-                // 请求失败，切换到主线程回调
                 withContext(Dispatchers.Main) {
-                    onComplete(0)
+                    onComplete(0, null)
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            // 异常处理，切换到主线程回调
             withContext(Dispatchers.Main) {
-                onComplete(0)
+                onComplete(0, null)
             }
         }
     }
