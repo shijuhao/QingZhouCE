@@ -12,7 +12,9 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -24,11 +26,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -199,11 +202,19 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
     private val _gameState = mutableStateOf(loadGameState())
     val gameState: State<GameState> = _gameState
 
-    // 临时动画数据（移动动画中显示的临时瓦片）
     private val _pendingMoves = mutableStateOf<List<MoveInfo>>(emptyList())
     val pendingMoves: State<List<MoveInfo>> = _pendingMoves
 
-    private var undoSnapshot: GameSnapshot? = null
+    private val _pendingMerges = mutableStateOf<Set<Pair<Int, Int>>>(emptySet())
+    val pendingMerges: State<Set<Pair<Int, Int>>> = _pendingMerges
+
+    private val _spawningTiles = mutableStateOf<Set<Pair<Int, Int>>>(emptySet())
+    val spawningTiles: State<Set<Pair<Int, Int>>> = _spawningTiles
+
+    private val _animatedGrid = mutableStateOf<Array<IntArray>?>(null)
+    val animatedGrid: State<Array<IntArray>?> = _animatedGrid
+
+    private var undoSave: GameSnapshot? = null
     private var isAnimating = false
 
     init {
@@ -259,7 +270,7 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
             gameOver = false,
             gameWon = false
         )
-        undoSnapshot = null
+        undoSave = null
         saveGameState()
     }
 
@@ -267,13 +278,13 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
         if (isAnimating || _gameState.value.gameOver) return
 
         val current = _gameState.value
-        val gridCopy = Game2048Logic.copyGrid(current.grid)
-        val (changed, gain, moves) = Game2048Logic.move(gridCopy, direction)
+        val gridAfterMove = Game2048Logic.copyGrid(current.grid)
+        val (changed, gain, moves) = Game2048Logic.move(gridAfterMove, direction)
 
         if (!changed) return
 
         // 保存撤销快照
-        undoSnapshot = GameSnapshot(
+        undoSave = GameSnapshot(
             grid = current.grid.map { it.toList() },
             score = current.score
         )
@@ -281,12 +292,12 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
         val newScore = current.score + gain
         val newBest = max(newScore, current.bestScore)
 
-        // 检查胜利（只有在尚未胜利时）
+        // 检查胜利
         var won = current.gameWon
         if (!won) {
             for (r in 0 until 4) {
                 for (c in 0 until 4) {
-                    if (gridCopy[r][c] == Game2048Logic.WIN_VALUE) {
+                    if (gridAfterMove[r][c] == Game2048Logic.WIN_VALUE) {
                         won = true
                         break
                     }
@@ -294,47 +305,52 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
             }
         }
 
-        // 生成新瓦片
-        val spawnPos = Game2048Logic.spawnTile(gridCopy)
-        val gameOver = !Game2048Logic.hasMovesLeft(gridCopy)
-
-        // 开始动画：显示移动效果
         isAnimating = true
+
         _pendingMoves.value = moves
+        _pendingMerges.value = moves.filter { it.merged }.map { Pair(it.toRow, it.toCol) }.toSet()
 
-        // 等待移动动画（约150ms）
-        delay(150)
+        _animatedGrid.value = current.grid
 
-        // 应用新状态
+        delay(180)
+
+        _pendingMoves.value = emptyList()
+        _pendingMerges.value = emptySet()
+        _animatedGrid.value = null
+
+        val spawnPos = Game2048Logic.spawnTile(gridAfterMove)
+        val gameOver = !Game2048Logic.hasMovesLeft(gridAfterMove)
+
+        if (spawnPos != null) {
+            _spawningTiles.value = setOf(spawnPos)
+        }
+
         _gameState.value = GameState(
-            grid = gridCopy,
+            grid = gridAfterMove,
             score = newScore,
             bestScore = newBest,
             gameOver = gameOver,
             gameWon = won
         )
-        _pendingMoves.value = emptyList()
 
-        // 播放生成动画（新瓦片会出现，已经在Grid中显示，但我们可以通过一个标志来增加特效，这里简单延时）
         if (spawnPos != null) {
-            // 触发一个短暂的生成效果，可以通过状态控制，但为了简洁，直接略过额外动画
-            delay(100)
+            delay(150)
+            _spawningTiles.value = emptySet()
         }
 
         isAnimating = false
         saveGameState()
 
-        // 更新最佳分数到SharedPreferences
         if (newBest > current.bestScore) {
             prefs.edit { putInt("best_score", newBest) }
         }
     }
 
-    fun canUndo(): Boolean = undoSnapshot != null
+    fun canUndo(): Boolean = undoSave != null
 
     fun undo() {
         if (isAnimating) return
-        val snapshot = undoSnapshot ?: return
+        val snapshot = undoSave ?: return
         _gameState.value = GameState(
             grid = snapshot.grid.map { it.toIntArray() }.toTypedArray(),
             score = snapshot.score,
@@ -342,7 +358,7 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
             gameOver = false,
             gameWon = checkHas2048(snapshot.grid.map { it.toIntArray() }.toTypedArray())
         )
-        undoSnapshot = null
+        undoSave = null
         saveGameState()
     }
 
@@ -445,75 +461,119 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .verticalScroll(rememberScrollState())
         ) {
-            // 分数栏
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                AnimatedScoreCard("分数", gameState.score, scoreGain, Modifier.weight(1f))
-                ScoreCard("最佳", gameState.bestScore, Modifier.weight(1f))
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 控制按钮
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = { viewModel.undo() },
-                    enabled = viewModel.canUndo() && !gameState.gameOver,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("撤回")
-                }
-                Button(
-                    onClick = { viewModel.startNewGame() },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("新游戏")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 棋盘
-            Box(
+            Column(
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .pointerInput(Unit) {
-                        detectDragGestures(
-                            onDragStart = {},
-                            onDragEnd = {},
-                            onDragCancel = {}
-                        ) { change, dragAmount ->
-                            change.consume()
-                            val (dx, dy) = dragAmount
-                            val direction = when {
-                                abs(dx) > abs(dy) && abs(dx) > 20f -> if (dx > 0) Direction.RIGHT else Direction.LEFT
-                                abs(dy) > abs(dx) && abs(dy) > 20f -> if (dy > 0) Direction.DOWN else Direction.UP
-                                else -> null
-                            }
-                            direction?.let {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                scope.launch { viewModel.move(it) }
+                    .wrapContentHeight()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    AnimatedScoreCard("分数", gameState.score, scoreGain, Modifier.weight(1f))
+                    ScoreCard("最佳", gameState.bestScore, Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 控制按钮
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.undo() },
+                        enabled = viewModel.canUndo() && !gameState.gameOver,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                    ) {
+                        Text("撤回")
+                    }
+                    Button(
+                        onClick = { viewModel.startNewGame() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                    ) {
+                        Text("新游戏")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 棋盘 - 使用动态计算的最大尺寸
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = {},
+                                onDragEnd = {},
+                                onDragCancel = {}
+                            ) { change, dragAmount ->
+                                change.consume()
+                                val (dx, dy) = dragAmount
+                                val direction = when {
+                                    abs(dx) > abs(dy) && abs(dx) > 20f -> if (dx > 0) Direction.RIGHT else Direction.LEFT
+                                    abs(dy) > abs(dx) && abs(dy) > 20f -> if (dy > 0) Direction.DOWN else Direction.UP
+                                    else -> null
+                                }
+                                direction?.let {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    scope.launch { viewModel.move(it) }
+                                }
                             }
                         }
+                ) {
+                    GameGrid(
+                        grid = gameState.grid,
+                        animatedGrid = viewModel.animatedGrid.value,
+                        pendingMoves = pendingMoves,
+                        pendingMerges = viewModel.pendingMerges.value,
+                        spawningTiles = viewModel.spawningTiles.value,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 游戏说明 - 小屏幕时自动滚动可见
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "💡 滑动屏幕移动方块",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "相同数字的方块会合并",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-            ) {
-                GameGrid(
-                    grid = gameState.grid,
-                    pendingMoves = pendingMoves,
-                    modifier = Modifier.fillMaxSize()
-                )
+                }
             }
         }
 
@@ -543,11 +603,17 @@ fun ScoreCard(title: String, score: Int, modifier: Modifier = Modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 8.dp, horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(title, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(score.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                score.toString(),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -561,12 +627,17 @@ fun AnimatedScoreCard(title: String, score: Int, gain: Int, modifier: Modifier =
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 8.dp, horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(title, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Box {
-                Text(score.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    score.toString(),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
                 if (gain > 0) {
                     @Suppress("RemoveRedundantQualifierName")
                     androidx.compose.animation.AnimatedVisibility(
@@ -576,10 +647,10 @@ fun AnimatedScoreCard(title: String, score: Int, gain: Int, modifier: Modifier =
                     ) {
                         Text(
                             "+$gain",
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.offset(x = 40.dp, y = (-8).dp)
+                            modifier = Modifier.offset(x = 32.dp, y = (-6).dp)
                         )
                     }
                 }
@@ -591,100 +662,121 @@ fun AnimatedScoreCard(title: String, score: Int, gain: Int, modifier: Modifier =
 @Composable
 fun GameGrid(
     grid: Array<IntArray>,
+    animatedGrid: Array<IntArray>?,
     pendingMoves: List<MoveInfo>,
+    pendingMerges: Set<Pair<Int, Int>>,
+    spawningTiles: Set<Pair<Int, Int>>,
     modifier: Modifier = Modifier
 ) {
     var cellSizePx by remember { mutableFloatStateOf(0f) }
-    val density = LocalDensity.current
-
-    val animatedOffsets = remember { mutableStateMapOf<Pair<Int, Int>, Animatable<Offset, AnimationVector2D>>() }
     val scope = rememberCoroutineScope()
 
+    val moveAnimations = remember { mutableStateMapOf<String, Animatable<Offset, AnimationVector2D>>() }
+    val mergeAnimations = remember { mutableStateMapOf<String, Animatable<Float, AnimationVector1D>>() }
+
     LaunchedEffect(pendingMoves) {
-        if (pendingMoves.isNotEmpty()) {
-            // 清除旧的偏移
-            animatedOffsets.clear()
+        if (pendingMoves.isEmpty()) return@LaunchedEffect
 
-            // 等待一帧，确保 cellSizePx 已经更新
-            delay(16)
+        while (cellSizePx == 0f) {
+            delay(10)
+        }
 
-            // 创建新动画
-            pendingMoves.forEach { move ->
-                val key = Pair(move.fromRow, move.fromCol)
-                val startOffset = Offset(0f, 0f)
-                val deltaCol = (move.toCol - move.fromCol).toFloat() * cellSizePx
-                val deltaRow = (move.toRow - move.fromRow).toFloat() * cellSizePx
-                val targetOffset = Offset(deltaCol, deltaRow)
+        pendingMoves.forEach { move ->
+            val fromKey = "${move.fromRow},${move.fromCol}"
+            val deltaX = (move.toCol - move.fromCol).toFloat() * cellSizePx
+            val deltaY = (move.toRow - move.fromRow).toFloat() * cellSizePx
 
-                val animatable = Animatable(startOffset, Offset.VectorConverter)
-                animatedOffsets[key] = animatable
-                scope.launch {
-                    animatable.animateTo(
-                        targetOffset,
-                        animationSpec = tween(150, easing = FastOutSlowInEasing)
-                    )
-                }
+            val animatable = Animatable(Offset.Zero, Offset.VectorConverter)
+            moveAnimations[fromKey] = animatable
+            scope.launch {
+                animatable.animateTo(
+                    Offset(deltaX, deltaY),
+                    animationSpec = tween(150, easing = FastOutSlowInEasing)
+                )
+                moveAnimations.remove(fromKey)
             }
         }
     }
 
-    // 当移动动画结束时清除偏移
-    LaunchedEffect(pendingMoves.isEmpty()) {
-        if (pendingMoves.isEmpty()) {
-            // 延迟清除，让动画完成
-            delay(150)
-            animatedOffsets.clear()
+    LaunchedEffect(pendingMerges) {
+        pendingMerges.forEach { target ->
+            val key = "${target.first},${target.second}"
+            val animatable = mergeAnimations.getOrPut(key) {
+                Animatable(1f, Float.VectorConverter)
+            }
+            scope.launch {
+                animatable.animateTo(1.25f, animationSpec = tween(80))
+                animatable.animateTo(1f, animationSpec = tween(100))
+                delay(50)
+                mergeAnimations.remove(key)
+            }
         }
     }
 
-    Box(modifier = modifier) {
-        // 使用 BoxWithConstraints 来获取实际尺寸
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // 计算每个单元格的尺寸（减去内边距和间距）
-            val sidePadding = 16.dp  // 左右内边距 8dp * 2
-            val spacing = 8.dp       // 单元格间距
-            val totalSpacing = spacing * 3 // 4列有3个间距
-            val availableWidth = maxWidth - sidePadding - totalSpacing
-            val cellSizeDp = availableWidth / 4
+    val displayGrid = animatedGrid ?: grid
 
-            // 更新像素尺寸
-            LaunchedEffect(cellSizeDp) {
-                cellSizePx = with(density) { cellSizeDp.toPx() }
+    Box(
+        modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                cellSizePx = coordinates.size.width.toFloat() / 4f
             }
+            .padding(8.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            for (row in 0 until 4) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    for (col in 0 until 4) {
+                        val isSource = pendingMoves.any { it.fromRow == row && it.fromCol == col }
+                        val isTarget = pendingMoves.any { it.toRow == row && it.toCol == col }
+                        val mergeTarget = pendingMerges.contains(Pair(row, col))
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp)
-            ) {
-                for (row in 0 until 4) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        for (col in 0 until 4) {
-                            val value = grid[row][col]
-                            val isMoving = pendingMoves.any { it.fromRow == row && it.fromCol == col }
-                            val offset = animatedOffsets[Pair(row, col)]?.value
+                        val moveOffset = moveAnimations["$row,$col"]?.value
 
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                            ) {
+                        val mergeScale = if (mergeTarget) {
+                            mergeAnimations["$row,$col"]?.value ?: 1f
+                        } else 1f
+
+                        var displayValue = displayGrid[row][col]
+
+                        if (isSource && moveOffset != null) {
+                            displayValue = displayGrid[row][col]
+                        }
+
+                        val isMergedTarget = pendingMoves.any { it.toRow == row && it.toCol == col && it.merged }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        ) {
+                            if (!isTarget || moveOffset == null) {
                                 Tile(
-                                    value = value,
+                                    value = displayValue,
                                     modifier = Modifier.fillMaxSize(),
-                                    isMoving = isMoving,
-                                    offset = offset
+                                    moveOffset = moveOffset,
+                                    mergeScale = mergeScale,
+                                    isSpawning = spawningTiles.contains(Pair(row, col)),
+                                    isMerged = isMergedTarget
+                                )
+                            }
+
+                            if (isSource && moveOffset != null && displayValue != 0) {
+                                Tile(
+                                    value = displayValue,
+                                    modifier = Modifier.fillMaxSize(),
+                                    moveOffset = moveOffset,
+                                    mergeScale = 1f,
+                                    isSpawning = false,
+                                    isMoving = true
                                 )
                             }
                         }
                     }
-                    if (row < 3) Spacer(modifier = Modifier.height(8.dp))
                 }
+                if (row < 3) Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
@@ -694,65 +786,69 @@ fun GameGrid(
 fun Tile(
     value: Int,
     modifier: Modifier = Modifier,
+    moveOffset: Offset? = null,
+    mergeScale: Float = 1f,
+    isSpawning: Boolean = false,
     isMoving: Boolean = false,
-    offset: Offset? = null
+    isMerged: Boolean = false
 ) {
     val backgroundColor = tileColor(value)
     val textColor = tileTextColor(value)
     val textSize = tileTextSize(value)
 
-    // 生成动画：当 value 从 0 变为非零时（新瓦片出现）
-    val spawnScale by animateFloatAsState(
-        targetValue = if (value != 0) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "spawnScale"
+    // 生成动画
+    val spawnScale = remember { Animatable(0f) }
+    LaunchedEffect(isSpawning) {
+        if (isSpawning) {
+            spawnScale.snapTo(0f)
+            spawnScale.animateTo(
+                1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
+        }
+    }
+    val finalSpawnScale = if (isSpawning) spawnScale.value else 1f
+
+    // 合并时的闪烁效果
+    val mergedFlash by animateColorAsState(
+        targetValue = if (isMerged) Color(0xFFFFD700) else backgroundColor,
+        animationSpec = tween(150),
+        label = "mergedFlash"
     )
 
-    // 合并动画：当瓦片是合并目标时，放大闪烁
-    val mergeScale by animateFloatAsState(
-        targetValue = if (isMoving) 1.2f else 1f,
-        animationSpec = tween(100, easing = FastOutSlowInEasing),
-        label = "mergeScale"
-    )
+    val finalColor = if (isMerged) mergedFlash else backgroundColor
 
     Card(
         modifier = modifier
             .graphicsLayer {
-                scaleX = spawnScale * mergeScale
-                scaleY = spawnScale * mergeScale
-                offset?.let {
-                    translationX = it.x
-                    translationY = it.y
-                }
+                translationX = moveOffset?.x ?: 0f
+                translationY = moveOffset?.y ?: 0f
+                scaleX = finalSpawnScale * mergeScale
+                scaleY = finalSpawnScale * mergeScale
+                // 移动中的瓦片增加透明度
+                alpha = if (isMoving) 0.9f else 1f
             },
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        colors = CardDefaults.cardColors(containerColor = finalColor),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isMoving) 4.dp else 2.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isMoving) 6.dp else 2.dp
+        )
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             if (value != 0) {
-                AnimatedContent(
-                    targetState = value,
-                    transitionSpec = {
-                        (fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f)) togetherWith
-                                (fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f))
-                    },
-                    label = "valueAnimation"
-                ) { targetValue ->
-                    Text(
-                        text = targetValue.toString(),
-                        fontSize = textSize.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Text(
+                    text = value.toString(),
+                    fontSize = textSize.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
