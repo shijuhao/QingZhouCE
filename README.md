@@ -4,15 +4,13 @@
 
 ## 📱 界面预览
 
-<div align="center">
+<p align="center">
   <img src=".github/images/1.jpg" width="200" />
-  <img src=".github/images/2.jpg" width="200" style="margin: 5px;" />
-  <br />
-  <img src=".github/images/3.jpg" width="200" style="margin: 5px;" />
-  <img src=".github/images/4.jpg" width="200" style="margin: 5px;" />
-  <br />
-  <img src=".github/images/5.jpg" width="200" style="margin: 5px;" />
-</div>
+  <img src=".github/images/2.jpg" width="200" />
+  <img src=".github/images/3.jpg" width="200" />
+  <img src=".github/images/4.jpg" width="200" />
+  <img src=".github/images/5.jpg" width="200" />
+</p>
 
 ## 🛠️ 技术栈
 
