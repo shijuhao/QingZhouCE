@@ -121,12 +121,8 @@ fun MyApplicationApp() {
 
     var token by remember { mutableStateOf(TokenManager.get(context)) }
 
-    val isInitialLoad by remember { mutableStateOf(true) }
-
     LaunchedEffect(Unit) {
-        if (token != null && isInitialLoad) {
-            mainViewModel.refreshUserInfo(token!!)
-        }
+        token?.let { mainViewModel.refreshUserInfo(it) }
     }
 
     val tokenListener = remember {
@@ -195,13 +191,20 @@ fun MyApplicationApp() {
         }
     }
 
-    // 过滤后的底部导航项
     val visibleAppDestinations = remember(showChat) {
         AppDestinations.entries.filter { item ->
             when (item) {
                 AppDestinations.CHAT -> showChat
                 else -> true
             }
+        }
+    }
+    
+    val selectedRoute by remember(currentDestination, visibleAppDestinations) {
+        derivedStateOf {
+            (visibleAppDestinations + TopLevelDestinations.entries).find { item ->
+                currentDestination?.hierarchy?.any { it.route == item.route } == true
+            }?.route
         }
     }
 
@@ -231,17 +234,18 @@ fun MyApplicationApp() {
                         exit = slideOutVertically { it }
                     ) {
                         Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
-                            val selectedItem by remember(currentDestination) {
+                            val selectedRoute by remember(currentDestination) {
                                 derivedStateOf {
                                     visibleAppDestinations.find { item ->
                                         currentDestination?.hierarchy?.any { it.route == item.route } == true
-                                    }
+                                    }?.route
                                 }
                             }
 
                             NavigationBar {
                                 visibleAppDestinations.forEach { item ->
-                                    val isSelected = selectedItem == item
+                                    val isSelected = item.route == selectedRoute
+                                    
                                     NavigationBarItem(
                                         icon = {
                                             Crossfade(targetState = isSelected) { selected ->
@@ -299,11 +303,10 @@ fun MyApplicationApp() {
                         contentPadding = PaddingValues(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // 使用过滤后的列表
                         items(visibleAppDestinations) { item ->
                             NavigationDrawerItem(
                                 label = { Text(item.label) },
-                                selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
+                                selected = item.route == selectedRoute,
                                 icon = { Icon(item.icon, contentDescription = null) },
                                 onClick = {
                                     navController.navigate(item.route) {
@@ -326,7 +329,7 @@ fun MyApplicationApp() {
                         items(TopLevelDestinations.entries) { item ->
                             NavigationDrawerItem(
                                 label = { Text(item.label) },
-                                selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
+                                selected = item.route == selectedRoute,
                                 icon = { Icon(item.icon, contentDescription = null) },
                                 onClick = {
                                     navController.navigate(item.route) {
