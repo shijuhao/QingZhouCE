@@ -9,6 +9,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -53,8 +55,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 class CommunityActivity : ComponentActivity() {
-    private var refreshTrigger by mutableIntStateOf(0)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -67,7 +67,27 @@ class CommunityActivity : ComponentActivity() {
                 val state by viewModel.state.collectAsState()
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
-
+                
+                var refreshTrigger by remember { mutableIntStateOf(0) }
+                
+                val postArticleLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.StartActivityForResult()
+                ) { result ->
+                    if (result.resultCode == Activity.RESULT_OK) {
+                        Toast.makeText(this@CommunityActivity, "发布成功", Toast.LENGTH_SHORT).show()
+                        refreshTrigger++
+                    }
+                }
+                
+                val editArticleLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.StartActivityForResult()
+                ) { result ->
+                    if (result.resultCode == Activity.RESULT_OK) {
+                        Toast.makeText(this@CommunityActivity, "编辑成功", Toast.LENGTH_SHORT).show()
+                        refreshTrigger++
+                    }
+                }
+        
                 LaunchedEffect(drawerState.isOpen) {
                     if (drawerState.isOpen && token.isNotEmpty()) {
                         viewModel.fetchCategories(token)
@@ -107,21 +127,13 @@ class CommunityActivity : ComponentActivity() {
                             currentCategoryId = currentCategoryId,
                             currentCategoryName = currentCategoryName,
                             refreshTrigger = refreshTrigger,
-                            viewModel = viewModel
+                            viewModel = viewModel,
+                            postArticleLauncher = postArticleLauncher,
+                            editArticleLauncher = editArticleLauncher
                         )
                     }
                 }
             }
-        }
-    }
-
-    @Deprecated("Deprecated in Java")
-    @Suppress("DEPRECATION")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 123 && resultCode == RESULT_OK) {
-            Toast.makeText(this, "发布成功", Toast.LENGTH_SHORT).show()
-            refreshTrigger++
         }
     }
 }
@@ -325,7 +337,9 @@ fun CommunityScreen(
     currentCategoryId: Int,
     currentCategoryName: String,
     refreshTrigger: Int,
-    viewModel: CommunityViewModel
+    viewModel: CommunityViewModel,
+    postArticleLauncher: androidx.activity.result.ActivityResultLauncher<Intent>,
+    editArticleLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -629,32 +643,19 @@ fun CommunityScreen(
                                         },
                                         onDelete = { messageToDelete = msg },
                                         onEdit = {
-                                            val intent = Intent(
-                                                context,
-                                                PostArticleActivity::class.java
-                                            ).apply {
+                                            val intent = Intent(context, PostArticleActivity::class.java).apply {
                                                 putExtra("edit_message_id", msg.message_id)
                                                 putExtra("userId", userId)
                                                 putExtra("old_title", msg.content.title ?: "")
-                                                val textContent =
-                                                    msg.content.text ?: msg.content.content ?: ""
+                                                val textContent = msg.content.text ?: msg.content.content ?: ""
                                                 putExtra("old_content", textContent)
                                                 val images = msg.content.images ?: emptyList()
-                                                putStringArrayListExtra(
-                                                    "old_images",
-                                                    ArrayList(images)
-                                                )
+                                                putStringArrayListExtra("old_images", ArrayList(images))
                                                 val visibleList = msg.visible_to ?: emptyList()
-                                                putIntegerArrayListExtra(
-                                                    "old_private",
-                                                    ArrayList(visibleList)
-                                                )
+                                                putIntegerArrayListExtra("old_private", ArrayList(visibleList))
                                                 putExtra("old_is_markdown", msg.is_markdown)
                                             }
-                                            (context as Activity).startActivityForResult(
-                                                intent,
-                                                123
-                                            )
+                                            editArticleLauncher.launch(intent)  // ← 改这一行
                                         },
                                         onReply = { replyToMessage = msg },
                                         onHistory = { showHistoryRecords = msg.edit_records },
@@ -709,7 +710,7 @@ fun CommunityScreen(
                             putExtra("categoryId", currentCategoryId.toString())
                             putExtra("userId", userId)
                         }
-                        (context as Activity).startActivityForResult(intent, 123)
+                        postArticleLauncher.launch(intent)
                     }
                 ) {
                     Icon(Icons.Default.Add, "发帖")
