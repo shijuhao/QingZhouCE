@@ -86,15 +86,6 @@ fun HomeScreen(
         expandedState.putAll(loadedState)
     }
 
-    LaunchedEffect(expandedState) {
-        snapshotFlow { expandedState.toMap() }
-            .collect { stateMap ->
-                stateMap.forEach { (name, isExpanded) ->
-                    ExpandedStatePrefs.saveExpanded(context, name, isExpanded)
-                }
-            }
-    }
-
     val allFunctions = remember {
         functionData.flatMap { category ->
             category.functions.map { function ->
@@ -103,9 +94,8 @@ fun HomeScreen(
         }
     }
 
-    var favoriteFunctions by remember { mutableStateOf<List<SearchFunctionModel>>(emptyList()) }
-    LaunchedEffect(Unit) {
-        favoriteFunctions = FavoriteManager.getFavoriteFunctions(context, allFunctions)
+    val favoriteFunctions by remember {
+        derivedStateOf { FavoriteManager.getFavoriteFunctions(context, allFunctions) }
     }
 
     val filteredFunctions = remember(searchText) {
@@ -240,10 +230,10 @@ fun HomeScreen(
                         val viewModel: YiYanViewModel = viewModel()
                         val aWordText = viewModel.hitokoto.collectAsState().value
 
-                        val currentDate = Date()
-                        val dayFormat = SimpleDateFormat("d", Locale.getDefault())
-                        val yearWeekFormat = SimpleDateFormat("MMMM yyyy", Locale.ENGLISH)
-
+                        val dayFormat = remember { SimpleDateFormat("d", Locale.getDefault()) }
+                        val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
+                        val currentDate = remember { Date() }
+                        
                         val dayOfMonth = dayFormat.format(currentDate)
                         val yearAndWeek = yearWeekFormat.format(currentDate)
 
@@ -314,7 +304,9 @@ fun HomeScreen(
                         favoritesExpanded = expandedState["我的收藏"] == true,
                         favoriteFunctions = favoriteFunctions,
                         onToggle = {
-                            expandedState["我的收藏"] = !(expandedState["我的收藏"] ?: false)
+                            val newState = !(expandedState["我的收藏"] ?: false)
+                            expandedState["我的收藏"] = newState
+                            ExpandedStatePrefs.saveExpanded(context, "我的收藏", newState)
                         },
                         onLongPress = { function ->
                             functionToFavorite = function.function
@@ -323,14 +315,17 @@ fun HomeScreen(
                     )
                 }
 
-                itemsIndexed(functionData) { index, category ->
+                itemsIndexed(functionData, key = { _, category -> category.name }) { index, category ->
                     val isExpanded = expandedState[category.name] == true
                     CategoryCard(
                         category = category,
                         isExpanded = isExpanded,
                         isLastCategory = index == functionData.size - 1,
-                        onToggle = { expandedState[category.name] = !isExpanded },
-                        contentExpanded = isExpanded,
+                        onToggle = {
+                            val newState = !isExpanded
+                            expandedState[category.name] = newState
+                            ExpandedStatePrefs.saveExpanded(context, category.name, newState)
+                        },
                         context = context,
                         onLongPress = {
                             functionToFavorite = it
@@ -384,8 +379,6 @@ fun HomeScreen(
                             } else {
                                 FavoriteManager.addFavorite(context, functionToFavorite!!.activity)
                             }
-                            favoriteFunctions =
-                                FavoriteManager.getFavoriteFunctions(context, allFunctions)
                             showFavoriteDialog = false
                         }
                         .padding(16.dp)
@@ -518,7 +511,6 @@ private fun CategoryCard(
     isExpanded: Boolean,
     isLastCategory: Boolean,
     onToggle: () -> Unit,
-    contentExpanded: Boolean,
     context: Context,
     onLongPress: (FunctionItem) -> Unit
 ) {
@@ -587,7 +579,7 @@ private fun CategoryCard(
                 )
             }
 
-            AnimatedVisibility(visible = contentExpanded) {
+            AnimatedVisibility(visible = isExpanded) {
                 Column(modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 12.dp)) {
                     category.functions.chunked(3).forEach { rowItems ->
                         Row(
