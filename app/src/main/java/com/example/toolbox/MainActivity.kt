@@ -202,7 +202,10 @@ fun MyApplicationApp() {
     
     val selectedRoute by remember(currentDestination, visibleAppDestinations) {
         derivedStateOf {
-            (visibleAppDestinations + TopLevelDestinations.entries).find { item ->
+            val allDestinations: List<NavDestination> = 
+                visibleAppDestinations.map { it as NavDestination } + 
+                TopLevelDestinations.entries.map { it as NavDestination }
+            allDestinations.find { item ->
                 currentDestination?.hierarchy?.any { it.route == item.route } == true
             }?.route
         }
@@ -234,14 +237,6 @@ fun MyApplicationApp() {
                         exit = slideOutVertically { it }
                     ) {
                         Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
-                            val selectedRoute by remember(currentDestination) {
-                                derivedStateOf {
-                                    visibleAppDestinations.find { item ->
-                                        currentDestination?.hierarchy?.any { it.route == item.route } == true
-                                    }?.route
-                                }
-                            }
-
                             NavigationBar {
                                 visibleAppDestinations.forEach { item ->
                                     val isSelected = item.route == selectedRoute
@@ -448,21 +443,27 @@ fun MainContentNavHost(
     }
 }
 
+interface NavDestination {
+    val route: String
+    val label: String
+    val icon: ImageVector
+}
+
 enum class TopLevelDestinations(
-    val route: String,
-    val label: String,
-    val icon: ImageVector,
-) {
+    override val route: String,
+    override val label: String,
+    override val icon: ImageVector
+) : NavDestination {
     LFCommunity("lfcommunity", "立方论坛", Icons.Default.ChatBubbleOutline),
     YHBotMaker("yhbotmaker", "YHBotMaker", Icons.Default.Android)
 }
 
 enum class AppDestinations(
-    val route: String,
-    val label: String,
-    val icon: ImageVector,
+    override val route: String,
+    override val label: String,
+    override val icon: ImageVector,
     val iconOutlined: ImageVector
-) {
+) : NavDestination {
     HOME("home", "主页", Icons.Filled.Home, Icons.Outlined.Home),
     CHAT("chat", "会话", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline),
     RESOURCE("resource", "资源库", Icons.Filled.Inbox, Icons.Outlined.Inbox),
