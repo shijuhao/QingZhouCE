@@ -75,6 +75,8 @@ fun HomeScreen(
     var searchText by remember { mutableStateOf("") }
     var showFavoriteDialog by remember { mutableStateOf(false) }
     var functionToFavorite by remember { mutableStateOf<FunctionItem?>(null) }
+    
+    var favoriteRefreshTrigger by remember { mutableIntStateOf(0) }
 
     val expandedState = remember { mutableStateMapOf<String, Boolean>() }
 
@@ -94,7 +96,7 @@ fun HomeScreen(
         }
     }
 
-    val favoriteFunctions by remember {
+    val favoriteFunctions by remember(favoriteRefreshTrigger) {
         derivedStateOf { FavoriteManager.getFavoriteFunctions(context, allFunctions) }
     }
 
@@ -379,6 +381,7 @@ fun HomeScreen(
                             } else {
                                 FavoriteManager.addFavorite(context, functionToFavorite!!.activity)
                             }
+                            favoriteRefreshTrigger++
                             showFavoriteDialog = false
                         }
                         .padding(16.dp)
