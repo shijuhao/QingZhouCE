@@ -1,4 +1,4 @@
-@file:Suppress("PropertyName", "AssignedValueIsNeverRead")
+8@file:Suppress("PropertyName", "AssignedValueIsNeverRead")
 
 package com.example.toolbox.community
 
@@ -1048,7 +1048,7 @@ fun ContentRenderer(
     when (content.type) {
         "image" -> {}
         "post" -> {
-            Text(content.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(content.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
             if (msg.is_markdown) MarkdownText(content.content ?: "") else Text(
                 content.content ?: "", style = MaterialTheme.typography.bodyLarge
             )
