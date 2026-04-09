@@ -1,4 +1,4 @@
-8@file:Suppress("PropertyName", "AssignedValueIsNeverRead")
+@file:Suppress("PropertyName", "AssignedValueIsNeverRead")
 
 package com.example.toolbox.community
 
