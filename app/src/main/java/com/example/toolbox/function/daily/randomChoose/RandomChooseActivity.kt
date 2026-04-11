@@ -10,6 +10,12 @@ import android.widget.Toast
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.List
 import kotlinx.serialization.Serializable
+import android.content.SharedPreferences
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.lazy.items
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -68,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -291,7 +298,7 @@ class RandomChooseViewModel : ViewModel() {
     }
     
     private fun loadSavedConfigs(context: Context) {
-        val jsonStr = getPrefs(context).getString("saved_configs", null)
+        val jsonStr = getPrefs(context).getString("saved_configs", null) ?: ""
         savedConfigs = try {
             jsonStr?.let { json.decodeFromString(it) } ?: emptyList()
         } catch (e: Exception) {
