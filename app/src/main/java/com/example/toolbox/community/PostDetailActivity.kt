@@ -79,6 +79,7 @@ import com.example.toolbox.utils.MultiImageViewer
 import java.io.File
 import androidx.compose.ui.viewinterop.AndroidView
 import coil3.request.allowHardware
+import com.example.toolbox.function.visual.saveBitmapToGallery
 
 object AppImageLoaders {
     private var _coil3Loader: coil3.ImageLoader? = null
@@ -312,7 +313,7 @@ fun PostDetailScreen(
             uiState?.let {
                 putExtra("edit_message_id", it.message_id)
                 putExtra("userId", TokenManager.getUserID(context))
-                putExtra("old_title", it.content.title ?: "")
+                putExtra("old_title", it.content.title)
                 putExtra("old_content", it.content.text ?: it.content.content ?: "")
                 putStringArrayListExtra("old_images", ArrayList(it.content.images ?: emptyList()))
                 putIntegerArrayListExtra("old_private", ArrayList(it.visible_to ?: emptyList()))

@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -349,10 +351,14 @@ fun GuidePageContent(page: Int) {
                             )
                         }
                     }
-                    MarkdownRenderer.Render(
-                        modifier = Modifier.fillMaxWidth().padding(10.dp),
-                        content = userRules
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    ) {
+                        MarkdownRenderer.Render(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            content = userRules
+                        )
+                    }
                 }
             }
             4 -> {

@@ -261,7 +261,7 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
-            android:name=".function.daily.RandomChooseActivity"
+            android:name=".function.daily.randomChoose.RandomChooseActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity

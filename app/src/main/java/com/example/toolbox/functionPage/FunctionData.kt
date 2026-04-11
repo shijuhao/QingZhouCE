@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.Draw
+import androidx.compose.material.icons.outlined.HideImage
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Key
@@ -111,7 +112,7 @@ val functionData = listOf(
             ),
             FunctionItem(
                 "随机抽选",
-                "com.example.toolbox.function.daily.RandomChooseActivity",
+                "com.example.toolbox.function.daily.randomChoose.RandomChooseActivity",
                 Icons.Default.Casino
             ),
             FunctionItem(
@@ -125,6 +126,9 @@ val functionData = listOf(
         name = "视觉功能",
         icon = Icons.Default.Style.asIcon,
         functions = listOf(
+            FunctionItem("防OCR",
+                "com.example.toolbox.function.visual.AntiOCRActivity",
+                Icons.Outlined.HideImage),
             FunctionItem("图片取色器",
                 "com.example.toolbox.function.visual.ImageGetColorActivity",
                 Icons.Outlined.Image),
