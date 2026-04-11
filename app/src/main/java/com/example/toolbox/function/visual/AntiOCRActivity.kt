@@ -79,7 +79,7 @@ import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.io.File
 
 enum class HighlightScope {
-    LETTER_ONLY, ORIGINAL_ONLY, BOTH
+    NONE, LETTER_ONLY, ORIGINAL_ONLY
 }
 
 data class HighlightConfig(
@@ -97,7 +97,8 @@ class AntiOCRGenerator(private val context: Context) {
     private data class CharItem(
         val letter: Char,
         val char: Char,
-        val isOriginal: Boolean
+        val isOriginal: Boolean,
+        val isOriginalLetter: Boolean
     )
 
     private fun getPaint(fontSizeSp: Float): Paint {
@@ -116,21 +117,21 @@ class AntiOCRGenerator(private val context: Context) {
             val dChar = disturbChars.random()
             val letter = alphabetPool[alphabetIdx % alphabetPool.size]
             alphabetIdx++
-            seq.add(CharItem(letter, dChar, false))
+            seq.add(CharItem(letter, dChar, false, false))
         }
 
         originalText.forEach { char ->
             val letter = alphabetPool[alphabetIdx % alphabetPool.size]
             alphabetIdx++
             letterMap.add(letter)
-            seq.add(CharItem(letter, char, true))
+            seq.add(CharItem(letter, char, true, true))
 
             val count = Random.nextInt(3, 5)
             repeat(count) {
                 val dChar = disturbChars.random()
                 val dLetter = alphabetPool[alphabetIdx % alphabetPool.size]
                 alphabetIdx++
-                seq.add(CharItem(dLetter, dChar, false))
+                seq.add(CharItem(dLetter, dChar, false, false))
             }
         }
         return seq to letterMap
@@ -206,7 +207,7 @@ class AntiOCRGenerator(private val context: Context) {
         val decodeWidth = paint.measureText(decodeStr)
         canvas.drawText(decodeStr, (imgWidth - decodeWidth) / 2f, 40f - paint.fontMetrics.ascent, paint)
 
-        val gridTop = 70f
+        val gridTop = 90f
         seq.forEachIndexed { idx, item ->
             val row = idx / finalCols
             val col = idx % finalCols
@@ -216,22 +217,21 @@ class AntiOCRGenerator(private val context: Context) {
             val baseY = gridTop + row * cellHeight + padding
             val baseline = baseY - paint.fontMetrics.ascent
 
-            val isOriginalLetter = letterMap.contains(item.letter)
-
-            val letterStyle = when {
-                highlightConfig.scope == HighlightScope.BOTH -> highlightConfig
-                highlightConfig.scope == HighlightScope.LETTER_ONLY && isOriginalLetter -> highlightConfig
-                else -> null
+            val letterStyle = when (highlightConfig.scope) {
+                HighlightScope.NONE -> null
+                HighlightScope.LETTER_ONLY -> if (item.isOriginalLetter) highlightConfig else null
+                HighlightScope.ORIGINAL_ONLY -> null
             }
 
             drawStyledChar(canvas, baseX, baseline, item.letter, letterStyle, paint)
 
             val charX = baseX + maxLetterWidth + 4f
-            val charStyle = when {
-                highlightConfig.scope == HighlightScope.BOTH -> highlightConfig
-                highlightConfig.scope == HighlightScope.ORIGINAL_ONLY && item.isOriginal -> highlightConfig
-                else -> null
+            val charStyle = when (highlightConfig.scope) {
+                HighlightScope.NONE -> null
+                HighlightScope.LETTER_ONLY -> null
+                HighlightScope.ORIGINAL_ONLY -> if (item.isOriginal) highlightConfig else null
             }
+
             drawStyledChar(canvas, charX, baseline, item.char, charStyle, paint)
         }
 
@@ -438,9 +438,9 @@ fun AntiOCRScreen() {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 FilterChip(
-                    selected = scopeOption == HighlightScope.ORIGINAL_ONLY,
-                    onClick = { scopeOption = HighlightScope.ORIGINAL_ONLY },
-                    label = { Text("仅原文") }
+                    selected = scopeOption == HighlightScope.NONE,
+                    onClick = { scopeOption = HighlightScope.NONE },
+                    label = { Text("无高亮") }
                 )
                 FilterChip(
                     selected = scopeOption == HighlightScope.LETTER_ONLY,
@@ -448,9 +448,9 @@ fun AntiOCRScreen() {
                     label = { Text("仅字母") }
                 )
                 FilterChip(
-                    selected = scopeOption == HighlightScope.BOTH,
-                    onClick = { scopeOption = HighlightScope.BOTH },
-                    label = { Text("全部") }
+                    selected = scopeOption == HighlightScope.ORIGINAL_ONLY,
+                    onClick = { scopeOption = HighlightScope.ORIGINAL_ONLY },
+                    label = { Text("仅原文") }
                 )
             }
 
