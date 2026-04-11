@@ -7,6 +7,15 @@ import android.content.Context
 import android.graphics.Paint
 import android.os.Bundle
 import android.widget.Toast
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.List
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,6 +36,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -90,11 +100,20 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.random.Random
 
+@Serializable
 data class RandomItem(
     val id: Int,
     val name: String,
     val weight: Int,
     var isSelected: Boolean = false
+)
+
+@Serializable
+data class SavedConfig(
+    val id: Long,
+    val name: String,
+    val items: List<RandomItem>,
+    val timestamp: Long
 )
 
 class RandomChooseViewModel : ViewModel() {
@@ -129,6 +148,15 @@ class RandomChooseViewModel : ViewModel() {
 
     val totalWeight: Int
         get() = items.sumOf { it.weight }
+        
+    private val json = Json { ignoreUnknownKeys = true }
+    private val prefsKey = "random_wheel_prefs"
+    
+    var savedConfigs by mutableStateOf<List<SavedConfig>>(emptyList())
+        private set
+    
+    var showSaveManagerDialog by mutableStateOf(false)
+        private set
 
     fun updateNewItemName(name: String) {
         newItemName = name
@@ -257,6 +285,79 @@ class RandomChooseViewModel : ViewModel() {
             delay(16)
         }
     }
+    
+    private fun getPrefs(context: Context): SharedPreferences {
+        return context.getSharedPreferences(prefsKey, Context.MODE_PRIVATE)
+    }
+    
+    private fun loadSavedConfigs(context: Context) {
+        val jsonStr = getPrefs(context).getString("saved_configs", null)
+        savedConfigs = try {
+            jsonStr?.let { json.decodeFromString(it) } ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+    
+    fun openSaveManagerDialog(context: Context) {
+        loadSavedConfigs(context)
+        showSaveManagerDialog = true
+    }
+    
+    fun closeSaveManagerDialog() {
+        showSaveManagerDialog = false
+    }
+    
+    fun saveCurrentList(context: Context, name: String = "") {
+        if (items.isEmpty()) {
+            errorMessage = "没有可保存的项目"
+            return
+        }
+        val configs = savedConfigs.toMutableList()
+        val timestamp = System.currentTimeMillis()
+        val newConfig = SavedConfig(
+            id = timestamp,
+            name = name.ifEmpty { "配置 ${configs.size + 1}" },
+            items = items.map { it.copy() },
+            timestamp = timestamp
+        )
+        configs.add(newConfig)
+        getPrefs(context).edit().putString("saved_configs", json.encodeToString(configs)).apply()
+        savedConfigs = configs
+        errorMessage = ""
+        Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
+    }
+    
+    fun loadConfig(context: Context, config: SavedConfig) {
+        items = config.items.map { it.copy(id = ++nextId) }
+        selectedResult = ""
+        showResult = false
+        isSpinning = false
+        rotationAngle = 0f
+        targetIndex = -1
+        errorMessage = ""
+        Toast.makeText(context, "已加载: ${config.name}", Toast.LENGTH_SHORT).show()
+    }
+    
+    fun deleteConfig(context: Context, id: Long) {
+        val configs = savedConfigs.filter { it.id != id }
+        getPrefs(context).edit().putString("saved_configs", json.encodeToString(configs)).apply()
+        savedConfigs = configs
+        Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+    }
+    
+    fun overwriteConfig(context: Context, id: Long) {
+        val index = savedConfigs.indexOfFirst { it.id == id }
+        if (index == -1) return
+        val configs = savedConfigs.toMutableList()
+        configs[index] = configs[index].copy(
+            items = items.map { it.copy() },
+            timestamp = System.currentTimeMillis()
+        )
+        getPrefs(context).edit().putString("saved_configs", json.encodeToString(configs)).apply()
+        savedConfigs = configs
+        Toast.makeText(context, "已覆盖", Toast.LENGTH_SHORT).show()
+    }
 }
 
 class RandomChooseActivity : ComponentActivity() {
@@ -282,6 +383,9 @@ fun RandomChooseScreen(
 ) {
     val viewModel: RandomChooseViewModel = viewModel()
     val context = LocalContext.current
+    
+    val showSaveDialog = remember { mutableStateOf(false) }
+    var saveConfigName by remember { mutableStateOf("") }
 
     val listState = rememberLazyListState()
 
@@ -290,6 +394,88 @@ fun RandomChooseScreen(
             delay(100)
             listState.animateScrollToItem(0)
         }
+    }
+    
+    if (showSaveDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog.value = false },
+            title = { Text("保存配置") },
+            text = {
+                OutlinedTextField(
+                    value = saveConfigName,
+                    onValueChange = { saveConfigName = it },
+                    label = { Text("配置名称（可选）") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.saveCurrentList(context, saveConfigName)
+                    saveConfigName = ""
+                    showSaveDialog.value = false
+                }) { Text("保存") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveDialog.value = false }) { Text("取消") }
+            }
+        )
+    }
+    
+    if (viewModel.showSaveManagerDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.closeSaveManagerDialog() },
+            title = { Text("已保存的配置") },
+            text = {
+                if (viewModel.savedConfigs.isEmpty()) {
+                    Text("还没有保存的配置")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(viewModel.savedConfigs.sortedByDescending { it.timestamp }) { config ->
+                            Card {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(config.name, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "${config.items.size}项  ${
+                                                SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
+                                                    .format(Date(config.timestamp))
+                                            }",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                    Row {
+                                        IconButton(onClick = {
+                                            viewModel.loadConfig(context, config)
+                                            viewModel.closeSaveManagerDialog()
+                                        }) {
+                                            Icon(Icons.Default.PlayArrow, "加载")
+                                        }
+                                        IconButton(
+                                            onClick = { viewModel.overwriteConfig(context, config.id) },
+                                            enabled = viewModel.items.isNotEmpty()
+                                        ) {
+                                            Icon(Icons.Default.Save, "覆盖")
+                                        }
+                                        IconButton(onClick = { viewModel.deleteConfig(context, config.id) }) {
+                                            Icon(Icons.Default.Delete, "删除")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.closeSaveManagerDialog() }) { Text("关闭") }
+            }
+        )
     }
 
     Column(
@@ -301,6 +487,20 @@ fun RandomChooseScreen(
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                }
+            },
+            actions = {
+                IconButton(
+                    onClick = { showSaveDialog.value = true },
+                    enabled = viewModel.items.isNotEmpty() && !viewModel.isSpinning
+                ) {
+                    Icon(Icons.Default.Save, "保存")
+                }
+                IconButton(
+                    onClick = { viewModel.openSaveManagerDialog(context) },
+                    enabled = !viewModel.isSpinning
+                ) {
+                    Icon(Icons.Default.List, "管理")
                 }
             }
         )
