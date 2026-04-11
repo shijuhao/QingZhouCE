@@ -3,6 +3,7 @@ package com.example.toolbox
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import androidx.core.net.toUri
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Toast
@@ -39,6 +40,10 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.example.toolbox.utils.UpdateInfo
+import com.example.toolbox.utils.checkForUpdateWithDetails
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -120,11 +125,28 @@ fun MyApplicationApp() {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
     var lastBackPressedTime by remember { mutableLongStateOf(0L) }
+    
+    var showAutoUpdateDialog by remember { mutableStateOf(false) }
+    var autoUpdateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
 
     var token by remember { mutableStateOf(TokenManager.get(context)) }
 
     LaunchedEffect(Unit) {
         token?.let { mainViewModel.refreshUserInfo(it) }
+    }
+    
+    LaunchedEffect(Unit) {
+        val autoCheckEnabled = prefs.getBoolean("autoCheckUpdate", true)
+        if (autoCheckEnabled) {
+            val info = checkForUpdateWithDetails(
+                context = context,
+                includePreRelease = true
+            )
+            if (info != null) {
+                autoUpdateInfo = info
+                showAutoUpdateDialog = true
+            }
+        }
     }
 
     val tokenListener = remember {
@@ -212,7 +234,31 @@ fun MyApplicationApp() {
             }?.route
         }
     }
-
+    
+    if (showAutoUpdateDialog && autoUpdateInfo != null) {
+        AlertDialog(
+            onDismissRequest = { showAutoUpdateDialog = false },
+            title = { Text("发现新版本 ${autoUpdateInfo?.version}") },
+            text = { Text("是否前往下载最新版本？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, autoUpdateInfo?.releaseUrl?.toUri())
+                        context.startActivity(intent)
+                        showAutoUpdateDialog = false
+                    }
+                ) {
+                    Text("前往下载")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAutoUpdateDialog = false }) {
+                    Text("稍后")
+                }
+            }
+        )
+    }
+    
     val mainContent = @Composable {
         Box(
             modifier = Modifier
