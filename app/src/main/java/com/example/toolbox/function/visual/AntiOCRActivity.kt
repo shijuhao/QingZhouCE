@@ -97,8 +97,7 @@ class AntiOCRGenerator(private val context: Context) {
     private data class CharItem(
         val letter: Char,
         val char: Char,
-        val isOriginal: Boolean,
-        var style: HighlightConfig? = null
+        val isOriginal: Boolean
     )
 
     private fun getPaint(fontSizeSp: Float): Paint {
@@ -135,19 +134,6 @@ class AntiOCRGenerator(private val context: Context) {
             }
         }
         return seq to letterMap
-    }
-
-    private fun applyHighlightStyle(seq: MutableList<CharItem>, config: HighlightConfig) {
-        seq.forEach { item ->
-            val shouldHighlight = when (config.scope) {
-                HighlightScope.ORIGINAL_ONLY -> item.isOriginal
-                HighlightScope.LETTER_ONLY -> !item.isOriginal
-                HighlightScope.BOTH -> true
-            }
-            if (shouldHighlight) {
-                item.style = config
-            }
-        }
     }
 
     private fun calculateLayout(totalItems: Int, userRows: Int?, userCols: Int?): Pair<Int, Int> {
@@ -188,7 +174,6 @@ class AntiOCRGenerator(private val context: Context) {
     ): Bitmap = withContext(Dispatchers.Default) {
         val paint = getPaint(fontSizeSp)
         val (seq, letterMap) = insertDisturbanceChars(originalText)
-        applyHighlightStyle(seq, highlightConfig)
         val (finalRows, finalCols) = calculateLayout(seq.size, rows, cols)
 
         var maxLetterWidth = 0f
@@ -203,31 +188,25 @@ class AntiOCRGenerator(private val context: Context) {
             if (w > maxCharWidth) maxCharWidth = w
         }
 
-        val padding = 5f
-        val cellWidth = maxLetterWidth + 2f + maxCharWidth + padding * 2
+        val padding = 10f
+        val cellWidth = maxLetterWidth + 4f + maxCharWidth + padding * 2
         val fontHeight = getFontHeight(paint)
         val cellHeight = fontHeight + padding * 2
 
-        // 解码行顶部留白与网格起始位置
-        val topPadding = 30f
-        val gridTop = topPadding + fontHeight + 15f  // 解码行高度 + 额外间距
-
         val imgWidth = (finalCols * cellWidth).toInt()
-        val imgHeight = (gridTop + finalRows * cellHeight + 20f).toInt()
+        val imgHeight = (finalRows * cellHeight + 80).toInt()
 
         val bitmap = createBitmap(imgWidth, imgHeight)
         val canvas = Canvas(bitmap)
         canvas.drawColor(AndroidColor.WHITE)
 
-        // 绘制解码行
         val decodeStr = "==${letterMap.joinToString("")}=="
         paint.color = AndroidColor.BLACK
         paint.typeface = Typeface.DEFAULT
         val decodeWidth = paint.measureText(decodeStr)
-        val decodeBaseline = topPadding - paint.fontMetrics.ascent
-        canvas.drawText(decodeStr, (imgWidth - decodeWidth) / 2f, decodeBaseline, paint)
+        canvas.drawText(decodeStr, (imgWidth - decodeWidth) / 2f, 40f - paint.fontMetrics.ascent, paint)
 
-        // 绘制网格
+        val gridTop = 70f
         seq.forEachIndexed { idx, item ->
             val row = idx / finalCols
             val col = idx % finalCols
@@ -235,27 +214,40 @@ class AntiOCRGenerator(private val context: Context) {
 
             val baseX = col * cellWidth + padding
             val baseY = gridTop + row * cellHeight + padding
-
-            val letterStr = item.letter.toString()
-            paint.color = AndroidColor.BLACK
-            paint.typeface = Typeface.DEFAULT
             val baseline = baseY - paint.fontMetrics.ascent
-            canvas.drawText(letterStr, baseX, baseline, paint)
 
-            val charX = baseX + maxLetterWidth + 2f
-            drawStyledChar(canvas, charX, baseline, item.char, item.style, paint)
+            val isOriginalLetter = letterMap.contains(item.letter)
+
+            val letterStyle = when {
+                highlightConfig.scope == HighlightScope.BOTH -> highlightConfig
+                highlightConfig.scope == HighlightScope.LETTER_ONLY && isOriginalLetter -> highlightConfig
+                else -> null
+            }
+
+            drawStyledChar(canvas, baseX, baseline, item.letter, letterStyle, paint)
+
+            val charX = baseX + maxLetterWidth + 4f
+            val charStyle = when {
+                highlightConfig.scope == HighlightScope.BOTH -> highlightConfig
+                highlightConfig.scope == HighlightScope.ORIGINAL_ONLY && item.isOriginal -> highlightConfig
+                else -> null
+            }
+            drawStyledChar(canvas, charX, baseline, item.char, charStyle, paint)
         }
+
+        var resultBitmap = bitmap
 
         val margin = 40
-        val withMargin = createBitmap(bitmap.width + margin * 2, bitmap.height + margin * 2)
+        val withMargin = createBitmap(resultBitmap.width + margin * 2, resultBitmap.height + margin * 2)
         Canvas(withMargin).apply {
             drawColor(AndroidColor.WHITE)
-            drawBitmap(bitmap, margin.toFloat(), margin.toFloat(), null)
+            drawBitmap(resultBitmap, margin.toFloat(), margin.toFloat(), null)
         }
+        resultBitmap = withMargin
 
-        var resultBitmap = withMargin
         val angle = rotateAngle ?: Random.nextDouble(-15.0, 15.0).toFloat()
         resultBitmap = rotateBitmap(resultBitmap, angle)
+
         resultBitmap = addWatermark(resultBitmap, fontSizeSp * 0.8f, watermarkOpacity)
 
         resultBitmap
@@ -279,6 +271,7 @@ class AntiOCRGenerator(private val context: Context) {
         }
 
         paint.color = style?.textColor?.toArgb() ?: AndroidColor.BLACK
+
         paint.typeface = if (style?.bold == true) {
             Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         } else {
@@ -307,10 +300,10 @@ class AntiOCRGenerator(private val context: Context) {
             textSize = fontSizeSp.spToPx(context).toFloat()
             typeface = Typeface.DEFAULT
         }
-        val text = "防止ocr识别"
+        val text = "防ocr识别"
         val textWidth = paint.measureText(text)
         val spacingY = paint.textSize * 2.5f
-        var y = paint.textSize + 20f
+        var y = paint.textSize + 30f
         while (y < result.height) {
             var x = -textWidth / 2f
             while (x < result.width + textWidth) {
