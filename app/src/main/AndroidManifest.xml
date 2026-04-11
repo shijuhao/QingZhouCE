@@ -77,7 +77,6 @@
         <activity
             android:name=".function.visual.AntiOCRActivity"
             android:exported="false"
-            android:hardwareAccelerated="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
             android:name=".function.game.Game2048Activity"
