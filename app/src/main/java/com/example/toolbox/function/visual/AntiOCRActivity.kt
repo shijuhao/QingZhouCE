@@ -198,6 +198,7 @@ class AntiOCRGenerator(private val context: Context) {
         val imgHeight = (finalRows * cellHeight + 80).toInt()
 
         val bitmap = createBitmap(imgWidth, imgHeight)
+        bitmap.setHasAlpha(false)
         val canvas = Canvas(bitmap)
         canvas.drawColor(AndroidColor.WHITE)
 
@@ -239,17 +240,21 @@ class AntiOCRGenerator(private val context: Context) {
 
         val margin = 40
         val withMargin = createBitmap(resultBitmap.width + margin * 2, resultBitmap.height + margin * 2)
+        withMargin.setHasAlpha(false)
         Canvas(withMargin).apply {
             drawColor(AndroidColor.WHITE)
             drawBitmap(resultBitmap, margin.toFloat(), margin.toFloat(), null)
         }
+        resultBitmap.recycle()
         resultBitmap = withMargin
-
+        
         val angle = rotateAngle ?: Random.nextDouble(-15.0, 15.0).toFloat()
-        resultBitmap = rotateBitmap(resultBitmap, angle)
-
+        val rotated = rotateBitmap(resultBitmap, angle)
+        resultBitmap.recycle()
+        resultBitmap = rotated
+        
         resultBitmap = addWatermark(resultBitmap, fontSizeSp * 0.8f, watermarkOpacity)
-
+        
         resultBitmap
     }
 
@@ -283,13 +288,29 @@ class AntiOCRGenerator(private val context: Context) {
 
     private fun rotateBitmap(src: Bitmap, angle: Float): Bitmap {
         val matrix = Matrix().apply { postRotate(angle) }
-        val rotated = Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
-        val result = createBitmap(rotated.width, rotated.height)
-        Canvas(result).apply {
-            drawColor(AndroidColor.WHITE)
-            drawBitmap(rotated, 0f, 0f, null)
+        return try {
+            val rotated = Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
+            val result = createBitmap(rotated.width, rotated.height)
+            result.setHasAlpha(false)
+            Canvas(result).apply {
+                drawColor(AndroidColor.WHITE)
+                drawBitmap(rotated, 0f, 0f, null)
+            }
+            rotated.recycle()
+            result
+        } catch (e: OutOfMemoryError) {
+            val scaled = Bitmap.createScaledBitmap(src, src.width / 2, src.height / 2, true)
+            val rotated = Bitmap.createBitmap(scaled, 0, 0, scaled.width, scaled.height, matrix, true)
+            scaled.recycle()
+            val result = createBitmap(rotated.width, rotated.height)
+            result.setHasAlpha(false)
+            Canvas(result).apply {
+                drawColor(AndroidColor.WHITE)
+                drawBitmap(rotated, 0f, 0f, null)
+            }
+            rotated.recycle()
+            result
         }
-        return result
     }
 
     private fun addWatermark(src: Bitmap, fontSizeSp: Float, opacity: Float): Bitmap {
