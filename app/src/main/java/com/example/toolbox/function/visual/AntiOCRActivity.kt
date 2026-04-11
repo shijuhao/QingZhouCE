@@ -378,7 +378,7 @@ fun AntiOCRScreen() {
     var generatedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isGenerating by remember { mutableStateOf(false) }
 
-    var scopeOption by remember { mutableStateOf(HighlightScope.ORIGINAL_ONLY) }
+    var scopeOption by remember { mutableStateOf(HighlightScope.LETTER_ONLY) }
     var bold by remember { mutableStateOf(true) }
     var rotateAngle by remember { mutableStateOf<Float?>(null) }
     var watermarkOpacity by remember { mutableFloatStateOf(0.3f) }
@@ -445,7 +445,7 @@ fun AntiOCRScreen() {
                 FilterChip(
                     selected = scopeOption == HighlightScope.LETTER_ONLY,
                     onClick = { scopeOption = HighlightScope.LETTER_ONLY },
-                    label = { Text("仅非原文") }
+                    label = { Text("仅字母") }
                 )
                 FilterChip(
                     selected = scopeOption == HighlightScope.BOTH,
