@@ -43,7 +43,8 @@ class SettingsActivity : ComponentActivity() {
 
 data class ActionData(
     var isOpenCancelTips: Boolean = false,
-    var isDisabledNotice: Boolean = false
+    var isDisabledNotice: Boolean = false,
+    var isEnabledAutoCheckUpdate: Boolean = true
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +62,8 @@ fun SettingsScreen(
     var isOpenCancelTips by remember { mutableStateOf(actionData.isOpenCancelTips) }
     actionData.isDisabledNotice = prefs.getBoolean("disabled_community_notices", false)
     var isDisabledNotice by remember { mutableStateOf(actionData.isDisabledNotice) }
+    actionData.isEnabledAutoCheckUpdate = prefs.getBoolean("autoCheckUpdate", true)
+    var isEnabledAutoCheckUpdate by remember { mutableStateOf(actionData.isEnabledAutoCheckUpdate) }
 
     Scaffold(
         modifier = modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -108,6 +111,22 @@ fun SettingsScreen(
                                     isOpenCancelTips = actionData.isOpenCancelTips
                                     prefs.edit().apply {
                                         putBoolean("exit_confirmation", isOpenCancelTips)
+                                        apply()
+                                    }
+                                }
+                            )
+                        },
+                        {
+                            SettingsSwitchItem(
+                                icon = Icons.Default.Update,
+                                title = "自动检查更新",
+                                subtitle = "在应用启动时自动检查更新",
+                                checked = isEnabledAutoCheckUpdate,
+                                onCheckedChange = {
+                                    actionData.isEnabledAutoCheckUpdate = !actionData.isEnabledAutoCheckUpdate
+                                    isEnabledAutoCheckUpdate = actionData.isEnabledAutoCheckUpdate
+                                    prefs.edit().apply {
+                                        putBoolean("autoCheckUpdate", isEnabledAutoCheckUpdate)
                                         apply()
                                     }
                                 }
