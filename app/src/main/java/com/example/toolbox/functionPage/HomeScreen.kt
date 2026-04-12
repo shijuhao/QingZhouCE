@@ -77,6 +77,13 @@ fun HomeScreen(
     var functionToFavorite by remember { mutableStateOf<FunctionItem?>(null) }
     
     var favoriteRefreshTrigger by remember { mutableIntStateOf(0) }
+    
+    val viewModel: YiYanViewModel = viewModel()
+    val aWordText by viewModel.hitokoto.collectAsState()
+    
+    val dayFormat = remember { SimpleDateFormat("d", Locale.getDefault()) }
+    val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
+    val currentDate = remember { Date() }
 
     val expandedState = remember { mutableStateMapOf<String, Boolean>() }
 
@@ -214,19 +221,14 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
+            item { Spacer(modifier = Modifier.height(4.dp)) }
+
             item {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val viewModel: YiYanViewModel = viewModel()
-                    val aWordText = viewModel.hitokoto.collectAsState().value
-
-                    val dayFormat = remember { SimpleDateFormat("d", Locale.getDefault()) }
-                    val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
-                    val currentDate = remember { Date() }
-                    
                     val dayOfMonth = dayFormat.format(currentDate)
                     val yearAndWeek = yearWeekFormat.format(currentDate)
 
