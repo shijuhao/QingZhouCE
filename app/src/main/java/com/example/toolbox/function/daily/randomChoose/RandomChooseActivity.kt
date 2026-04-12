@@ -8,7 +8,6 @@ import android.graphics.Paint
 import android.os.Bundle
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.List
 import kotlinx.serialization.Serializable
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
@@ -16,8 +15,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.lazy.items
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -42,7 +39,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,6 +57,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,12 +69,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -107,6 +102,7 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.random.Random
+import androidx.core.content.edit
 
 @Serializable
 data class RandomItem(
@@ -126,6 +122,9 @@ data class SavedConfig(
 
 class RandomChooseViewModel : ViewModel() {
     var items by mutableStateOf<List<RandomItem>>(emptyList())
+        private set
+
+    var displayItems by mutableStateOf<List<RandomItem>>(emptyList())
         private set
 
     var newItemName by mutableStateOf("")
@@ -196,6 +195,7 @@ class RandomChooseViewModel : ViewModel() {
             selectedResult = ""
             showResult = false
             targetIndex = -1
+            displayItems = items
         } catch (e: Exception) {
             errorMessage = "添加失败: ${e.message}"
         }
@@ -206,6 +206,7 @@ class RandomChooseViewModel : ViewModel() {
         selectedResult = ""
         showResult = false
         targetIndex = -1
+        displayItems = items
     }
 
     fun clearAllItems() {
@@ -215,6 +216,7 @@ class RandomChooseViewModel : ViewModel() {
         isSpinning = false
         rotationAngle = 0f
         targetIndex = -1
+        displayItems = items
     }
 
     fun spin() {
@@ -227,9 +229,13 @@ class RandomChooseViewModel : ViewModel() {
 
             items = items.map { it.copy(isSelected = false) }
 
+            displayItems = items.shuffled()
+
             val targetItem = selectItemByWeight()
-            val index = items.indexOf(targetItem)
-            val sliceAngle = 360f / items.size
+
+            val index = displayItems.indexOf(targetItem)
+
+            val sliceAngle = 360f / displayItems.size
 
             val safeMargin = sliceAngle * 0.2f
             val randomOffset = Random.nextFloat() * (sliceAngle - 2 * safeMargin) + safeMargin
@@ -252,9 +258,10 @@ class RandomChooseViewModel : ViewModel() {
 
             animateRotation(start = startAngle, end = endAngle, durationMs = 3500)
 
-            items = items.mapIndexed { i, item ->
-                if (i == index) item.copy(isSelected = true) else item.copy(isSelected = false)
+            items = items.mapIndexed { _, item ->
+                if (item.name == targetItem.name) item.copy(isSelected = true) else item.copy(isSelected = false)
             }
+
             targetIndex = index
             selectedResult = targetItem.name
             showResult = true
@@ -330,7 +337,7 @@ class RandomChooseViewModel : ViewModel() {
             timestamp = timestamp
         )
         configs.add(newConfig)
-        getPrefs(context).edit().putString("saved_configs", json.encodeToString(configs)).apply()
+        getPrefs(context).edit { putString("saved_configs", json.encodeToString(configs)) }
         savedConfigs = configs
         errorMessage = ""
         Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
@@ -344,12 +351,13 @@ class RandomChooseViewModel : ViewModel() {
         rotationAngle = 0f
         targetIndex = -1
         errorMessage = ""
+        displayItems = items
         Toast.makeText(context, "已加载: ${config.name}", Toast.LENGTH_SHORT).show()
     }
     
     fun deleteConfig(context: Context, id: Long) {
         val configs = savedConfigs.filter { it.id != id }
-        getPrefs(context).edit().putString("saved_configs", json.encodeToString(configs)).apply()
+        getPrefs(context).edit { putString("saved_configs", json.encodeToString(configs)) }
         savedConfigs = configs
         Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
     }
@@ -362,7 +370,7 @@ class RandomChooseViewModel : ViewModel() {
             items = items.map { it.copy() },
             timestamp = System.currentTimeMillis()
         )
-        getPrefs(context).edit().putString("saved_configs", json.encodeToString(configs)).apply()
+        getPrefs(context).edit { putString("saved_configs", json.encodeToString(configs)) }
         savedConfigs = configs
         Toast.makeText(context, "已覆盖", Toast.LENGTH_SHORT).show()
     }
@@ -391,9 +399,11 @@ fun RandomChooseScreen(
 ) {
     val viewModel: RandomChooseViewModel = viewModel()
     val context = LocalContext.current
-    
+
     val showSaveDialog = remember { mutableStateOf(false) }
     var saveConfigName by remember { mutableStateOf("") }
+
+    val showAddItemDialog = remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
 
@@ -403,7 +413,8 @@ fun RandomChooseScreen(
             listState.animateScrollToItem(0)
         }
     }
-    
+
+    // --- 1. 保存配置弹窗 ---
     if (showSaveDialog.value) {
         AlertDialog(
             onDismissRequest = { showSaveDialog.value = false },
@@ -428,7 +439,8 @@ fun RandomChooseScreen(
             }
         )
     }
-    
+
+    // --- 2. 管理已保存配置弹窗 ---
     if (viewModel.showSaveManagerDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.closeSaveManagerDialog() },
@@ -486,6 +498,56 @@ fun RandomChooseScreen(
         )
     }
 
+    // --- 3. 添加项目弹窗 ---
+    if (showAddItemDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showAddItemDialog.value = false },
+            title = { Text("添加项目") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = viewModel.newItemName,
+                        onValueChange = viewModel::updateNewItemName,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("项目名称") },
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = viewModel.newItemWeight,
+                        onValueChange = viewModel::updateNewItemWeight,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("权重") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    if (viewModel.errorMessage.isNotEmpty()) {
+                        Text(
+                            text = viewModel.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.addItem()
+                    if (viewModel.errorMessage.isEmpty()) {
+                        showAddItemDialog.value = false
+                    }
+                }) { Text("添加") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAddItemDialog.value = false
+                    viewModel.updateNewItemName("")
+                    viewModel.updateNewItemWeight("1")
+                }) { Text("取消") }
+            }
+        )
+    }
+
     Column(
         modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -498,82 +560,129 @@ fun RandomChooseScreen(
                 }
             },
             actions = {
+                FilledTonalButton(
+                    onClick = { showAddItemDialog.value = true },
+                    enabled = !viewModel.isSpinning
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("新建")
+                }
+
+                Spacer(Modifier.width(4.dp))
+
                 IconButton(
                     onClick = { showSaveDialog.value = true },
                     enabled = viewModel.items.isNotEmpty() && !viewModel.isSpinning
                 ) {
-                    Icon(Icons.Default.Save, "保存")
+                    Icon(Icons.Default.Save, contentDescription = "保存")
                 }
                 IconButton(
                     onClick = { viewModel.openSaveManagerDialog(context) },
                     enabled = !viewModel.isSpinning
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.List, "管理")
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "管理")
                 }
             }
         )
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (viewModel.selectedResult.isNotEmpty()) {
-                item {
-                    ResultCard(
-                        selectedResult = viewModel.selectedResult,
-                        showResult = viewModel.showResult,
-                        items = viewModel.items,
-                        isSpinning = viewModel.isSpinning,
-                        onCopy = { copyResultToClipboard(context, viewModel.selectedResult) },
-                        onReselect = { viewModel.spin() }
+        if (viewModel.items.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Casino,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "还没有抽选项",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "添加一些选项，或者载入以前保存的配置来开始抽选吧",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Button(onClick = { showAddItemDialog.value = true }) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("新建项目")
+                        }
+
+                        OutlinedButton(onClick = { viewModel.openSaveManagerDialog(context) }) {
+                            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("载入配置")
+                        }
+                    }
                 }
             }
-
-            if (viewModel.items.isNotEmpty()) {
-                item {
-                    WheelCard(
-                        items = viewModel.items,
-                        rotationAngle = viewModel.rotationAngle,
-                        isSpinning = viewModel.isSpinning,
-                        targetIndex = viewModel.targetIndex,
-                        onSpin = { viewModel.spin() }
-                    )
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (viewModel.selectedResult.isNotEmpty()) {
+                    item {
+                        ResultCard(
+                            selectedResult = viewModel.selectedResult,
+                            showResult = viewModel.showResult,
+                            items = viewModel.items,
+                            isSpinning = viewModel.isSpinning,
+                            onCopy = { copyResultToClipboard(context, viewModel.selectedResult) },
+                            onReselect = { viewModel.spin() }
+                        )
+                    }
                 }
-            }
 
-            item {
-                AddItemCard(
-                    newItemName = viewModel.newItemName,
-                    onNameChange = viewModel::updateNewItemName,
-                    newItemWeight = viewModel.newItemWeight,
-                    onWeightChange = viewModel::updateNewItemWeight,
-                    onAdd = viewModel::addItem,
-                    isSpinning = viewModel.isSpinning
-                )
-            }
-
-            if (viewModel.errorMessage.isNotEmpty()) {
-                item {
-                    ErrorMessageCard(message = viewModel.errorMessage)
+                if (viewModel.displayItems.isNotEmpty()) {
+                    item {
+                        WheelCard(
+                            items = viewModel.displayItems,
+                            rotationAngle = viewModel.rotationAngle,
+                            isSpinning = viewModel.isSpinning,
+                            targetIndex = viewModel.targetIndex,
+                            onSpin = { viewModel.spin() }
+                        )
+                    }
                 }
-            }
 
-            if (viewModel.items.isNotEmpty()) {
-                item {
-                    ItemsListCard(
-                        items = viewModel.items,
-                        totalWeight = viewModel.totalWeight,
-                        onRemove = viewModel::removeItem,
-                        onClearAll = viewModel::clearAllItems,
-                        isSpinning = viewModel.isSpinning
-                    )
+                if (viewModel.items.isNotEmpty()) {
+                    item {
+                        ItemsListCard(
+                            items = viewModel.items,
+                            totalWeight = viewModel.totalWeight,
+                            onRemove = viewModel::removeItem,
+                            onClearAll = viewModel::clearAllItems,
+                            isSpinning = viewModel.isSpinning
+                        )
+                    }
                 }
-            }
 
-            item { Spacer(modifier = Modifier.height(20.dp)) }
+                item { Spacer(modifier = Modifier.height(20.dp)) }
+            }
         }
     }
 }
@@ -884,68 +993,6 @@ fun ResultCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun AddItemCard(
-    newItemName: String,
-    onNameChange: (String) -> Unit,
-    newItemWeight: String,
-    onWeightChange: (String) -> Unit,
-    onAdd: () -> Unit,
-    isSpinning: Boolean
-) {
-    Card(elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("添加项目", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = newItemName,
-                onValueChange = onNameChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("项目名称") },
-                singleLine = true
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = newItemWeight,
-                    onValueChange = onWeightChange,
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("权重") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-
-                Button(
-                    onClick = onAdd,
-                    modifier = Modifier.height(56.dp),
-                    enabled = !isSpinning
-                ) {
-                    Icon(Icons.Filled.Add, null)
-                    Spacer(Modifier.width(4.dp))
-                    Text("添加")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ErrorMessageCard(message: String) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-    ) {
-        Text(
-            text = message,
-            modifier = Modifier.padding(16.dp),
-            color = MaterialTheme.colorScheme.onErrorContainer
-        )
     }
 }
 
