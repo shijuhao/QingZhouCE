@@ -23,9 +23,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.saveable.mapSaver
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -68,27 +65,20 @@ object ExpandedStatePrefs {
     }
 }
 
-val expandedStateSaver = mapSaver(
-    save = { map: SnapshotStateMap<String, Boolean> -> map.toMap() },
-    restore = { map: Map<String, Boolean> -> map.toMutableStateMap() }
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onMenuClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var isSearching by rememberSaveable { mutableStateOf(false) }
-    var searchText by rememberSaveable { mutableStateOf("") }
+    var isSearching by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
     var showFavoriteDialog by remember { mutableStateOf(false) }
     var functionToFavorite by remember { mutableStateOf<FunctionItem?>(null) }
     
     var favoriteRefreshTrigger by remember { mutableIntStateOf(0) }
 
-    val expandedState = rememberSaveable(
-        saver = expandedStateSaver
-    ) { mutableStateMapOf<String, Boolean>() }
+    val expandedState = remember { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(Unit) {
         if (expandedState.isEmpty()) {
