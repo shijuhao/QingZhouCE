@@ -185,11 +185,12 @@ class CommunityViewModel : ViewModel() {
     fun deleteMessage(
         token: String,
         messageId: Int,
+        userStatus: Int,
         onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
             try {
-                deleteMessage(client, token, messageId)
+                deleteMessage(client, token, userStatus, messageId)
                 _state.update { state ->
                     state.copy(messages = state.messages.filter { it.message_id != messageId })
                 }

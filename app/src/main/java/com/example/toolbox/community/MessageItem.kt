@@ -136,6 +136,8 @@ fun MessageItem(
     var showMenu by remember { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
 
+    val userStatus = TokenManager.getTagStatus(context)
+
     val currentUserId = TokenManager.getUserID(context)
 
     val usernameColor = when (message.tag_status) {
@@ -309,14 +311,17 @@ fun MessageItem(
                         if (message.userid == currentUserId) {
                             DropdownMenuItem(
                                 text = { Text("编辑留言") },
-                                onClick = { 
+                                onClick = {
                                     showMenu = false
-                                    onEdit() 
+                                    onEdit()
                                 },
-                                leadingIcon = { 
-                                    Icon(Icons.Default.Edit, null, Modifier.size(18.dp)) 
+                                leadingIcon = {
+                                    Icon(Icons.Default.Edit, null, Modifier.size(18.dp))
                                 }
                             )
+                        }
+
+                        if (message.userid == currentUserId || userStatus == 1) {
                             DropdownMenuItem(
                                 text = { 
                                     Text(
@@ -344,7 +349,6 @@ fun MessageItem(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 文章标题
             if (!message.content.title.isNullOrEmpty()) {
                 Text(
                     text = message.content.title,
