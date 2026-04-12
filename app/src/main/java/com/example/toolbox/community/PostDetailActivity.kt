@@ -79,7 +79,6 @@ import com.example.toolbox.utils.MultiImageViewer
 import java.io.File
 import androidx.compose.ui.viewinterop.AndroidView
 import coil3.request.allowHardware
-import com.example.toolbox.function.visual.saveBitmapToGallery
 
 object AppImageLoaders {
     private var _coil3Loader: coil3.ImageLoader? = null
@@ -173,7 +172,7 @@ fun PostDetailScreen(
     var likeCount by remember { mutableIntStateOf(0) }
     var isLiking by remember { mutableStateOf(false) }
     var isReplying by remember { mutableStateOf(false) }
-    val client = remember { OkHttpClient() }
+    val client = OkHttpClient()
 
     var pendingBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
@@ -233,7 +232,6 @@ fun PostDetailScreen(
                         .let { string -> AppJson.json.decodeFromString<LocalApiResponse>(string) }
                     if (res.success) {
                         uiState = res.message_info
-                        // 更新点赞状态
                         res.message_info?.let { msg ->
                             isLiked = msg.is_liked
                             likeCount = msg.like_count
@@ -337,6 +335,7 @@ fun PostDetailScreen(
                                 viewModel.deleteMessage(
                                     token = tk,
                                     messageId = info.message_id,
+                                    userStatus = TokenManager.getTagStatus(context),
                                     onError = { err ->
                                         Toast.makeText(
                                             context,
@@ -843,6 +842,56 @@ fun MessageContent(
         Spacer(Modifier.height(16.dp))
 
         msg.referenced_message?.let { ref -> ReferencedMessageCard(ref, softwareImageLoader) }
+
+        if (!screenShotMode && msg.like_count > 0 && !msg.like_users.isNullOrEmpty()) {
+            Row(
+                modifier = Modifier
+                    .padding(vertical = 10.dp)
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Favorite,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = "赞过的人",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(8.dp))
+                msg.like_users.take(20).forEach { user ->
+                    AsyncImage(
+                        model = user.avatar_url,
+                        imageLoader = softwareImageLoader,
+                        contentDescription = user.username,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, Color.White, CircleShape)
+                            .clickable {
+                                val intent = Intent(context, UserInfoActivity::class.java)
+                                intent.putExtra("userId", user.id)
+                                context.startActivity(intent)
+                            },
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.user)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                if (msg.like_users.size > 20) {
+                    Text(
+                        text = "等${msg.like_users.size}人",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
 
         if (!screenShotMode) {
             Column(

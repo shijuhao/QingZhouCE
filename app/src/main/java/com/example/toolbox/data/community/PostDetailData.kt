@@ -86,6 +86,7 @@ data class LocalEditRecord(
 
 @Serializable
 data class LikeUser(
+    val id: Int,
     val username: String,
     val avatar_url: String
 )
