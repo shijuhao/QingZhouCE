@@ -210,11 +210,10 @@ fun GridFunctionItem(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
-                        // 收藏角标
                         Icon(
                             imageVector = Icons.Default.Favorite,
                             contentDescription = "已收藏",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(12.dp)
                         )
                     }
