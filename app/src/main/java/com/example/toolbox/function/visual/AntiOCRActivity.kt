@@ -77,6 +77,7 @@ import kotlin.random.Random
 import androidx.core.graphics.createBitmap
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.io.File
+import androidx.core.graphics.scale
 
 enum class HighlightScope {
     NONE, LETTER_ONLY, ORIGINAL_ONLY
@@ -117,21 +118,21 @@ class AntiOCRGenerator(private val context: Context) {
             val dChar = disturbChars.random()
             val letter = alphabetPool[alphabetIdx % alphabetPool.size]
             alphabetIdx++
-            seq.add(CharItem(letter, dChar, false, false))
+            seq.add(CharItem(letter, dChar, isOriginal = false, isOriginalLetter = false))
         }
 
         originalText.forEach { char ->
             val letter = alphabetPool[alphabetIdx % alphabetPool.size]
             alphabetIdx++
             letterMap.add(letter)
-            seq.add(CharItem(letter, char, true, true))
+            seq.add(CharItem(letter, char, isOriginal = true, isOriginalLetter = true))
 
             val count = Random.nextInt(3, 5)
             repeat(count) {
                 val dChar = disturbChars.random()
                 val dLetter = alphabetPool[alphabetIdx % alphabetPool.size]
                 alphabetIdx++
-                seq.add(CharItem(dLetter, dChar, false, false))
+                seq.add(CharItem(dLetter, dChar, false, isOriginalLetter = false))
             }
         }
         return seq to letterMap
@@ -298,8 +299,8 @@ class AntiOCRGenerator(private val context: Context) {
             }
             rotated.recycle()
             result
-        } catch (e: OutOfMemoryError) {
-            val scaled = Bitmap.createScaledBitmap(src, src.width / 2, src.height / 2, true)
+        } catch (_: OutOfMemoryError) {
+            val scaled = src.scale(src.width / 2, src.height / 2)
             val rotated = Bitmap.createBitmap(scaled, 0, 0, scaled.width, scaled.height, matrix, true)
             scaled.recycle()
             val result = createBitmap(rotated.width, rotated.height)
@@ -531,7 +532,7 @@ fun AntiOCRScreen() {
                     elevation = CardDefaults.cardElevation(4.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
