@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,19 +30,25 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AppShortcut
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +60,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.toolbox.ui.theme.ToolBoxTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ResourceSourceActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,7 +88,21 @@ data class InstalledAppItem(
 fun MyResourceSourceScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     var selectedMode by remember { mutableIntStateOf(0) }
-    val installedApps = remember { loadInstalledApps(context.packageManager) }
+    val scope = rememberCoroutineScope()
+    val installedApps = remember { mutableStateListOf<InstalledAppItem>() }
+    var searchQuery by remember { mutableStateOf("") }
+    var loadingApps by remember { mutableStateOf(false) }
+
+    val filteredApps = run {
+        val keyword = searchQuery.trim().lowercase()
+        if (keyword.isEmpty()) {
+            installedApps.toList()
+        } else {
+            installedApps.filter {
+                it.name.lowercase().contains(keyword) || it.packageName.lowercase().contains(keyword)
+            }
+        }
+    }
 
     val apkPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
@@ -90,6 +114,20 @@ fun MyResourceSourceScreen(onBack: () -> Unit) {
         } catch (_: Exception) {
         }
         context.startActivity(ResourceUploadActivity.createApkIntent(context, uri))
+    }
+
+    LaunchedEffect(selectedMode) {
+        if (selectedMode == 1 && installedApps.isEmpty() && !loadingApps) {
+            loadingApps = true
+            scope.launch {
+                val apps = withContext(Dispatchers.IO) {
+                    loadInstalledApps(context.packageManager)
+                }
+                installedApps.clear()
+                installedApps.addAll(apps)
+                loadingApps = false
+            }
+        }
     }
 
     Scaffold(
@@ -167,49 +205,80 @@ fun MyResourceSourceScreen(onBack: () -> Unit) {
                     }
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    items(installedApps) { app ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    context.startActivity(
-                                        ResourceUploadActivity.createInstalledAppIntent(context, app.packageName)
-                                    )
-                                },
-                            shape = RoundedCornerShape(16.dp)
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text("搜索应用名或包名") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (loadingApps) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                AsyncImage(
-                                    model = app.icon,
-                                    contentDescription = null,
+                            CircularProgressIndicator()
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 88.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(filteredApps) { app ->
+                                Card(
                                     modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                                Column(
-                                    modifier = Modifier
-                                        .padding(start = 12.dp)
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            context.startActivity(
+                                                ResourceUploadActivity.createInstalledAppIntent(context, app.packageName)
+                                            )
+                                        },
+                                    shape = RoundedCornerShape(16.dp)
                                 ) {
-                                    Text(app.name, style = MaterialTheme.typography.titleMedium)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(app.packageName, style = MaterialTheme.typography.bodySmall)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        AsyncImage(
+                                            model = app.icon,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(CircleShape),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        Column(modifier = Modifier.padding(start = 12.dp)) {
+                                            Text(app.name, style = MaterialTheme.typography.titleMedium)
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(app.packageName, style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                }
+                            }
+                            if (filteredApps.isEmpty()) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 32.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("没有匹配的应用")
+                                    }
                                 }
                             }
                         }
-                    }
-                    item {
-                        Spacer(modifier = Modifier.height(88.dp))
                     }
                 }
             }

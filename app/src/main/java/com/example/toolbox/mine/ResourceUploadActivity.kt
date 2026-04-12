@@ -257,7 +257,7 @@ private fun ResourceUploadScreen(
             title = { Text("退出") },
             text = { Text("确定退出吗？当前填写内容不会保存。") },
             confirmButton = { TextButton(onClick = onFinish) { Text("确定") } },
-            dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("取消") } }
+            dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("点错了") } }
         )
     }
 
