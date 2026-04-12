@@ -407,7 +407,6 @@ fun MyApplicationApp() {
         mainContent()
     }
 
-    // 返回键处理
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
     }

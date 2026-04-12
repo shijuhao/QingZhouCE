@@ -147,10 +147,14 @@ fun InfoScreen(modifier: Modifier = Modifier) {
             onDismissRequest = { showUserRulesDialog = false },
             title = { Text("隐私政策") },
             text = {
-                MarkdownRenderer.Render(
-                    modifier = Modifier.fillMaxWidth(),
-                    content = userRules
-                )
+                Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                ) {
+                    MarkdownRenderer.Render(
+                        modifier = Modifier.fillMaxWidth(),
+                        content = userRules
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = { showUserRulesDialog = false }) {
