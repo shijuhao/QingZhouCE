@@ -62,7 +62,6 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // 用户协议对话框
     if (uiState.showUserAgreementDialog) {
         UserAgreementDialog(
             onDismiss = { viewModel.dismissUserAgreementDialog() },
@@ -426,9 +425,13 @@ fun UserAgreementDialog(
             )
         },
         text = {
-            MarkdownRenderer.Render(
-                content = userRules
-            )
+            Column(
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            ) {
+                MarkdownRenderer.Render(
+                    content = userRules
+                )
+            }
         },
         confirmButton = {
             TextButton(
