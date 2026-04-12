@@ -68,9 +68,9 @@ object ExpandedStatePrefs {
     }
 }
 
-fun <K, V> snapshotMapSaver() = mapSaver(
-    save = { map: SnapshotStateMap<K, V> -> map.toMap() },
-    restore = { it.toMutableStateMap() }
+val expandedStateSaver = mapSaver(
+    save = { map: SnapshotStateMap<String, Boolean> -> map.toMap() },
+    restore = { map: Map<String, Boolean> -> map.toMutableStateMap() }
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,8 +87,8 @@ fun HomeScreen(
     var favoriteRefreshTrigger by remember { mutableIntStateOf(0) }
 
     val expandedState = rememberSaveable(
-        saver = snapshotMapSaver<String, Boolean>()
-    ) { mutableStateMapOf() }
+        saver = expandedStateSaver
+    ) { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(Unit) {
         if (expandedState.isEmpty()) {
