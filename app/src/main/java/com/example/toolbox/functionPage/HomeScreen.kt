@@ -110,7 +110,6 @@ fun HomeScreen(
         }
     }
 
-    // 处理返回键
     BackHandler(enabled = isSearching) {
         isSearching = false
         searchText = ""
@@ -118,7 +117,6 @@ fun HomeScreen(
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    // 2. 模仿 ResourceLibScreen 的动画参数
     val horizontalPadding by animateDpAsState(
         targetValue = if (isSearching) 0.dp else 16.dp,
         label = "horizontalPadding"
@@ -145,10 +143,6 @@ fun HomeScreen(
                                 Icon(Icons.Default.Search, contentDescription = "搜索")
                             }
                         },
-                        colors = topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            scrolledContainerColor = MaterialTheme.colorScheme.surface
-                        ),
                         scrollBehavior = scrollBehavior
                     )
                 } else {
@@ -213,154 +207,135 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        Box(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = paddingValues.calculateTopPadding())
+                .padding(top = paddingValues.calculateTopPadding()),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(4.dp)) }
+            item { Spacer(modifier = Modifier.height(4.dp)) }
 
-                item {
-                    Surface(
-                        shape = RoundedCornerShape(24.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.fillMaxWidth()
+            item {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val viewModel: YiYanViewModel = viewModel()
+                    val aWordText = viewModel.hitokoto.collectAsState().value
+
+                    val dayFormat = remember { SimpleDateFormat("d", Locale.getDefault()) }
+                    val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
+                    val currentDate = remember { Date() }
+                    
+                    val dayOfMonth = dayFormat.format(currentDate)
+                    val yearAndWeek = yearWeekFormat.format(currentDate)
+
+                    Row(
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        val viewModel: YiYanViewModel = viewModel()
-                        val aWordText = viewModel.hitokoto.collectAsState().value
-
-                        val dayFormat = remember { SimpleDateFormat("d", Locale.getDefault()) }
-                        val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
-                        val currentDate = remember { Date() }
-                        
-                        val dayOfMonth = dayFormat.format(currentDate)
-                        val yearAndWeek = yearWeekFormat.format(currentDate)
-
-                        Row(
-                            modifier = Modifier.fillMaxSize()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(1f),
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Column(
+                            Text(
+                                text = "日月如梭",
+                                style = MaterialTheme.typography.titleLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
-                                    .fillMaxHeight()
-                                    .weight(1f),
-                                verticalArrangement = Arrangement.Center
-                            ) {
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp, start = 15.dp)
+                            )
+
+                            Row {
+                                Spacer(modifier = Modifier.width(15.dp))
                                 Text(
-                                    text = "日月如梭",
-                                    style = MaterialTheme.typography.titleLarge,
+                                    text = aWordText,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 12.dp, start = 15.dp)
-                                )
-
-                                Row {
-                                    Spacer(modifier = Modifier.width(15.dp))
-                                    Text(
-                                        text = aWordText,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .basicMarquee()
-                                            .padding(top = 8.dp, bottom = 12.dp)
-                                    )
-                                }
-                            }
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .padding(start = 10.dp),
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = dayOfMonth,
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    modifier = Modifier.padding(top = 12.dp, end = 15.dp)
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Text(
-                                    text = yearAndWeek,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(bottom = 12.dp, end = 15.dp)
+                                        .basicMarquee()
+                                        .padding(top = 8.dp, bottom = 12.dp)
                                 )
                             }
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(start = 10.dp),
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = dayOfMonth,
+                                style = MaterialTheme.typography.headlineLarge,
+                                modifier = Modifier.padding(top = 12.dp, end = 15.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = yearAndWeek,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(bottom = 12.dp, end = 15.dp)
+                            )
                         }
                     }
-                    Spacer(modifier = Modifier.height(10.dp))
                 }
-
-                item {
-                    FavoriteCategoryCard(
-                        favoritesExpanded = expandedState["我的收藏"] == true,
-                        favoriteFunctions = favoriteFunctions,
-                        onToggle = {
-                            val newState = !(expandedState["我的收藏"] ?: false)
-                            expandedState["我的收藏"] = newState
-                            ExpandedStatePrefs.saveExpanded(context, "我的收藏", newState)
-                        },
-                        onLongPress = { function ->
-                            functionToFavorite = function.function
-                            showFavoriteDialog = true
-                        }
-                    )
-                }
-
-                itemsIndexed(functionData, key = { _, category -> category.name }) { index, category ->
-                    val isExpanded = expandedState[category.name] == true
-                    CategoryCard(
-                        category = category,
-                        isExpanded = isExpanded,
-                        isLastCategory = index == functionData.size - 1,
-                        onToggle = {
-                            val newState = !isExpanded
-                            expandedState[category.name] = newState
-                            ExpandedStatePrefs.saveExpanded(context, category.name, newState)
-                        },
-                        context = context,
-                        onLongPress = {
-                            functionToFavorite = it
-                            showFavoriteDialog = true
-                        }
-                    )
-                }
-
-                item {
-                    Spacer(
-                        modifier = Modifier.height(
-                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                        )
-                    )
-                }
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surface,
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0f)
-                            )
-                        )
+            item {
+                FavoriteCategoryCard(
+                    favoritesExpanded = expandedState["我的收藏"] == true,
+                    favoriteFunctions = favoriteFunctions,
+                    onToggle = {
+                        val newState = !(expandedState["我的收藏"] ?: false)
+                        expandedState["我的收藏"] = newState
+                        ExpandedStatePrefs.saveExpanded(context, "我的收藏", newState)
+                    },
+                    onLongPress = { function ->
+                        functionToFavorite = function.function
+                        showFavoriteDialog = true
+                    }
+                )
+            }
+
+            itemsIndexed(functionData, key = { _, category -> category.name }) { index, category ->
+                val isExpanded = expandedState[category.name] == true
+                CategoryCard(
+                    category = category,
+                    isExpanded = isExpanded,
+                    isLastCategory = index == functionData.size - 1,
+                    onToggle = {
+                        val newState = !isExpanded
+                        expandedState[category.name] = newState
+                        ExpandedStatePrefs.saveExpanded(context, category.name, newState)
+                    },
+                    context = context,
+                    onLongPress = {
+                        functionToFavorite = it
+                        showFavoriteDialog = true
+                    }
+                )
+            }
+
+            item {
+                Spacer(
+                    modifier = Modifier.height(
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                     )
-                    .align(Alignment.TopStart)
-            )
+                )
+            }
         }
     }
 
