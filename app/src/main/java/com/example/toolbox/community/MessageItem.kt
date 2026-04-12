@@ -403,7 +403,14 @@ fun MessageItem(
                     border = androidx.compose.foundation.BorderStroke(
                         0.5.dp, 
                         colorScheme.outlineVariant
-                    )
+                    ),
+                    onClick = {
+                        context.startActivity(
+                            Intent(context, PostDetailActivity::class.java).apply {
+                                putExtra("msgid", message.referenced_message.message_id)
+                            }
+                        )
+                    }
                 ) {
                     Column(Modifier.padding(12.dp)) {
                         Text(

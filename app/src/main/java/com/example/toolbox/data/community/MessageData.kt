@@ -96,7 +96,8 @@ data class Content(
 data class ReferencedMessage(
     val content: String,
     val sender_username: String,
-    val image_url: String?
+    val image_url: String?,
+    val message_id: Int = 0
 )
 
 @Serializable
