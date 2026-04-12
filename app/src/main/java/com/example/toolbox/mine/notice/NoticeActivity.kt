@@ -1,5 +1,7 @@
 package com.example.toolbox.mine.notice
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,6 +28,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -49,11 +52,14 @@ import androidx.navigation.navArgument
 import coil3.compose.rememberAsyncImagePainter
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.TokenManager
+import com.example.toolbox.community.PostDetailActivity
+import com.example.toolbox.community.UserInfoActivity
 import com.example.toolbox.data.mine.notice.LikeInfo
 import com.example.toolbox.data.mine.notice.Notification
 import com.example.toolbox.data.mine.notice.Sender
 import com.example.toolbox.data.mine.notice.SummaryData
 import com.example.toolbox.data.mine.notice.TypeUnreadDetail
+import com.example.toolbox.settings.SettingsGroup
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -323,45 +329,59 @@ fun MainNoticeScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 state = lazyListState
                             ) {
-                                item{
-                                    NoticeTypeButton(
-                                        text = "点赞通知",
-                                        icon = Icons.Default.Favorite,
-                                        color = Color(0xFFE57373),
-                                        onClick = { onNavigateToType("点赞通知", "2") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        unreadCount = likeUnreadCount
+                                item {
+                                    val typeButtons = listOf(
+                                        @Composable {
+                                            NoticeTypeRow(
+                                                text = "点赞通知",
+                                                icon = Icons.Default.Favorite,
+                                                color = Color(0xFFE57373),
+                                                unreadCount = likeUnreadCount,
+                                                onClick = { onNavigateToType("点赞通知", "2") }
+                                            )
+                                        },
+                                        @Composable {
+                                            NoticeTypeRow(
+                                                text = "资源通知",
+                                                icon = Icons.Default.Inbox,
+                                                color = Color(0xFF81C784),
+                                                unreadCount = resourceUnreadCount,
+                                                onClick = { onNavigateToType("资源通知", "4,5") }
+                                            )
+                                        },
+                                        @Composable {
+                                            NoticeTypeRow(
+                                                text = "关注通知",
+                                                icon = Icons.Default.Person,
+                                                color = Color(0xFF64B5F6),
+                                                unreadCount = followUnreadCount,
+                                                onClick = { onNavigateToType("关注通知", "6") }
+                                            )
+                                        },
+                                        @Composable {
+                                            NoticeTypeRow(
+                                                text = "系统通知",
+                                                icon = Icons.Default.Key,
+                                                color = Color(0xFF9E9E9E),
+                                                unreadCount = systemUnreadCount,
+                                                onClick = { onNavigateToType("系统通知", "0,7,8,9,10") }
+                                            )
+                                        }
                                     )
-                                    NoticeTypeButton(
-                                        text = "资源通知",
-                                        icon = Icons.Default.Inbox,
-                                        color = Color(0xFF81C784),
-                                        onClick = { onNavigateToType("资源通知", "4,5") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        unreadCount = resourceUnreadCount
+
+                                    SettingsGroup(
+                                        items = typeButtons
                                     )
-                                    NoticeTypeButton(
-                                        text = "关注通知",
-                                        icon = Icons.Default.Person,
-                                        color = Color(0xFF64B5F6),
-                                        onClick = { onNavigateToType("关注通知", "6") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        unreadCount = followUnreadCount
-                                    )
-                                    NoticeTypeButton(
-                                        text = "系统通知",
-                                        icon = Icons.Default.Key,
-                                        color = Color(0xFF9E9E9E),
-                                        onClick = { onNavigateToType("系统通知", "0,7,8,9,10") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        unreadCount = systemUnreadCount
-                                    )
+                                }
+
+                                item {
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
 
                                 items(notifications) { notification ->
                                     NotificationItem(
                                         notification = notification,
-                                        onClick = { handleNotificationClick(notification) }
+                                        onClick = { handleNotificationClick(context, notification) }
                                     )
                                 }
 
@@ -550,7 +570,7 @@ fun TypeNoticeScreen(
                             items(notifications) { notification ->
                                 NotificationItem(
                                     notification = notification,
-                                    onClick = { handleNotificationClick(notification) }
+                                    onClick = { handleNotificationClick(context, notification) }
                                 )
                             }
 
@@ -603,56 +623,62 @@ fun TypeNoticeScreen(
 }
 
 @Composable
-fun NoticeTypeButton(
-    modifier: Modifier = Modifier,
+fun NoticeTypeRow(
     text: String,
-    color: Color,
     icon: ImageVector,
-    onClick: () -> Unit,
-    unreadCount: Int = 0  // ========== 新增参数 ==========
+    color: Color,
+    unreadCount: Int,
+    onClick: () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier
+    // SettingsGroup 已经提供了 Surface 容器，这里只需内容
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            color = color,
+            contentColor = Color.White
         ) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = CircleShape,
-                color = color,
-                contentColor = Color(0xFFFFFFFF)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Text(
-                modifier = Modifier.weight(1f),
-                text = text,
-                fontSize = 16.sp,
-                fontWeight = if (unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
-                color = if (unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
-
-            if (unreadCount > 0) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.error)
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            modifier = Modifier.weight(1f),
+            text = text,
+            fontSize = 16.sp,
+            fontWeight = if (unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+            color = if (unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+        )
+
+        if (unreadCount > 0) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.error)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
     }
 }
 
@@ -932,13 +958,22 @@ private fun loadNotificationsV2WithSummary(
     }
 }
 
-private fun handleNotificationClick(notification: Notification) {
-    // 处理点击事件，根据类型跳转相应页面
+private fun handleNotificationClick(context: Context, notification: Notification) {
     when (notification.type) {
-        6 -> {
-            // 跳转到用户主页
+        3 -> {
+            context.startActivity(
+                Intent(context, PostDetailActivity::class.java).apply {
+                    notification.replyInfo?.let { putExtra("msgid", it.originalMessageId) }
+                }
+            )
         }
-        // 其他处理...
+        6 -> {
+            context.startActivity(
+                Intent(context, UserInfoActivity::class.java).apply {
+                    notification.sender?.let { putExtra("userId", it.id) }
+                }
+            )
+        }
     }
 }
 
