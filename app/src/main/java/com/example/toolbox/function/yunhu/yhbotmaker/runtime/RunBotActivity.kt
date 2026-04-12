@@ -277,7 +277,7 @@ fun BotRuntimeScreen(
                     val request = Request.Builder().url(url).build()
                     client.newCall(request).execute().use { response ->
                         if (response.isSuccessful) {
-                            val body = response.body?.string() ?: ""
+                            val body = response.body.string()
                             val json = try {
                                 AppJson.json.parseToJsonElement(body).jsonObject
                             } catch (_: Exception) {
