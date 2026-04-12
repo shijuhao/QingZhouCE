@@ -141,9 +141,15 @@ suspend fun uploadImage(
         )
 
         val result = try {
+<<<<<<< HEAD
             val jsonElement = Json.parseToJsonElement(resultJson)
             val jsonObject = jsonElement.jsonObject
             val imageUrl = jsonObject["image_url"]?.jsonPrimitive?.content
+=======
+            val jsonElement = Json.parseToJsonElement(resultJson)  // 解析为 JsonElement
+            val jsonObject = jsonElement.jsonObject                 // 转为 JsonObject
+            val imageUrl = jsonObject["image_url"]?.jsonPrimitive?.content  // 安全获取字符串
+>>>>>>> 653be43e816d3925f37e882dc6e1f94369c4944e
             if (imageUrl?.startsWith("http") == true) {
                 imageUrl
             } else {
@@ -162,6 +168,7 @@ suspend fun uploadImage(
     }
 }
 
+<<<<<<< HEAD
 suspend fun uploadImageFile(
     filePath: String,
     token: String,
@@ -197,6 +204,8 @@ suspend fun uploadImageFile(
     }
 }
 
+=======
+>>>>>>> 653be43e816d3925f37e882dc6e1f94369c4944e
 private fun createTempFileFromUri(context: Context, uri: Uri): File? {
     return try {
         println("开始处理Uri: $uri")
@@ -311,4 +320,8 @@ private fun tryAlternativeRead(context: Context, uri: Uri, tempFile: File): Bool
         println("替代方法也失败: ${e.message}")
         false
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 653be43e816d3925f37e882dc6e1f94369c4944e

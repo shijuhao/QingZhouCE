@@ -178,6 +178,7 @@
         </activity>
         <activity
             android:name=".mine.ResourceUploadActivity"
+<<<<<<< HEAD
             android:exported="true"
             android:theme="@style/Theme.ToolBox">
             <intent-filter>
@@ -189,6 +190,10 @@
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
+=======
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+>>>>>>> 653be43e816d3925f37e882dc6e1f94369c4944e
         <activity
             android:name=".mine.MyResourceActivity"
             android:exported="false"
@@ -353,4 +358,8 @@
         </provider>
     </application>
 
+<<<<<<< HEAD
 </manifest>
+=======
+</manifest>
+>>>>>>> 653be43e816d3925f37e882dc6e1f94369c4944e
