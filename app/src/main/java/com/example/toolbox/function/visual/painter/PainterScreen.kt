@@ -17,7 +17,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,7 +46,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -79,7 +77,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -208,6 +205,28 @@ fun PainterScreen(
                         Icon(Icons.Default.Clear, contentDescription = "清空")
                     }
                 }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(currentColor)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "${strokeWidth.toInt()}px",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -223,14 +242,6 @@ fun PainterScreen(
                 onDrawEnd = { viewModel.finishPath() },
                 modifier = Modifier.fillMaxSize(),
                 onSizeChanged = { size -> canvasSize = size }
-            )
-
-            CurrentBrushDisplay(
-                color = currentColor,
-                strokeWidth = strokeWidth,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
             )
 
             if (showColorPicker) {
@@ -391,51 +402,6 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPathOnCanvas(dr
             join = androidx.compose.ui.graphics.StrokeJoin.Round
         )
     )
-}
-
-@Composable
-fun CurrentBrushDisplay(color: Color, strokeWidth: Float, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(12.dp)
-                .width(IntrinsicSize.Max),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(color)
-                    .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            )
-            Spacer(Modifier.height(8.dp))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "${strokeWidth.toInt()}px", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth((strokeWidth / 50f).coerceAtMost(1f))
-                            .height(8.dp)
-                            .clip(CircleShape)
-                            .background(color)
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable
