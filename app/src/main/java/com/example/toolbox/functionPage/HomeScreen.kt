@@ -214,8 +214,6 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(4.dp)) }
-
             item {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
