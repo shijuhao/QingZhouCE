@@ -162,6 +162,42 @@ suspend fun uploadImage(
     }
 }
 
+
+suspend fun uploadImageFile(
+    filePath: String,
+    token: String,
+    status: Int = 1,
+    onProgress: (Int) -> Unit
+): String? = withContext(Dispatchers.IO) {
+    try {
+        val uploader = HttpUpload(
+            panUrl = "${ApiAddress}upload_image",
+            token = token
+        )
+        val resultJson = uploader.uploadFile(
+            filePath = filePath,
+            onProgress = onProgress,
+            status = status
+        )
+        val result = try {
+            val jsonElement = Json.parseToJsonElement(resultJson)
+            val jsonObject = jsonElement.jsonObject
+            val imageUrl = jsonObject["image_url"]?.jsonPrimitive?.content
+            if (imageUrl?.startsWith("http") == true) {
+                imageUrl
+            } else {
+                "${ApiAddress}uploads/$imageUrl"
+            }
+        } catch (_: Exception) {
+            null
+        }
+        return@withContext result
+    } catch (e: Exception) {
+        e.printStackTrace()
+        return@withContext null
+    }
+}
+
 private fun createTempFileFromUri(context: Context, uri: Uri): File? {
     return try {
         println("开始处理Uri: $uri")
@@ -277,3 +313,4 @@ private fun tryAlternativeRead(context: Context, uri: Uri, tempFile: File): Bool
         false
     }
 }
+

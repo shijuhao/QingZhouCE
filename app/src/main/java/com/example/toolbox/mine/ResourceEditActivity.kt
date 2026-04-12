@@ -59,7 +59,10 @@ class ResourceEditActivity : ComponentActivity() {
         val token = intent.getStringExtra("token") ?: ""
         val resourceId = intent.getStringExtra("resource_id") ?: ""
         val initialName = intent.getStringExtra("name") ?: ""
-        val initialBio = intent.getStringExtra("bio") ?: ""
+        val initialPackageName = intent.getStringExtra("package_name")
+            ?: intent.getStringExtra("bio")
+            ?: ""
+        val initialDescription = intent.getStringExtra("description") ?: ""
         val initialVer = intent.getStringExtra("ver") ?: ""
         val initialUrl = intent.getStringExtra("d_url") ?: ""
         val initialSize = intent.getStringExtra("size") ?: ""
@@ -72,7 +75,8 @@ class ResourceEditActivity : ComponentActivity() {
                     token = token,
                     resourceId = resourceId,
                     initialName = initialName,
-                    initialBio = initialBio,
+                    initialPackageName = initialPackageName,
+                    initialDescription = initialDescription,
                     initialVer = initialVer,
                     initialUrl = initialUrl,
                     initialSize = initialSize,
@@ -91,7 +95,8 @@ fun ResourceEditScreen(
     token: String,
     resourceId: String,
     initialName: String,
-    initialBio: String,
+    initialPackageName: String,
+    initialDescription: String,
     initialVer: String,
     initialUrl: String,
     initialSize: String,
@@ -107,7 +112,8 @@ fun ResourceEditScreen(
     var ver by remember { mutableStateOf(initialVer) }
     var size by remember { mutableStateOf(initialSize) }
     var dUrl by remember { mutableStateOf(initialUrl) }
-    var bio by remember { mutableStateOf(initialBio) }
+    var packageName by remember { mutableStateOf(initialPackageName) }
+    var description by remember { mutableStateOf(initialDescription) }
     var appIcon by remember { mutableStateOf(initialIcon) }
 
     // 分类状态
@@ -175,16 +181,17 @@ fun ResourceEditScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    if (name.isEmpty() || bio.isEmpty() || ver.isEmpty() || dUrl.isEmpty() || size.isEmpty()) {
+                    if (name.isEmpty() || packageName.isEmpty() || ver.isEmpty() || dUrl.isEmpty() || size.isEmpty()) {
                         Toast.makeText(context, "请填写完整！", Toast.LENGTH_SHORT).show()
                     } else {
                         val jsonObject = buildJsonObject {
                             put("resource_id", resourceId)
                             put("name", name)
-                            put("package_name", bio)
+                            put("package_name", packageName)
                             put("version", ver)
                             put("category_id", selectedIndex + 1)
                             put("download_url", dUrl)
+                            put("description", description)
                             put("size", size)
                             put("icon_url", appIcon.ifEmpty { "drawable/archive_blue.png" })
                         }
@@ -270,8 +277,20 @@ fun ResourceEditScreen(
             // 链接
             OutlinedTextField(value = dUrl, onValueChange = { dUrl = it }, label = { Text("资源链接") }, modifier = Modifier.fillMaxWidth())
 
+            OutlinedTextField(
+                value = packageName,
+                onValueChange = { packageName = it },
+                label = { Text("包名") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             // 简介
-            OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("资源简介") }, modifier = Modifier.fillMaxWidth().height(150.dp))
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("资源简介") },
+                modifier = Modifier.fillMaxWidth().height(180.dp)
+            )
         }
     }
 
