@@ -117,7 +117,7 @@ class CommunityViewModel : ViewModel() {
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         val doc = Jsoup.parse(html)
-                        val errorAlert = doc?.select(".alert-danger")?.firstOrNull()
+                        val errorAlert = doc.select(".alert-danger").firstOrNull()
 
                         if (errorAlert == null) {
                             onSuccess()
