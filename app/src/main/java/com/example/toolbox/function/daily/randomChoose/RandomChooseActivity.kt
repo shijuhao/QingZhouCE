@@ -49,6 +49,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.ContentCopy
@@ -300,8 +301,8 @@ class RandomChooseViewModel : ViewModel() {
     private fun loadSavedConfigs(context: Context) {
         val jsonStr = getPrefs(context).getString("saved_configs", null) ?: ""
         savedConfigs = try {
-            jsonStr?.let { json.decodeFromString(it) } ?: emptyList()
-        } catch (e: Exception) {
+            jsonStr.let { json.decodeFromString(it) } ?: emptyList()
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -507,7 +508,7 @@ fun RandomChooseScreen(
                     onClick = { viewModel.openSaveManagerDialog(context) },
                     enabled = !viewModel.isSpinning
                 ) {
-                    Icon(Icons.Default.List, "管理")
+                    Icon(Icons.AutoMirrored.Filled.List, "管理")
                 }
             }
         )
