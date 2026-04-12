@@ -10,6 +10,7 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Environment
 import android.view.ViewGroup
+import android.webkit.CookieManager
 import android.webkit.URLUtil
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -60,17 +61,33 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
+import com.example.toolbox.TokenManager
 import com.example.toolbox.ui.theme.ToolBoxTheme
 
 class WebViewActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_URL = "url"
+        const val EXTRA_LANZOU_LOGIN_MODE = "extra_lanzou_login_mode"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val url = intent.getStringExtra("url") ?: "https://www.bing.com"
+        val url = intent.getStringExtra(EXTRA_URL) ?: "https://www.bing.com"
+        val isLanzouLoginMode = intent.getBooleanExtra(EXTRA_LANZOU_LOGIN_MODE, false)
         setContent {
             ToolBoxTheme {
-                WebViewScreen(initialUrl = url, onBackClick = { finish() })
+                WebViewScreen(
+                    initialUrl = url,
+                    isLanzouLoginMode = isLanzouLoginMode,
+                    onBackClick = { finish() },
+                    onLanzouLoginSuccess = { cookie ->
+                        TokenManager.saveLanzouCookie(this, cookie)
+                        setResult(RESULT_OK)
+                        finish()
+                    }
+                )
             }
         }
     }
@@ -79,7 +96,12 @@ class WebViewActivity : ComponentActivity() {
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WebViewScreen(initialUrl: String, onBackClick: () -> Unit) {
+fun WebViewScreen(
+    initialUrl: String,
+    isLanzouLoginMode: Boolean = false,
+    onBackClick: () -> Unit,
+    onLanzouLoginSuccess: (String) -> Unit = {}
+) {
     val context = LocalContext.current
 
     // 使用数据类合并状态，减少重组
@@ -94,6 +116,7 @@ fun WebViewScreen(initialUrl: String, onBackClick: () -> Unit) {
     var uiState by remember { mutableStateOf(WebViewUiState()) }
     var webView: WebView? by remember { mutableStateOf(null) }
     var showMenu by remember { mutableStateOf(false) }
+    var handledLanzouLogin by remember { mutableStateOf(false) }
 
     // 处理物理返回键：如果 WebView 可后退则后退，否则关闭 Activity
     BackHandler(enabled = webView?.canGoBack() == true) {
@@ -320,6 +343,19 @@ fun WebViewScreen(initialUrl: String, onBackClick: () -> Unit) {
                                     canGoForward = view?.canGoForward() ?: false,
                                     progress = 1.0f // 确保进度条隐藏
                                 )
+
+                                if (isLanzouLoginMode && !handledLanzouLogin) {
+                                    val currentUrl = urlStr.orEmpty()
+                                    if (currentUrl.startsWith("https://pc.woozooo.com/mydisk.php")) {
+                                        val cookie = CookieManager.getInstance()
+                                            .getCookie("https://pc.woozooo.com")
+                                            .orEmpty()
+                                        if (cookie.contains("phpdisk_info=")) {
+                                            handledLanzouLogin = true
+                                            onLanzouLoginSuccess(cookie)
+                                        }
+                                    }
+                                }
                             }
                         }
 

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AppShortcut
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -139,11 +140,19 @@ fun MyResourceScreen(onBack: () -> Unit) {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                val intent = Intent(context, ResourceUploadActivity::class.java)
-                context.startActivity(intent)
-            }) {
-                Icon(Icons.Default.Add, contentDescription = null)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                FloatingActionButton(onClick = {
+                    val intent = Intent(context, ResourceSourceActivity::class.java)
+                    context.startActivity(intent)
+                }) {
+                    Icon(Icons.Default.AppShortcut, contentDescription = null)
+                }
+                FloatingActionButton(onClick = {
+                    val intent = Intent(context, ResourceUploadActivity::class.java)
+                    context.startActivity(intent)
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                }
             }
         }
     ) { innerPadding ->
@@ -179,7 +188,9 @@ fun MyResourceScreen(onBack: () -> Unit) {
                                     putExtra("token", token)
                                     putExtra("resource_id", item.id.toString())
                                     putExtra("name", item.name)
-                                    putExtra("bio", item.packageName) // Lua 中 bio 对应的是 package_name
+                                    putExtra("package_name", item.packageName)
+                                    putExtra("description", item.description)
+                                    putExtra("bio", item.packageName) // 兼容旧版参数
                                     putExtra("ver", item.version)
                                     putExtra("d_url", item.downloadUrl)
                                     putExtra("size", item.size)

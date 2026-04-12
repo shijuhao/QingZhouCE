@@ -235,20 +235,34 @@ fun PostArticleScreen(
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
     val pickImageLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let {
-                coroutineScope.launch {
-                    isLoading = true
-                    token?.let { tk ->
-                        val url = uploadImage(context, it, tk, 3) { _ -> }
+        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+            if (uris.isEmpty()) return@rememberLauncherForActivityResult
+            coroutineScope.launch {
+                val remainCount = (9 - imageUrls.size).coerceAtLeast(0)
+                if (remainCount <= 0) {
+                    snackbarHostState.showSnackbar("最多只能上传9张图片")
+                    return@launch
+                }
 
-                        isLoading = false
-                        if (url != null) {
-                            imageUrls.add(url)
-                        } else {
-                            snackbarHostState.showSnackbar("上传失败")
-                        }
+                val uploadUris = uris.distinct().take(remainCount)
+                if (token.isNullOrBlank()) {
+                    snackbarHostState.showSnackbar("请先登录")
+                    return@launch
+                }
+
+                isLoading = true
+                uploadUris.forEach { uri ->
+                    val url = uploadImage(context, uri, token, 3) { _ -> }
+                    if (url != null) {
+                        imageUrls.add(url)
+                    } else {
+                        snackbarHostState.showSnackbar("有图片上传失败")
                     }
+                }
+                isLoading = false
+
+                if (uris.size > remainCount) {
+                    snackbarHostState.showSnackbar("已超出上限，仅上传前${remainCount}张")
                 }
             }
         }

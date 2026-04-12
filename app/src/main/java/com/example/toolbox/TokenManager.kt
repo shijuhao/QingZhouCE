@@ -15,6 +15,7 @@ import androidx.core.content.edit
 object TokenManager {
     private const val PREFS_NAME = "app_preferences"
     private const val KEY_TOKEN = "safeToken"
+    private const val KEY_LANZOU_COOKIE = "safeLanzouCookie"
     private const val KEY_ALIAS = "app_token_key"
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
@@ -71,20 +72,28 @@ object TokenManager {
         }
     }
 
-    fun save(context: Context, token: String) {
+    private fun saveSecure(context: Context, key: String, value: String) {
         try {
-            val encrypted = encrypt(token)
+            val encrypted = encrypt(value)
             val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            prefs.edit {putString(KEY_TOKEN, encrypted) }
+            prefs.edit { putString(key, encrypted) }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    fun get(context: Context): String? {
+    private fun getSecure(context: Context, key: String): String? {
         val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val encrypted = prefs.getString(KEY_TOKEN, null) ?: return null
+        val encrypted = prefs.getString(key, null) ?: return null
         return decrypt(encrypted)
+    }
+
+    fun save(context: Context, token: String) {
+        saveSecure(context, KEY_TOKEN, token)
+    }
+
+    fun get(context: Context): String? {
+        return getSecure(context, KEY_TOKEN)
     }
 
     fun getOld(context: Context): String? {
@@ -97,6 +106,39 @@ object TokenManager {
         prefs.edit().apply {
             remove(KEY_TOKEN)
             apply()
+        }
+    }
+
+    fun saveLanzouCookie(context: Context, cookie: String) {
+        if (cookie.isBlank()) return
+        saveSecure(context, KEY_LANZOU_COOKIE, cookie)
+    }
+
+    fun getLanzouCookie(context: Context): String? {
+        val secureCookie = getSecure(context, KEY_LANZOU_COOKIE)
+        if (!secureCookie.isNullOrBlank()) return secureCookie
+
+        val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val oldKeys = listOf("lanzou_cookie", "lanzouCookie", "lzy_cookie", "cookie_lanzou")
+        oldKeys.forEach { key ->
+            val oldValue = prefs.getString(key, null)
+            if (!oldValue.isNullOrBlank()) {
+                saveLanzouCookie(context, oldValue)
+                prefs.edit { remove(key) }
+                return oldValue
+            }
+        }
+        return null
+    }
+
+    fun clearLanzouCookie(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        prefs.edit {
+            remove(KEY_LANZOU_COOKIE)
+            remove("lanzou_cookie")
+            remove("lanzouCookie")
+            remove("lzy_cookie")
+            remove("cookie_lanzou")
         }
     }
 
