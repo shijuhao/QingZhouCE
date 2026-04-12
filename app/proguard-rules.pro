@@ -13,6 +13,7 @@
 -dontwarn javax.annotation.**
 -dontwarn javax.script.**
 -dontwarn org.luaj.vm2.script.**
+-dontwarn net.objecthunter.exp4j.**
 -dontwarn org.luaj.vm2.lib.**
 -dontwarn org.apache.bcel.**
 -dontwarn org.luaj.vm2.luajc.**

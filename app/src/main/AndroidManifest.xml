@@ -75,6 +75,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ToolBox">
         <activity
+            android:name=".function.math.FunctionImageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".function.visual.AntiOCRActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />

@@ -3,6 +3,7 @@ accompanistSwiperefresh = "0.36.0"
 agp = "9.1.0"
 coil = "3.4.0"
 customactivityoncrash = "2.4.0"
+exp4j = "0.4.8"
 jsoup = "1.22.1"
 kotlin = "2.3.20"
 kotlinxSerializationJson = "1.10.0"
@@ -32,6 +33,7 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 androidx-material3-adaptive-navigation-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite", version.ref = "material3AdaptiveNavigationSuite" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 customactivityoncrash = { module = "cat.ereza:customactivityoncrash", version.ref = "customactivityoncrash" }
+exp4j = { module = "net.objecthunter:exp4j", version.ref = "exp4j" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-gif = { group = "io.coil-kt.coil3", name = "coil-gif", version.ref = "coil" }

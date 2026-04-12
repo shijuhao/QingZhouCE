@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.Games
 import androidx.compose.material.icons.filled.MarkunreadMailbox
 import androidx.compose.material.icons.filled.Numbers
@@ -177,6 +178,9 @@ val functionData = listOf(
         name = "数学功能",
         icon = Icons.Default.Numbers.asIcon,
         functions = listOf(
+            FunctionItem("函数图生成",
+                "com.example.toolbox.function.math.FunctionImageActivity",
+                Icons.Default.Functions),
             FunctionItem("计算器",
                 "com.example.toolbox.function.math.CalculatorActivity",
                 Icons.Default.Calculate),
