@@ -23,6 +23,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -65,37 +68,36 @@ object ExpandedStatePrefs {
     }
 }
 
+fun <K, V> snapshotMapSaver() = mapSaver(
+    save = { map: SnapshotStateMap<K, V> -> map.toMap() },
+    restore = { it.toMutableStateMap() }
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onMenuClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var isSearching by remember { mutableStateOf(false) }
-    var searchText by remember { mutableStateOf("") }
+    var isSearching by rememberSaveable { mutableStateOf(false) }
+    var searchText by rememberSaveable { mutableStateOf("") }
     var showFavoriteDialog by remember { mutableStateOf(false) }
     var functionToFavorite by remember { mutableStateOf<FunctionItem?>(null) }
     
     var favoriteRefreshTrigger by remember { mutableIntStateOf(0) }
 
-    val expandedState = remember { mutableStateMapOf<String, Boolean>() }
-
-    val viewModel: YiYanViewModel = viewModel()
-    val aWordText by viewModel.hitokoto.collectAsState()
-    
-    val dayFormat = remember { SimpleDateFormat("d", Locale.getDefault()) }
-    val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
-    val currentDate = remember { Date() }
-    
-    val dayOfMonth = dayFormat.format(currentDate)
-    val yearAndWeek = yearWeekFormat.format(currentDate)
+    val expandedState = rememberSaveable(
+        saver = snapshotMapSaver<String, Boolean>()
+    ) { mutableStateMapOf() }
 
     LaunchedEffect(Unit) {
-        val loadedState = functionData.associate { category ->
-            category.name to ExpandedStatePrefs.getExpanded(context, category.name, true)
-        }.toMutableMap()
-        loadedState["我的收藏"] = ExpandedStatePrefs.getExpanded(context, "我的收藏", false)
-        expandedState.putAll(loadedState)
+        if (expandedState.isEmpty()) {
+            val loadedState = functionData.associate { category ->
+                category.name to ExpandedStatePrefs.getExpanded(context, category.name, true)
+            }.toMutableMap()
+            loadedState["我的收藏"] = ExpandedStatePrefs.getExpanded(context, "我的收藏", false)
+            expandedState.putAll(loadedState)
+        }
     }
 
     val allFunctions = remember {
@@ -118,6 +120,7 @@ fun HomeScreen(
         }
     }
 
+    // 处理返回键
     BackHandler(enabled = isSearching) {
         isSearching = false
         searchText = ""
@@ -125,6 +128,7 @@ fun HomeScreen(
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
+    // 2. 模仿 ResourceLibScreen 的动画参数
     val horizontalPadding by animateDpAsState(
         targetValue = if (isSearching) 0.dp else 16.dp,
         label = "horizontalPadding"
@@ -151,6 +155,10 @@ fun HomeScreen(
                                 Icon(Icons.Default.Search, contentDescription = "搜索")
                             }
                         },
+                        colors = topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            scrolledContainerColor = MaterialTheme.colorScheme.surface
+                        ),
                         scrollBehavior = scrollBehavior
                     )
                 } else {
@@ -215,123 +223,154 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+                .padding(top = paddingValues.calculateTopPadding())
         ) {
-            item {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .weight(1f),
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "日月如梭",
-                                style = MaterialTheme.typography.titleLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp, start = 15.dp)
-                            )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(4.dp)) }
 
-                            Row {
-                                Spacer(modifier = Modifier.width(15.dp))
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val viewModel: YiYanViewModel = viewModel()
+                        val aWordText = viewModel.hitokoto.collectAsState().value
+
+                        val dayFormat = remember { SimpleDateFormat("d", Locale.getDefault()) }
+                        val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
+                        val currentDate = remember { Date() }
+                        
+                        val dayOfMonth = dayFormat.format(currentDate)
+                        val yearAndWeek = yearWeekFormat.format(currentDate)
+
+                        Row(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .weight(1f),
+                                verticalArrangement = Arrangement.Center
+                            ) {
                                 Text(
-                                    text = aWordText,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    text = "日月如梭",
+                                    style = MaterialTheme.typography.titleLarge,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .basicMarquee()
-                                        .padding(top = 8.dp, bottom = 12.dp)
+                                        .padding(top = 12.dp, start = 15.dp)
+                                )
+
+                                Row {
+                                    Spacer(modifier = Modifier.width(15.dp))
+                                    Text(
+                                        text = aWordText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .basicMarquee()
+                                            .padding(top = 8.dp, bottom = 12.dp)
+                                    )
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(start = 10.dp),
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = dayOfMonth,
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    modifier = Modifier.padding(top = 12.dp, end = 15.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text = yearAndWeek,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(bottom = 12.dp, end = 15.dp)
                                 )
                             }
                         }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .padding(start = 10.dp),
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = dayOfMonth,
-                                style = MaterialTheme.typography.headlineLarge,
-                                modifier = Modifier.padding(top = 12.dp, end = 15.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = yearAndWeek,
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(bottom = 12.dp, end = 15.dp)
-                            )
-                        }
                     }
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
 
-            item {
-                FavoriteCategoryCard(
-                    favoritesExpanded = expandedState["我的收藏"] == true,
-                    favoriteFunctions = favoriteFunctions,
-                    onToggle = {
-                        val newState = !(expandedState["我的收藏"] ?: false)
-                        expandedState["我的收藏"] = newState
-                        ExpandedStatePrefs.saveExpanded(context, "我的收藏", newState)
-                    },
-                    onLongPress = { function ->
-                        functionToFavorite = function.function
-                        showFavoriteDialog = true
-                    }
-                )
-            }
-
-            itemsIndexed(functionData, key = { _, category -> category.name }) { index, category ->
-                val isExpanded = expandedState[category.name] == true
-                CategoryCard(
-                    category = category,
-                    isExpanded = isExpanded,
-                    isLastCategory = index == functionData.size - 1,
-                    onToggle = {
-                        val newState = !isExpanded
-                        expandedState[category.name] = newState
-                        ExpandedStatePrefs.saveExpanded(context, category.name, newState)
-                    },
-                    context = context,
-                    onLongPress = {
-                        functionToFavorite = it
-                        showFavoriteDialog = true
-                    }
-                )
-            }
-
-            item {
-                Spacer(
-                    modifier = Modifier.height(
-                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                item {
+                    FavoriteCategoryCard(
+                        favoritesExpanded = expandedState["我的收藏"] == true,
+                        favoriteFunctions = favoriteFunctions,
+                        onToggle = {
+                            val newState = !(expandedState["我的收藏"] ?: false)
+                            expandedState["我的收藏"] = newState
+                            ExpandedStatePrefs.saveExpanded(context, "我的收藏", newState)
+                        },
+                        onLongPress = { function ->
+                            functionToFavorite = function.function
+                            showFavoriteDialog = true
+                        }
                     )
-                )
+                }
+
+                itemsIndexed(functionData, key = { _, category -> category.name }) { index, category ->
+                    val isExpanded = expandedState[category.name] == true
+                    CategoryCard(
+                        category = category,
+                        isExpanded = isExpanded,
+                        isLastCategory = index == functionData.size - 1,
+                        onToggle = {
+                            val newState = !isExpanded
+                            expandedState[category.name] = newState
+                            ExpandedStatePrefs.saveExpanded(context, category.name, newState)
+                        },
+                        context = context,
+                        onLongPress = {
+                            functionToFavorite = it
+                            showFavoriteDialog = true
+                        }
+                    )
+                }
+
+                item {
+                    Spacer(
+                        modifier = Modifier.height(
+                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                        )
+                    )
+                }
             }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface,
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+                            )
+                        )
+                    )
+                    .align(Alignment.TopStart)
+            )
         }
     }
 
@@ -342,27 +381,31 @@ fun HomeScreen(
             title = { Text(text = if (isFavorite) "取消收藏" else "添加到收藏") },
             text = { Text(text = "功能：${functionToFavorite!!.name}") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (isFavorite) {
-                            FavoriteManager.removeFavorite(
-                                context,
-                                functionToFavorite!!.activity
-                            )
-                        } else {
-                            FavoriteManager.addFavorite(context, functionToFavorite!!.activity)
+                Text(
+                    text = if (isFavorite) "取消收藏" else "收藏",
+                    modifier = Modifier
+                        .clickable {
+                            if (isFavorite) {
+                                FavoriteManager.removeFavorite(
+                                    context,
+                                    functionToFavorite!!.activity
+                                )
+                            } else {
+                                FavoriteManager.addFavorite(context, functionToFavorite!!.activity)
+                            }
+                            favoriteRefreshTrigger++
+                            showFavoriteDialog = false
                         }
-                        favoriteRefreshTrigger++
-                        showFavoriteDialog = false
-                    }
-                ) {
-                    Text(text = if (isFavorite) "取消收藏" else "收藏")
-                }
+                        .padding(16.dp)
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showFavoriteDialog = false }) {
-                    Text(text = "取消")
-                }
+                Text(
+                    text = "取消",
+                    modifier = Modifier
+                        .clickable { showFavoriteDialog = false }
+                        .padding(16.dp)
+                )
             }
         )
     }
@@ -447,13 +490,27 @@ private fun FavoriteCategoryCard(
             ) {
                 Column(modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 12.dp)) {
                     if (favoriteFunctions.isNotEmpty()) {
-                        favoriteFunctions.forEach { favorite ->
-                            SearchFunctionItem(
-                                favorite,
-                                Modifier.fillMaxWidth(),
-                                onLongPress = { onLongPress(favorite) },
-                                isFavorite = true
-                            )
+                        favoriteFunctions.map { it.function }.chunked(3).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowItems.forEach { function ->
+                                    GridFunctionItem(
+                                        function = function,
+                                        modifier = Modifier.weight(1f),
+                                        onLongPress = { clickedFunction ->
+                                            val model = favoriteFunctions.find { it.function == clickedFunction }
+                                            model?.let { onLongPress(it) }
+                                        },
+                                        isFavorite = true
+                                    )
+                                }
+                                repeat(3 - rowItems.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     } else {
                         Text(
