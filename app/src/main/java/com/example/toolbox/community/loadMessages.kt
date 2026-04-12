@@ -92,12 +92,14 @@ suspend fun toggleLike(
 suspend fun deleteMessage(
     client: OkHttpClient,
     token: String,
+    userStatus: Int,
     messageId: Int
 ): Unit = withContext(Dispatchers.IO) {
+    val api = "${ApiAddress}${ if(userStatus==1) "admin/" else "" }delete_message"
     val json = AppJson.json.encodeToString(mapOf("message_id" to messageId, "status" to 1))
     val body = json.toRequestBody("application/json".toMediaType())
     val request = Request.Builder()
-        .url("${ApiAddress}delete_message")
+        .url(api)
         .post(body)
         .addHeader("x-access-token", token)
         .build()

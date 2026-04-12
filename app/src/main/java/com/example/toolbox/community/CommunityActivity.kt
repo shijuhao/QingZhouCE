@@ -525,6 +525,7 @@ fun CommunityScreen(
                     onClick = {
                         viewModel.deleteMessage(
                             token = token,
+                            userStatus = TokenManager.getTagStatus(context),
                             messageId = msg.message_id,
                             onError = { error ->
                                 Toast.makeText(context, "删除失败: $error", Toast.LENGTH_SHORT)
@@ -641,7 +642,9 @@ fun CommunityScreen(
                                                 }
                                             )
                                         },
-                                        onDelete = { messageToDelete = msg },
+                                        onDelete = {
+                                            messageToDelete = msg
+                                        },
                                         onEdit = {
                                             val intent = Intent(context, PostArticleActivity::class.java).apply {
                                                 putExtra("edit_message_id", msg.message_id)
