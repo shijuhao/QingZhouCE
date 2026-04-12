@@ -50,6 +50,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -59,6 +60,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -76,11 +78,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.rememberAsyncImagePainter
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.R
 import com.example.toolbox.TokenManager
 import com.example.toolbox.community.uploadImageFile
+import com.example.toolbox.lanzou.viewmodel.LanzouUploadViewModel
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.io.File
 import java.io.FileOutputStream
@@ -141,7 +145,8 @@ class ResourceUploadActivity : ComponentActivity() {
         return buildDraft(
             packageInfo = packageInfo,
             applicationInfo = applicationInfo,
-            archiveSize = apkFile.length()
+            archiveSize = apkFile.length(),
+            sourceApkPath = apkFile.absolutePath
         )
     }
 
@@ -150,7 +155,7 @@ class ResourceUploadActivity : ComponentActivity() {
             val packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
             val applicationInfo = packageInfo.applicationInfo ?: return null
             val archiveSize = File(applicationInfo.sourceDir.orEmpty()).takeIf { it.exists() }?.length() ?: 0L
-            buildDraft(packageInfo, applicationInfo, archiveSize)
+            buildDraft(packageInfo, applicationInfo, archiveSize, applicationInfo.sourceDir.orEmpty())
         } catch (_: Exception) {
             null
         }
@@ -159,7 +164,8 @@ class ResourceUploadActivity : ComponentActivity() {
     private fun buildDraft(
         packageInfo: PackageInfo,
         applicationInfo: ApplicationInfo,
-        archiveSize: Long
+        archiveSize: Long,
+        sourceApkPath: String
     ): ResourceDraft {
         val iconFile = saveDrawableToCache(
             context = this,
@@ -172,7 +178,8 @@ class ResourceUploadActivity : ComponentActivity() {
             version = packageInfo.versionName.orEmpty(),
             size = if (archiveSize > 0) Formatter.formatShortFileSize(this, archiveSize) else "",
             iconPreview = iconFile?.toUri()?.toString().orEmpty(),
-            iconFilePath = iconFile?.absolutePath
+            iconFilePath = iconFile?.absolutePath,
+            apkPath = sourceApkPath
         )
     }
 
@@ -206,7 +213,8 @@ private data class ResourceDraft(
     val version: String,
     val size: String,
     val iconPreview: String,
-    val iconFilePath: String?
+    val iconFilePath: String?,
+    val apkPath: String?
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -219,20 +227,25 @@ private fun ResourceUploadScreen(
     val token = TokenManager.get(context)
     val client = remember { OkHttpClient() }
     val scope = rememberCoroutineScope()
+    val lanzouUploadViewModel: LanzouUploadViewModel = viewModel()
+    val lanzouUploadState by lanzouUploadViewModel.uploadState.collectAsState()
 
     var name by rememberSaveable { mutableStateOf(initialInfo?.name.orEmpty()) }
     var packageName by rememberSaveable { mutableStateOf(initialInfo?.packageName.orEmpty()) }
     var version by rememberSaveable { mutableStateOf(initialInfo?.version.orEmpty()) }
     var size by rememberSaveable { mutableStateOf(initialInfo?.size.orEmpty()) }
     var downloadUrl by rememberSaveable { mutableStateOf("") }
+    var intro by rememberSaveable { mutableStateOf("") }
     var iconPreview by rememberSaveable { mutableStateOf(initialInfo?.iconPreview.orEmpty()) }
     var iconUrl by rememberSaveable { mutableStateOf("") }
     var localIconPath by rememberSaveable { mutableStateOf(initialInfo?.iconFilePath) }
+    var sourceApkPath by rememberSaveable { mutableStateOf(initialInfo?.apkPath) }
     var selectedIndex by remember { mutableIntStateOf(0) }
     var expanded by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
     var showIconSheet by remember { mutableStateOf(false) }
     var showUrlDialog by remember { mutableStateOf(false) }
+    var showLanzouDialog by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
 
     val categories = listOf("其他", "开源软件", "实用工具", "生活便利", "影音娱乐", "玩机工具", "社交", "金融理财", "网页")
@@ -249,6 +262,66 @@ private fun ResourceUploadScreen(
         iconUrl = ""
     }
 
+    val submitPost: (Boolean) -> Unit = { uploadToLanzou ->
+        if (submitting || lanzouUploadState.isUploading) {
+            Unit
+        } else if (token.isNullOrBlank()) {
+            Toast.makeText(context, "请先登录", Toast.LENGTH_SHORT).show()
+        } else if (name.isBlank() || packageName.isBlank() || version.isBlank() || size.isBlank()) {
+            Toast.makeText(context, "请填写完整", Toast.LENGTH_SHORT).show()
+        } else {
+            scope.launch {
+            submitting = true
+            val finalIconUrl = when {
+                iconUrl.isNotBlank() -> iconUrl
+                !localIconPath.isNullOrBlank() -> uploadImageFile(localIconPath!!, token, 3) { }
+                else -> ""
+            }
+
+            if (!localIconPath.isNullOrBlank() && finalIconUrl.isNullOrBlank()) {
+                submitting = false
+                Toast.makeText(context, "图标上传失败", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            var finalDownloadUrl = downloadUrl
+            if (uploadToLanzou) {
+                val apkPath = sourceApkPath
+                if (apkPath.isNullOrBlank()) {
+                    Toast.makeText(context, "未找到可上传的APK，直接投稿", Toast.LENGTH_SHORT).show()
+                } else {
+                    val shareInfo = lanzouUploadViewModel.uploadApkAndGetShareInfo(context, apkPath)
+                    if (shareInfo != null) {
+                        finalDownloadUrl = shareInfo.shareUrl
+                        downloadUrl = shareInfo.shareUrl
+                        val pwd = shareInfo.password?.takeIf { it.isNotBlank() } ?: "无"
+                        intro = prependPasswordLine(intro, pwd)
+                    } else {
+                        Toast.makeText(context, "蓝奏云上传失败，改为直接投稿", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            val success = submitResource(
+                client = client,
+                token = token,
+                name = name,
+                packageName = packageName,
+                version = version,
+                categoryId = selectedIndex + 1,
+                downloadUrl = finalDownloadUrl,
+                intro = intro,
+                size = size,
+                iconUrl = finalIconUrl.orEmpty()
+            )
+
+            submitting = false
+            Toast.makeText(context, if (success) "投稿成功" else "投稿失败", Toast.LENGTH_SHORT).show()
+            if (success) onFinish()
+            }
+        }
+    }
+
     BackHandler { showExitDialog = true }
 
     if (showExitDialog) {
@@ -258,6 +331,52 @@ private fun ResourceUploadScreen(
             text = { Text("确定退出吗？当前填写内容不会保存。") },
             confirmButton = { TextButton(onClick = onFinish) { Text("确定") } },
             dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("点错了") } }
+        )
+    }
+
+    if (showLanzouDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanzouDialog = false },
+            title = { Text("蓝奏云上传") },
+            text = { Text("是否先上传到蓝奏云并自动填入资源链接？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLanzouDialog = false
+                        submitPost(true)
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showLanzouDialog = false
+                        submitPost(false)
+                    }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+    if (lanzouUploadState.isUploading) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {},
+            title = { Text("蓝奏云上传中") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LinearProgressIndicator(
+                        progress = { lanzouUploadState.progress / 100f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("上传进度：${lanzouUploadState.progress}%")
+                    Text("上传速度：${lanzouUploadState.speedText}")
+                }
+            }
         )
     }
 
@@ -275,49 +394,10 @@ private fun ResourceUploadScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    if (submitting) return@ExtendedFloatingActionButton
-                    if (token.isNullOrBlank()) {
-                        Toast.makeText(context, "请先登录", Toast.LENGTH_SHORT).show()
-                        return@ExtendedFloatingActionButton
-                    }
-                    if (name.isBlank() || packageName.isBlank() || version.isBlank() || size.isBlank() || downloadUrl.isBlank()) {
-                        Toast.makeText(context, "请填写完整", Toast.LENGTH_SHORT).show()
-                        return@ExtendedFloatingActionButton
-                    }
-
-                    scope.launch {
-                        submitting = true
-                        val finalIconUrl = when {
-                            iconUrl.isNotBlank() -> iconUrl
-                            !localIconPath.isNullOrBlank() -> uploadImageFile(localIconPath!!, token, 3) { }
-                            else -> ""
-                        }
-
-                        if (!localIconPath.isNullOrBlank() && finalIconUrl.isNullOrBlank()) {
-                            submitting = false
-                            Toast.makeText(context, "图标上传失败", Toast.LENGTH_SHORT).show()
-                            return@launch
-                        }
-
-                        val success = submitResource(
-                            client = client,
-                            token = token,
-                            name = name,
-                            packageName = packageName,
-                            version = version,
-                            categoryId = selectedIndex + 1,
-                            downloadUrl = downloadUrl,
-                            size = size,
-                            iconUrl = finalIconUrl.orEmpty()
-                        )
-
-                        submitting = false
-                        Toast.makeText(context, if (success) "投稿成功" else "投稿失败", Toast.LENGTH_SHORT).show()
-                        if (success) onFinish()
-                    }
+                    showLanzouDialog = true
                 },
                 icon = { Icon(Icons.Default.CloudUpload, contentDescription = null) },
-                text = { Text(if (submitting) "投稿中..." else "确认投稿") }
+                text = { Text(if (submitting || lanzouUploadState.isUploading) "投稿中..." else "确认投稿") }
             )
         }
     ) { innerPadding ->
@@ -385,19 +465,19 @@ private fun ResourceUploadScreen(
                 singleLine = true
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = version,
                     onValueChange = { version = it },
                     label = { Text("版本号") },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = size,
                     onValueChange = { size = it },
                     label = { Text("资源大小") },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
             }
@@ -408,6 +488,16 @@ private fun ResourceUploadScreen(
                 label = { Text("资源链接") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
+            )
+
+            OutlinedTextField(
+                value = intro,
+                onValueChange = { intro = it },
+                label = { Text("应用简介") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                minLines = 8
             )
         }
     }
@@ -475,6 +565,7 @@ private suspend fun submitResource(
     version: String,
     categoryId: Int,
     downloadUrl: String,
+    intro: String,
     size: String,
     iconUrl: String
 ): Boolean = withContext(Dispatchers.IO) {
@@ -484,6 +575,7 @@ private suspend fun submitResource(
         put("version", version)
         put("category_id", categoryId)
         put("download_url", downloadUrl)
+        put("description", intro)
         put("size", size)
         put("icon_url", iconUrl.ifBlank { "drawable/archive_blue.png" })
     }.toString().toRequestBody("application/json".toMediaType())
@@ -560,4 +652,14 @@ private fun Drawable.toBitmapCompat(): Bitmap {
     setBounds(0, 0, canvas.width, canvas.height)
     draw(canvas)
     return bitmap
+}
+
+private fun prependPasswordLine(original: String, password: String): String {
+    val line = "资源密码：$password"
+    val filtered = original.lines().filterNot { it.startsWith("资源密码：") }
+    return if (filtered.isEmpty()) {
+        line
+    } else {
+        "$line\n${filtered.joinToString("\n")}"
+    }
 }
