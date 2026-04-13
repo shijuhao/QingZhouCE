@@ -83,7 +83,7 @@ import coil3.compose.rememberAsyncImagePainter
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.R
 import com.example.toolbox.TokenManager
-import com.example.toolbox.community.uploadImageFile
+import com.example.toolbox.community.uploadImage
 import com.example.toolbox.lanzou.viewmodel.LanzouUploadViewModel
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.io.File
@@ -274,7 +274,7 @@ private fun ResourceUploadScreen(
             submitting = true
             val finalIconUrl = when {
                 iconUrl.isNotBlank() -> iconUrl
-                !localIconPath.isNullOrBlank() -> uploadImageFile(localIconPath!!, token, 3) { }
+                !localIconPath.isNullOrBlank() -> uploadImage(localIconPath!!, token, 3) { }
                 else -> ""
             }
 
