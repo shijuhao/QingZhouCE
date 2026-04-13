@@ -340,13 +340,34 @@ class MessageDetailViewModel(
             return
         }
         if (uri == null) return
-
+    
         coroutineScope.launch {
             try {
-                val url = uploadImage(uri, token, 3) { _ -> }
-
+                val filePath = try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    if (inputStream != null) {
+                        val tempFile = java.io.File(context.cacheDir, "temp_img_${System.currentTimeMillis()}.jpg")
+                        java.io.FileOutputStream(tempFile).use { output ->
+                            inputStream.copyTo(output)
+                        }
+                        tempFile.absolutePath
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+    
+                if (filePath == null) {
+                    _toastMessage.emit("无法读取图片")
+                    return@launch
+                }
+    
+                val url = uploadImage(filePath, token, 3) { _ -> }
+    
                 if (url != null) {
                     addImage(url)
+                    java.io.File(filePath).delete()
                 } else {
                     _toastMessage.emit("图片上传失败")
                 }

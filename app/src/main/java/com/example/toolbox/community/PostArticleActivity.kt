@@ -234,38 +234,57 @@ fun PostArticleScreen(
 
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
-    val pickImageLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-            if (uris.isEmpty()) return@rememberLauncherForActivityResult
-            coroutineScope.launch {
-                val remainCount = (9 - imageUrls.size).coerceAtLeast(0)
-                if (remainCount <= 0) {
-                    snackbarHostState.showSnackbar("最多只能上传9张图片")
-                    return@launch
+    val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+        coroutineScope.launch {
+            val remainCount = (9 - imageUrls.size).coerceAtLeast(0)
+            if (remainCount <= 0) {
+                snackbarHostState.showSnackbar("最多只能上传9张图片")
+                return@launch
+            }
+    
+            val uploadUris = uris.distinct().take(remainCount)
+            if (token.isNullOrBlank()) {
+                snackbarHostState.showSnackbar("请先登录")
+                return@launch
+            }
+    
+            isLoading = true
+            uploadUris.forEach { uri ->
+                val filePath = try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    if (inputStream != null) {
+                        val tempFile = java.io.File(context.cacheDir, "temp_img_${System.currentTimeMillis()}.jpg")
+                        java.io.FileOutputStream(tempFile).use { output ->
+                            inputStream.copyTo(output)
+                        }
+                        tempFile.absolutePath
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    null
                 }
-
-                val uploadUris = uris.distinct().take(remainCount)
-                if (token.isNullOrBlank()) {
-                    snackbarHostState.showSnackbar("请先登录")
-                    return@launch
-                }
-
-                isLoading = true
-                uploadUris.forEach { uri ->
-                    val url = uploadImage(uri, token, 3) { _ -> }
+                
+                if (filePath != null) {
+                    val url = uploadImage(filePath, token, 3) { _ -> }
                     if (url != null) {
                         imageUrls.add(url)
                     } else {
                         snackbarHostState.showSnackbar("有图片上传失败")
                     }
-                }
-                isLoading = false
-
-                if (uris.size > remainCount) {
-                    snackbarHostState.showSnackbar("已超出上限，仅上传前${remainCount}张")
+                    java.io.File(filePath).delete()
+                } else {
+                    snackbarHostState.showSnackbar("无法读取图片")
                 }
             }
+            isLoading = false
+    
+            if (uris.size > remainCount) {
+                snackbarHostState.showSnackbar("已超出上限，仅上传前${remainCount}张")
+            }
         }
+    }
 
     LaunchedEffect(exitDialogResult) {
         when (exitDialogResult) {
