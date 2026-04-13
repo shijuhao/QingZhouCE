@@ -343,7 +343,7 @@ class MessageDetailViewModel(
 
         coroutineScope.launch {
             try {
-                val url = uploadImage(context, uri, token, 3) { _ -> }
+                val url = uploadImage(uri, token, 3) { _ -> }
 
                 if (url != null) {
                     addImage(url)
