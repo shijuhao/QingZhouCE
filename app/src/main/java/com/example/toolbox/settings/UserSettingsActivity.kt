@@ -430,14 +430,35 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
         uri?.let {
             coroutineScope.launch {
                 token.let { tk ->
-                    val url = uploadImage(context, it, tk, 1) { _ ->
+                    val filePath = try {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        if (inputStream != null) {
+                            val tempFile = java.io.File(context.cacheDir, "temp_avatar_${System.currentTimeMillis()}.jpg")
+                            java.io.FileOutputStream(tempFile).use { output ->
+                                inputStream.copyTo(output)
+                            }
+                            tempFile.absolutePath
+                        } else {
+                            null
+                        }
+                    } catch (e: Exception) {
+                        null
                     }
-
+                    
+                    if (filePath == null) {
+                        Toast.makeText(context, "无法读取图片", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+                    
+                    val url = uploadImage(filePath, tk, 1) { _ -> }
+    
                     if (url != null) {
                         currentAvatar = url
                     } else {
                         Toast.makeText(context, "上传失败", Toast.LENGTH_LONG).show()
                     }
+                    
+                    java.io.File(filePath).delete()
                 }
             }
         }
