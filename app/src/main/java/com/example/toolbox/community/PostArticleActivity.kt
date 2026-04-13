@@ -242,13 +242,13 @@ fun PostArticleScreen(
                 snackbarHostState.showSnackbar("最多只能上传9张图片")
                 return@launch
             }
-    
+
             val uploadUris = uris.distinct().take(remainCount)
             if (token.isNullOrBlank()) {
                 snackbarHostState.showSnackbar("请先登录")
                 return@launch
             }
-    
+
             isLoading = true
             uploadUris.forEach { uri ->
                 val filePath = try {
@@ -265,7 +265,7 @@ fun PostArticleScreen(
                 } catch (e: Exception) {
                     null
                 }
-                
+
                 if (filePath != null) {
                     val url = uploadImage(filePath, token, 3) { _ -> }
                     if (url != null) {
@@ -279,7 +279,7 @@ fun PostArticleScreen(
                 }
             }
             isLoading = false
-    
+
             if (uris.size > remainCount) {
                 snackbarHostState.showSnackbar("已超出上限，仅上传前${remainCount}张")
             }
@@ -503,8 +503,10 @@ fun PostArticleScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.Send,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
+                        Spacer(Modifier.width(4.dp))
+                        Text("发布")
                     }
                 }
             )
