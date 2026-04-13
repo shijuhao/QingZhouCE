@@ -192,55 +192,55 @@ fun SettingsScreen(
             }
 
             item {
-                val settingsItems = mutableListOf(
-                    {
-                        SettingsItemCell(
-                            icon = Icons.Default.Person,
-                            title = "账号设置",
-                            subtitle = "设置你的轻昼账号",
-                            onClick = {
-                                val intent = Intent(context, UserSettingsActivity::class.java)
-                                context.startActivity(intent)
-                            }
-                        )
-                    },
-                    {
-                        SettingsItemCell(
-                            icon = Icons.Default.Cloud,
-                            title = "蓝奏云账号登录",
-                            subtitle = if (isLanzouLoggedIn) "已登录" else "未登录",
-                            onClick = {
-                                val intent = Intent(context, WebViewActivity::class.java).apply {
-                                    putExtra(
-                                        WebViewActivity.EXTRA_URL,
-                                        "https://pc.woozooo.com/account.php?action=login&ref=/mydisk.php"
-                                    )
-                                    putExtra(WebViewActivity.EXTRA_LANZOU_LOGIN_MODE, !isLanzouLoggedIn)
-                                }
-                                lanzouLoginLauncher.launch(intent)
-                            }
-                        )
-                    }
-                )
-                
-                if (isLanzouLoggedIn) {
-                    settingsItems.add {
-                        SettingsItemCell(
-                            icon = Icons.Default.Logout,
-                            title = "退出蓝奏云账号",
-                            subtitle = "清除本地保存的蓝奏云登录状态",
-                            onClick = {
-                                lanzouAuthViewModel.logout(context)
-                                Toast.makeText(context, "已退出蓝奏云账号", Toast.LENGTH_SHORT).show()
-                            },
-                            isDestructive = true
-                        )
-                    }
-                }
-                
                 SettingsGroup(
                     title = "账号",
-                    items = settingsItems
+                    items = remember(isLanzouLoggedIn) {
+                        listOf(
+                            {
+                                SettingsItemCell(
+                                    icon = Icons.Default.Person,
+                                    title = "账号设置",
+                                    subtitle = "设置你的轻昼账号",
+                                    onClick = {
+                                        val intent = Intent(context, UserSettingsActivity::class.java)
+                                        context.startActivity(intent)
+                                    }
+                                )
+                            },
+                            {
+                                SettingsItemCell(
+                                    icon = Icons.Default.Cloud,
+                                    title = "蓝奏云账号登录",
+                                    subtitle = if (isLanzouLoggedIn) "已登录" else "未登录",
+                                    onClick = {
+                                        val intent = Intent(context, WebViewActivity::class.java).apply {
+                                            putExtra(
+                                                WebViewActivity.EXTRA_URL,
+                                                "https://pc.woozooo.com/account.php?action=login&ref=/mydisk.php"
+                                            )
+                                            putExtra(WebViewActivity.EXTRA_LANZOU_LOGIN_MODE, !isLanzouLoggedIn)
+                                        }
+                                        lanzouLoginLauncher.launch(intent)
+                                    }
+                                )
+                            }
+                        ) + if (isLanzouLoggedIn) {
+                            listOf {
+                                SettingsItemCell(
+                                    icon = Icons.Default.Logout,
+                                    title = "退出蓝奏云账号",
+                                    subtitle = "清除本地保存的蓝奏云登录状态",
+                                    onClick = {
+                                        lanzouAuthViewModel.logout(context)
+                                        Toast.makeText(context, "已退出蓝奏云账号", Toast.LENGTH_SHORT).show()
+                                    },
+                                    isDestructive = true
+                                )
+                            }
+                        } else {
+                            emptyList()
+                        }
+                    }
                 )
             }
 
