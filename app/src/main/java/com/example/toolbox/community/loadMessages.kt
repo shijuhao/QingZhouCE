@@ -95,8 +95,17 @@ suspend fun deleteMessage(
     userStatus: Int,
     messageId: Int
 ): Unit = withContext(Dispatchers.IO) {
-    val api = "${ApiAddress}${ if(userStatus==1) "admin/" else "" }delete_message"
-    val json = AppJson.json.encodeToString(mapOf("message_id" to messageId, "status" to 1))
+    val isAdmin = userStatus == 1
+    val api = "${ApiAddress}${if (isAdmin) "admin/" else ""}delete_message"
+    
+    val json = buildJsonObject {
+        put("message_id", messageId)
+        put("status", 1)
+        if (isAdmin) {
+            put("operation", "single")
+        }
+    }.toString()
+    
     val body = json.toRequestBody("application/json".toMediaType())
     val request = Request.Builder()
         .url(api)
