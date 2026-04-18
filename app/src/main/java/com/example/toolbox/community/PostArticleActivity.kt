@@ -505,8 +505,6 @@ fun PostArticleScreen(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(Modifier.width(4.dp))
-                        Text("发布")
                     }
                 }
             )
