@@ -43,6 +43,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAddAlt1
@@ -108,6 +109,7 @@ import com.example.toolbox.data.community.ResourceItem
 import com.example.toolbox.message.MessageDetailActivity
 import com.example.toolbox.mine.getLevelIconRes
 import com.example.toolbox.resourceLib.ResourceDetailActivity
+import com.example.toolbox.settings.UserSettingsActivity
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.example.toolbox.utils.MarkdownRenderer
 import kotlinx.coroutines.Dispatchers
@@ -132,7 +134,8 @@ class UserInfoActivity : ComponentActivity() {
             ToolBoxTheme {
                 if (userId == 0) {
                     LaunchedEffect(Unit) {
-                        Toast.makeText(this@UserInfoActivity, "无效的用户ID", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@UserInfoActivity, "无效的用户ID", Toast.LENGTH_SHORT)
+                            .show()
                         finish()
                     }
                 } else {
@@ -398,7 +401,8 @@ fun UserInfoScreen(userId: Int) {
                                         userInfo = it,
                                         isFollowing = isFollowing,
                                         onMessageClick = {
-                                            val intent = Intent(context, MessageDetailActivity::class.java)
+                                            val intent =
+                                                Intent(context, MessageDetailActivity::class.java)
                                             intent.putExtra("user_id", it.userId)
                                             context.startActivity(intent)
                                         },
@@ -736,12 +740,12 @@ fun UserInfoHeader(
                 }
             }
 
-            val showButton = userInfo.userId != TokenManager.getUserID(context)
-            if (showButton) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            val notMyself = userInfo.userId != TokenManager.getUserID(context)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (notMyself) {
                     Button(
                         onClick = onFollowClick,
                         colors = ButtonDefaults.buttonColors(
@@ -778,6 +782,26 @@ fun UserInfoHeader(
                             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
                             Text("私信")
                         }
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            val intent = Intent(context, UserSettingsActivity::class.java)
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "编辑资料",
+                            modifier = Modifier.size(ButtonDefaults.IconSize)
+                        )
+                        Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                        Text("编辑资料")
                     }
                 }
             }
@@ -1218,6 +1242,7 @@ private suspend fun getUserMessages(
                             images.add(imagesValue.getString(j))
                         }
                     }
+
                     is String -> if (imagesValue.isNotEmpty()) images.add(imagesValue)
                 }
             } catch (_: JSONException) {

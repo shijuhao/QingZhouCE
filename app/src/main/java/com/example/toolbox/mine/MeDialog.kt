@@ -108,14 +108,13 @@ fun UserBottomSheet(
                                 )
                             }
 
-                            // 账号设置
                             add {
                                 SettingsItemCell(
                                     title = "转到账号设置",
                                     icon = Icons.Default.SettingsSuggest,
                                     subtitle = "编辑头像、名称、简介，退出登录等",
                                     onClick = {
-                                        onDismiss() // 点击后通常需要关闭 Sheet
+                                        onDismiss()
                                         val intent = Intent(context, UserSettingsActivity::class.java)
                                         context.startActivity(intent)
                                     }
