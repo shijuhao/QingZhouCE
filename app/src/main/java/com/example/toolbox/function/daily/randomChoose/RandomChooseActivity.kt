@@ -64,6 +64,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -161,6 +162,13 @@ class RandomChooseViewModel : ViewModel() {
 
     var showSaveManagerDialog by mutableStateOf(false)
         private set
+
+    var configName by mutableStateOf("")
+        private set
+
+    fun updateConfigName(name: String) {
+        configName = name
+    }
 
     fun updateNewItemName(name: String) {
         newItemName = name
@@ -309,16 +317,17 @@ class RandomChooseViewModel : ViewModel() {
         showSaveManagerDialog = false
     }
 
-    fun saveCurrentList(context: Context, name: String = "") {
+    fun saveCurrentList(context: Context) {
         if (items.isEmpty()) {
             errorMessage = "没有可保存的项目"
             return
         }
         val configs = savedConfigs.toMutableList()
         val timestamp = System.currentTimeMillis()
+        val finalName = configName.ifEmpty { "配置 ${configs.size + 1}" }
         val newConfig = SavedConfig(
             id = timestamp,
-            name = name.ifEmpty { "配置 ${configs.size + 1}" },
+            name = finalName,
             items = items.map { it.copy() },
             timestamp = timestamp
         )
@@ -326,11 +335,12 @@ class RandomChooseViewModel : ViewModel() {
         getPrefs(context).edit { putString("saved_configs", json.encodeToString(configs)) }
         savedConfigs = configs
         errorMessage = ""
-        Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "已保存: $finalName", Toast.LENGTH_SHORT).show()
     }
 
     fun loadConfig(context: Context, config: SavedConfig) {
         items = config.items.map { it.copy(id = ++nextId) }
+        configName = config.name
         selectedResult = ""
         showResult = false
         isSpinning = false
@@ -351,13 +361,15 @@ class RandomChooseViewModel : ViewModel() {
         val index = savedConfigs.indexOfFirst { it.id == id }
         if (index == -1) return
         val configs = savedConfigs.toMutableList()
+        val newName = configName.ifEmpty { configs[index].name }
         configs[index] = configs[index].copy(
+            name = newName,
             items = items.map { it.copy() },
             timestamp = System.currentTimeMillis()
         )
         getPrefs(context).edit { putString("saved_configs", json.encodeToString(configs)) }
         savedConfigs = configs
-        Toast.makeText(context, "已覆盖", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "已覆盖: $newName", Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -385,9 +397,6 @@ fun RandomChooseScreen(
     val viewModel: RandomChooseViewModel = viewModel()
     val context = LocalContext.current
 
-    val showSaveDialog = remember { mutableStateOf(false) }
-    var saveConfigName by remember { mutableStateOf("") }
-
     val showAddItemDialog = remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
@@ -399,33 +408,6 @@ fun RandomChooseScreen(
         }
     }
 
-    // --- 1. 保存配置弹窗 ---
-    if (showSaveDialog.value) {
-        AlertDialog(
-            onDismissRequest = { showSaveDialog.value = false },
-            title = { Text("保存配置") },
-            text = {
-                OutlinedTextField(
-                    value = saveConfigName,
-                    onValueChange = { saveConfigName = it },
-                    label = { Text("配置名称（可选）") },
-                    singleLine = true
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.saveCurrentList(context, saveConfigName)
-                    saveConfigName = ""
-                    showSaveDialog.value = false
-                }) { Text("保存") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSaveDialog.value = false }) { Text("取消") }
-            }
-        )
-    }
-
-    // --- 2. 管理已保存配置弹窗 ---
     if (viewModel.showSaveManagerDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.closeSaveManagerDialog() },
@@ -483,7 +465,6 @@ fun RandomChooseScreen(
         )
     }
 
-    // --- 3. 添加项目弹窗 ---
     if (showAddItemDialog.value) {
         AlertDialog(
             onDismissRequest = { showAddItemDialog.value = false },
@@ -557,11 +538,12 @@ fun RandomChooseScreen(
                 Spacer(Modifier.width(4.dp))
 
                 IconButton(
-                    onClick = { showSaveDialog.value = true },
+                    onClick = { viewModel.saveCurrentList(context) },
                     enabled = viewModel.items.isNotEmpty() && !viewModel.isSpinning
                 ) {
                     Icon(Icons.Default.Save, contentDescription = "保存")
                 }
+
                 IconButton(
                     onClick = { viewModel.openSaveManagerDialog(context) },
                     enabled = !viewModel.isSpinning
@@ -629,6 +611,31 @@ fun RandomChooseScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                if (viewModel.items.isNotEmpty()) {
+                    item {
+                        Card(
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = viewModel.configName,
+                                onValueChange = viewModel::updateConfigName,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(4.dp),
+                                placeholder = { Text("输入抽选主题（可选）", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                                singleLine = true,
+                                shape = RoundedCornerShape(24.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                )
+                            )
+                        }
+                    }
+                }
+
                 if (viewModel.selectedResult.isNotEmpty()) {
                     item {
                         ResultCard(
@@ -681,7 +688,7 @@ fun WheelCard(
     onSpin: () -> Unit
 ) {
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp)
     ) {
@@ -987,7 +994,7 @@ fun ItemsListCard(
     onClearAll: () -> Unit,
     isSpinning: Boolean
 ) {
-    Card(elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
+    Card(elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
