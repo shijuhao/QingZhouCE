@@ -31,6 +31,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -68,98 +70,174 @@ fun FunctionPlotterScreen(
     onBackClick: () -> Unit = {}
 ) {
     val materialThemeColorScheme = MaterialTheme.colorScheme
+
+    var plotMode by remember { mutableIntStateOf(0) }
+
     var functionText by remember { mutableStateOf("x^2") }
     var xMin by remember { mutableStateOf("-5") }
     var xMax by remember { mutableStateOf("5") }
+
+    var paramXText by remember { mutableStateOf("16*sin(t)^3") }
+    var paramYText by remember { mutableStateOf("13*cos(t) - 5*cos(2*t) - 2*cos(3*t) - cos(4*t)") }
+    var tMin by remember { mutableStateOf("0") }
+    var tMax by remember { mutableStateOf("2*pi") }
+
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var plotPoints by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
-    var yMin by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-    var yMax by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    var yMin by remember { mutableFloatStateOf(0f) }
+    var yMax by remember { mutableFloatStateOf(0f) }
 
     val scrollState = rememberScrollState()
+
+    fun evaluateConstant(expr: String): Double {
+        return when (val clean = expr.trim().lowercase().replace(" ", "")) {
+            "pi" -> Math.PI
+            "e" -> Math.E
+            else -> try {
+                ExpressionBuilder(clean).build().evaluate()
+            } catch (_: Exception) {
+                clean.toDouble()
+            }
+        }
+    }
 
     fun updatePlot() {
         try {
             errorMessage = null
+            if (plotMode == 0) {
+                val cleanXMin = xMin.trim()
+                val cleanXMax = xMax.trim()
+                val cleanFunction = functionText.trim()
 
-            val cleanXMin = xMin.trim()
-            val cleanXMax = xMax.trim()
-            val cleanFunction = functionText.trim()
-
-            if (cleanXMin.isEmpty() || cleanXMax.isEmpty()) {
-                errorMessage = "请输入 x 范围"
-                plotPoints = emptyList()
-                return
-            }
-
-            val min = cleanXMin.toFloatOrNull()
-            val max = cleanXMax.toFloatOrNull()
-
-            if (min == null || max == null) {
-                errorMessage = "请输入有效的数字（例如：-5 或 10）"
-                plotPoints = emptyList()
-                return
-            }
-
-            if (min >= max) {
-                errorMessage = "x 最小值必须小于最大值"
-                plotPoints = emptyList()
-                return
-            }
-
-            if (cleanFunction.isEmpty()) {
-                errorMessage = "请输入函数表达式"
-                plotPoints = emptyList()
-                return
-            }
-
-            if (cleanFunction.matches(Regex("^[+\\-*/^().\\s]+$"))) {
-                errorMessage = "函数表达式不能只有运算符"
-                plotPoints = emptyList()
-                return
-            }
-
-            val expression = ExpressionBuilder(cleanFunction)
-                .variable("x")
-                .build()
-
-            val step = (max - min) / 500
-            val points = mutableListOf<Pair<Float, Float>>()
-            var currentYMin = Float.MAX_VALUE
-            var currentYMax = -Float.MAX_VALUE
-
-            var x = min
-            while (x <= max) {
-                try {
-                    val y = expression.setVariable("x", x.toDouble()).evaluate().toFloat()
-                    if (y.isFinite()) {
-                        points.add(x to y)
-                        if (y < currentYMin) currentYMin = y
-                        if (y > currentYMax) currentYMax = y
-                    }
-                } catch (_: Exception) {
+                if (cleanXMin.isEmpty() || cleanXMax.isEmpty()) {
+                    errorMessage = "请输入 x 范围"
+                    plotPoints = emptyList()
+                    return
                 }
-                x += step
+
+                val min = cleanXMin.toFloatOrNull()
+                val max = cleanXMax.toFloatOrNull()
+
+                if (min == null || max == null) {
+                    errorMessage = "请输入有效的数字（例如：-5 或 10）"
+                    plotPoints = emptyList()
+                    return
+                }
+
+                if (min >= max) {
+                    errorMessage = "x 最小值必须小于最大值"
+                    plotPoints = emptyList()
+                    return
+                }
+
+                if (cleanFunction.isEmpty()) {
+                    errorMessage = "请输入函数表达式"
+                    plotPoints = emptyList()
+                    return
+                }
+
+                if (cleanFunction.matches(Regex("^[+\\-*/^().\\s]+$"))) {
+                    errorMessage = "函数表达式不能只有运算符"
+                    plotPoints = emptyList()
+                    return
+                }
+
+                val expression = ExpressionBuilder(cleanFunction)
+                    .variable("x")
+                    .build()
+
+                val step = (max - min) / 500
+                val points = mutableListOf<Pair<Float, Float>>()
+                var currentYMin = Float.MAX_VALUE
+                var currentYMax = -Float.MAX_VALUE
+
+                var x = min
+                while (x <= max) {
+                    try {
+                        val y = expression.setVariable("x", x.toDouble()).evaluate().toFloat()
+                        if (y.isFinite()) {
+                            points.add(x to y)
+                            if (y < currentYMin) currentYMin = y
+                            if (y > currentYMax) currentYMax = y
+                        }
+                    } catch (_: Exception) {
+                    }
+                    x += step
+                }
+
+                if (points.isEmpty()) {
+                    errorMessage = "函数在指定范围内无有效值"
+                    plotPoints = emptyList()
+                    return
+                }
+
+                val padding = if (currentYMax - currentYMin > 0) (currentYMax - currentYMin) * 0.1f else 1f
+                yMin = if (currentYMin == currentYMax) currentYMin - 1f else currentYMin - padding
+                yMax = if (currentYMin == currentYMax) currentYMax + 1f else currentYMax + padding
+                plotPoints = points
+
+            } else {
+                val cleanTMin = tMin.trim()
+                val cleanTMax = tMax.trim()
+                if (cleanTMin.isEmpty() || cleanTMax.isEmpty()) {
+                    errorMessage = "请输入 t 范围"
+                    plotPoints = emptyList()
+                    return
+                }
+
+                val tStart = evaluateConstant(cleanTMin)
+                val tEnd = evaluateConstant(cleanTMax)
+
+                if (tStart >= tEnd) {
+                    errorMessage = "t 最小值必须小于最大值"
+                    plotPoints = emptyList()
+                    return
+                }
+
+                val exprX = ExpressionBuilder(paramXText)
+                    .variable("t")
+                    .build()
+                val exprY = ExpressionBuilder(paramYText)
+                    .variable("t")
+                    .build()
+
+                val step = (tEnd - tStart) / 500
+                val points = mutableListOf<Pair<Float, Float>>()
+                var t = tStart
+                while (t <= tEnd) {
+                    try {
+                        val x = exprX.setVariable("t", t).evaluate().toFloat()
+                        val y = exprY.setVariable("t", t).evaluate().toFloat()
+                        if (x.isFinite() && y.isFinite()) {
+                            points.add(x to y)
+                        }
+                    } catch (_: Exception) {
+                    }
+                    t += step
+                }
+
+                if (points.isEmpty()) {
+                    errorMessage = "参数方程在指定 t 范围内无有效点"
+                    plotPoints = emptyList()
+                    return
+                }
+
+                val ys = points.map { it.second }
+                val currentYMin = ys.minOrNull() ?: 0f
+                val currentYMax = ys.maxOrNull() ?: 1f
+                val padding = if (currentYMax - currentYMin > 0) (currentYMax - currentYMin) * 0.1f else 1f
+                yMin = if (currentYMin == currentYMax) currentYMin - 1f else currentYMin - padding
+                yMax = if (currentYMin == currentYMax) currentYMax + 1f else currentYMax + padding
+                plotPoints = points
             }
-
-            if (points.isEmpty()) {
-                errorMessage = "函数在指定范围内无有效值"
-                plotPoints = emptyList()
-                return
-            }
-
-            val padding = if (currentYMax - currentYMin > 0) (currentYMax - currentYMin) * 0.1f else 1f
-            yMin = if (currentYMin == currentYMax) currentYMin - 1f else currentYMin - padding
-            yMax = if (currentYMin == currentYMax) currentYMax + 1f else currentYMax + padding
-            plotPoints = points
-
         } catch (e: Exception) {
             errorMessage = "解析失败：${e.message}"
             plotPoints = emptyList()
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(plotMode, functionText, xMin, xMax, paramXText, paramYText, tMin, tMax) {
+        kotlinx.coroutines.delay(300)
         updatePlot()
     }
 
@@ -193,58 +271,119 @@ fun FunctionPlotterScreen(
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "输入函数表达式",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    OutlinedTextField(
-                        value = functionText,
-                        onValueChange = { functionText = it },
-                        label = { Text("f(x) =") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        placeholder = { Text("例: x^2, sin(x), 2*x+1") }
-                    )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedTextField(
-                            value = xMin,
-                            onValueChange = { newValue ->
-                                if (newValue.isEmpty() || newValue.matches(Regex("^-?\\d*\\.?\\d*$"))) {
-                                    xMin = newValue
-                                }
-                            },
-                            label = { Text("x 最小值") },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
+                        androidx.compose.material3.FilterChip(
+                            selected = plotMode == 0,
+                            onClick = { plotMode = 0 },
+                            label = { Text("y = f(x)") }
                         )
-                        OutlinedTextField(
-                            value = xMax,
-                            onValueChange = { newValue ->
-                                if (newValue.isEmpty() || newValue.matches(Regex("^-?\\d*\\.?\\d*$"))) {
-                                    xMax = newValue
-                                }
-                            },
-                            label = { Text("x 最大值") },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
+                        androidx.compose.material3.FilterChip(
+                            selected = plotMode == 1,
+                            onClick = { plotMode = 1 },
+                            label = { Text("参数方程") }
                         )
                     }
 
+                    if (plotMode == 0) {
+                        OutlinedTextField(
+                            value = functionText,
+                            onValueChange = { functionText = it },
+                            label = { Text("f(x) =") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("例: x^2, sin(x), 2*x+1") }
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = xMin,
+                                onValueChange = { newValue ->
+                                    if (newValue.isEmpty() || newValue.matches(Regex("^-?\\d*\\.?\\d*$"))) {
+                                        xMin = newValue
+                                    }
+                                },
+                                label = { Text("x 最小值") },
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = xMax,
+                                onValueChange = { newValue ->
+                                    if (newValue.isEmpty() || newValue.matches(Regex("^-?\\d*\\.?\\d*$"))) {
+                                        xMax = newValue
+                                    }
+                                },
+                                label = { Text("x 最大值") },
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = paramXText,
+                            onValueChange = { paramXText = it },
+                            label = { Text("x(t) =") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("例: 16*sin(t)^3") }
+                        )
+                        OutlinedTextField(
+                            value = paramYText,
+                            onValueChange = { paramYText = it },
+                            label = { Text("y(t) =") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("例: 13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t)") }
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = tMin,
+                                onValueChange = { tMin = it },
+                                label = { Text("t 最小值") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                placeholder = { Text("0") }
+                            )
+                            OutlinedTextField(
+                                value = tMax,
+                                onValueChange = { tMax = it },
+                                label = { Text("t 最大值") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                placeholder = { Text("2*pi") }
+                            )
+                        }
+                    }
+
                     Button(
-                        onClick = { updatePlot() },
+                        onClick = {
+                            if (plotPoints.isNotEmpty()) {
+                                val ys = plotPoints.map { it.second }
+                                val newYMin = ys.minOrNull() ?: 0f
+                                val newYMax = ys.maxOrNull() ?: 1f
+                                val padding = if (newYMax - newYMin > 0) (newYMax - newYMin) * 0.1f else 1f
+                                yMin = if (newYMin == newYMax) newYMin - 1f else newYMin - padding
+                                yMax = if (newYMin == newYMax) newYMax + 1f else newYMax + padding
+                            } else {
+                                updatePlot()
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("绘制图像")
+                        Text("重置视图")
                     }
                 }
             }
@@ -258,7 +397,7 @@ fun FunctionPlotterScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "f(x) = $functionText",
+                        text = if (plotMode == 0) "f(x) = $functionText" else "参数方程",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -273,7 +412,6 @@ fun FunctionPlotterScreen(
                         )
                     }
 
-                    // 绘图 Canvas
                     Canvas(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -283,13 +421,14 @@ fun FunctionPlotterScreen(
                             val canvasWidth = size.width
                             val canvasHeight = size.height
 
-                            val safeXMin = xMin.toFloatOrNull() ?: 0f
-                            val safeXMax = xMax.toFloatOrNull() ?: 1f
-                            val xRange = if (safeXMax - safeXMin != 0f) safeXMax - safeXMin else 1f
+                            val xs = plotPoints.map { it.first }
+                            val currentXMin = xs.minOrNull() ?: 0f
+                            val currentXMax = xs.maxOrNull() ?: 1f
+                            val xRange = if (currentXMax - currentXMin != 0f) currentXMax - currentXMin else 1f
                             val yRange = if (yMax - yMin != 0f) yMax - yMin else 1f
 
                             fun mapToCanvas(x: Float, y: Float): Offset {
-                                val px = ((x - safeXMin) / xRange) * canvasWidth
+                                val px = ((x - currentXMin) / xRange) * canvasWidth
                                 val py = canvasHeight - ((y - yMin) / yRange) * canvasHeight
                                 return Offset(px, py)
                             }
@@ -298,7 +437,7 @@ fun FunctionPlotterScreen(
                             val axisStroke = Stroke(width = 1.5f)
 
                             if (0f in yMin..yMax) {
-                                val yZero = mapToCanvas(safeXMin, 0f).y
+                                val yZero = mapToCanvas(currentXMin, 0f).y
                                 drawLine(
                                     color = axisColor,
                                     start = Offset(0f, yZero),
@@ -307,7 +446,7 @@ fun FunctionPlotterScreen(
                                 )
                             }
 
-                            if (0f in safeXMin..safeXMax) {
+                            if (0f in currentXMin..currentXMax) {
                                 val xZero = mapToCanvas(0f, yMin).x
                                 drawLine(
                                     color = axisColor,
@@ -342,10 +481,18 @@ fun FunctionPlotterScreen(
                                 .padding(top = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "x: [${xMin.toFloatOrNull()}, ${xMax.toFloatOrNull()}]",
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            if (plotMode == 0) {
+                                Text(
+                                    text = "x: [${xMin.toFloatOrNull()}, ${xMax.toFloatOrNull()}]",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            } else {
+                                val xs = plotPoints.map { it.first }
+                                Text(
+                                    text = "x: [%.2f, %.2f]".format(xs.minOrNull() ?: 0f, xs.maxOrNull() ?: 0f),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                             Text(
                                 text = "y: [%.2f, %.2f]".format(yMin, yMax),
                                 style = MaterialTheme.typography.bodySmall
@@ -375,7 +522,8 @@ fun FunctionPlotterScreen(
                         text = "• 基本运算: + - * / ^ (幂)\n" +
                                 "• 三角函数: sin(x), cos(x), tan(x)\n" +
                                 "• 其他: sqrt(x), abs(x), log(x), exp(x)\n" +
-                                "• 常量: pi, e",
+                                "• 常量: pi, e\n" +
+                                "• 参数方程模式支持变量 t",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
