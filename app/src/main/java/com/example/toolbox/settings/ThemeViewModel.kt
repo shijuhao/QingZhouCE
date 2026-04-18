@@ -28,7 +28,6 @@ class ThemeViewModel : ViewModel() {
     private val _colorTheme = MutableStateFlow(ColorTheme.PURPLE)
     val colorTheme: StateFlow<ColorTheme> = _colorTheme.asStateFlow()
 
-    // 莫奈取色状态
     private val _monetEnabled = MutableStateFlow(isMonetSupported)
     val monetEnabled: StateFlow<Boolean> = _monetEnabled.asStateFlow()
 
