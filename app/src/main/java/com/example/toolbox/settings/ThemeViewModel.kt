@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import com.example.toolbox.ui.theme.ColorTheme
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.core.content.edit
+import com.example.toolbox.functionPage.IconColorPrefs
 
 sealed class ThemeData(val themeName: String, val isDarkTheme: Boolean) {
     object Light : ThemeData("浅色模式", false)
@@ -19,7 +20,6 @@ sealed class ThemeData(val themeName: String, val isDarkTheme: Boolean) {
 
 class ThemeViewModel : ViewModel() {
 
-    // 检查系统是否支持莫奈取色 (Android 12+)
     private val isMonetSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
     private val _currentTheme = MutableStateFlow<ThemeData>(ThemeData.Auto)
@@ -29,9 +29,13 @@ class ThemeViewModel : ViewModel() {
     val colorTheme: StateFlow<ColorTheme> = _colorTheme.asStateFlow()
 
     // 莫奈取色状态
-    private val _monetEnabled = MutableStateFlow(isMonetSupported) // 初始值根据支持情况定
+    private val _monetEnabled = MutableStateFlow(isMonetSupported)
     val monetEnabled: StateFlow<Boolean> = _monetEnabled.asStateFlow()
 
+    private val _iconColorEnabled = MutableStateFlow(true)
+    val iconColorEnabled: StateFlow<Boolean> = _iconColorEnabled.asStateFlow()
+
+    private val iconColorKey = "icon_color_enabled"
     private val prefsName = "theme_preferences"
     private val themeKey = "saved_theme"
     private val colorThemeKey = "color_theme"
@@ -41,7 +45,9 @@ class ThemeViewModel : ViewModel() {
         viewModelScope.launch {
             val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
-            // 如果不支持莫奈取色，强制设为 false，否则读取保存值（默认 true）
+            val savedIconColorEnabled = prefs.getBoolean(iconColorKey, true)
+            _iconColorEnabled.value = savedIconColorEnabled
+
             val savedMonetEnabled = if (isMonetSupported) {
                 prefs.getBoolean(monetKey, true)
             } else {
@@ -66,7 +72,6 @@ class ThemeViewModel : ViewModel() {
             _monetEnabled.value = savedMonetEnabled
             _colorTheme.value = savedColorTheme
 
-            // 如果因为版本不支持而强制设为 false，同步到存储中
             if (!isMonetSupported && prefs.getBoolean(monetKey, true)) {
                 prefs.edit { putBoolean(monetKey, false) }
             }
@@ -83,7 +88,6 @@ class ThemeViewModel : ViewModel() {
 
     fun changeColorTheme(colorTheme: ColorTheme, context: Context) {
         viewModelScope.launch {
-            // 如果莫奈取色开启且系统支持，不处理切换
             if (_monetEnabled.value && isMonetSupported) {
                 return@launch
             }
@@ -95,7 +99,6 @@ class ThemeViewModel : ViewModel() {
     }
 
     fun toggleMonetEnabled(context: Context) {
-        // 如果系统不支持，直接返回，不允许切换
         if (!isMonetSupported) return
 
         viewModelScope.launch {
@@ -103,6 +106,14 @@ class ThemeViewModel : ViewModel() {
             _monetEnabled.value = newValue
             val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
             prefs.edit { putBoolean(monetKey, newValue) }
+        }
+    }
+
+    fun toggleIconColorEnabled(context: Context) {
+        viewModelScope.launch {
+            val newValue = !_iconColorEnabled.value
+            _iconColorEnabled.value = newValue
+            IconColorPrefs.setEnabled(context, newValue)
         }
     }
 }

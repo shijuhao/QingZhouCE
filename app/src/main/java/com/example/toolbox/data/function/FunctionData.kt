@@ -5,7 +5,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 data class FunctionItem(
     val name: String,
     val activity: String,
-    val icon: ImageVector? = null
+    val icon: ImageVector? = null,
+    val iconColorName: String? = null
 )
 
 sealed class IconSource {
@@ -16,7 +17,8 @@ sealed class IconSource {
 data class FunctionCategory(
     val name: String,
     val functions: List<FunctionItem>,
-    val icon: IconSource? = null
+    val icon: IconSource? = null,
+    val iconColorName: String? = null
 )
 
 data class SearchFunctionModel(

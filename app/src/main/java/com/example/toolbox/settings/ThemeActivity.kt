@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.RotateLeft
+import androidx.compose.material.icons.filled.FormatColorFill
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
@@ -82,12 +83,12 @@ class ThemeActivity : ComponentActivity() {
 
             val currentTheme by viewModel.currentTheme.collectAsState()
             val monetEnabled by viewModel.monetEnabled.collectAsState()
+            val iconColorEnabled by viewModel.iconColorEnabled.collectAsState()
             val colorTheme by viewModel.colorTheme.collectAsState()
 
             val scrollBehavior =
                 TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
-            // 应用主题
             ToolBoxTheme {
                 var openDialog by remember { mutableStateOf(false) }
                 val context = LocalContext.current
@@ -159,6 +160,7 @@ class ThemeActivity : ComponentActivity() {
                     ThemeSwitchScreen(
                         currentTheme = currentTheme,
                         monetEnabled = monetEnabled,
+                        iconColorEnabled = iconColorEnabled,
                         colorTheme = colorTheme,
                         innerPadding = innerPadding,
                         onThemeChange = { theme ->
@@ -169,7 +171,8 @@ class ThemeActivity : ComponentActivity() {
                         },
                         onColorThemeChange = { theme ->
                             viewModel.changeColorTheme(theme, this)
-                        }
+                        },
+                        onIconColorToggle = { viewModel.toggleIconColorEnabled(context) }
                     )
                 }
             }
@@ -276,23 +279,31 @@ fun ThemePreviewCard(
             .background(bgColor)
             .then(
                 if (isSelected) {
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                    Modifier.border(
+                        2.dp,
+                        MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(10.dp)
+                    )
                 } else Modifier
             )
             .padding(8.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            // 模拟状态栏
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                Box(modifier = Modifier.size(12.dp, 4.dp).clip(CircleShape).background(onSurfaceVariant.copy(0.3f)))
+                Box(modifier = Modifier
+                    .size(12.dp, 4.dp)
+                    .clip(CircleShape)
+                    .background(onSurfaceVariant.copy(0.3f)))
                 Spacer(modifier = Modifier.width(4.dp))
-                Box(modifier = Modifier.size(8.dp, 4.dp).clip(CircleShape).background(onSurfaceVariant.copy(0.3f)))
+                Box(modifier = Modifier
+                    .size(8.dp, 4.dp)
+                    .clip(CircleShape)
+                    .background(onSurfaceVariant.copy(0.3f)))
             }
 
-            // 模拟顶部 App Bar（使用该主题的主色）
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -301,7 +312,6 @@ fun ThemePreviewCard(
                     .background(primaryColor)
             )
 
-            // 模拟内容列表
             repeat(3) {
                 Row(
                     modifier = Modifier
@@ -341,7 +351,9 @@ fun ThemeSwitchScreen(
     colorTheme: ColorTheme,
     onThemeChange: (ThemeData) -> Unit,
     onMonetToggle: () -> Unit,
-    onColorThemeChange: (ColorTheme) -> Unit
+    onColorThemeChange: (ColorTheme) -> Unit,
+    iconColorEnabled: Boolean,
+    onIconColorToggle: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -370,12 +382,21 @@ fun ThemeSwitchScreen(
                             onCheckedChange = { onMonetToggle() },
                             isEnabled = isMonetSupported
                         )
+                    },
+                    {
+                        SettingsSwitchItem(
+                            icon = Icons.Default.FormatColorFill,
+                            title = "启用功能图标多彩颜色",
+                            subtitle = "关闭后将统一使用主题色",
+                            checked = iconColorEnabled,
+                            onCheckedChange = { onIconColorToggle() },
+                            isEnabled = true
+                        )
                     }
                 )
             )
         }
 
-        // 主题模式选择组
         item {
             SettingsGroup(
                 title = "主题模式",
@@ -392,7 +413,6 @@ fun ThemeSwitchScreen(
             )
         }
 
-        // 莫奈取色提示
         if (monetEnabled) {
             item {
                 Row(

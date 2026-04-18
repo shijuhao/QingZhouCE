@@ -48,6 +48,12 @@ fun SearchFunctionItem(
     isFavorite: Boolean = false
 ) {
     val context = LocalContext.current
+    val useCustomColor = IconColorPrefs.isEnabled(context)
+    val iconTint = if (useCustomColor) {
+        IconColorMap.getColor(function.function.iconColorName) ?: MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
 
     val cornerRadius = 24.dp
 
@@ -83,7 +89,7 @@ fun SearchFunctionItem(
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        color = iconTint.copy(alpha = 0.1f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -91,7 +97,7 @@ fun SearchFunctionItem(
                 Icon(
                     imageVector = function.function.icon ?: Icons.Default.Person,
                     contentDescription = "${function.function.name}图标",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = iconTint,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -160,6 +166,12 @@ fun GridFunctionItem(
     isFavorite: Boolean = false
 ) {
     val context = LocalContext.current
+    val useCustomColor = IconColorPrefs.isEnabled(context)
+    val iconTint = if (useCustomColor) {
+        IconColorMap.getColor(function.iconColorName) ?: MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
 
     Card(
         modifier = modifier
@@ -195,7 +207,7 @@ fun GridFunctionItem(
                 modifier = Modifier
                     .size(50.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        color = iconTint.copy(alpha = 0.1f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -207,7 +219,7 @@ fun GridFunctionItem(
                         Icon(
                             imageVector = function.icon ?: Icons.Default.Functions,
                             contentDescription = "${function.name}图标",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = iconTint,
                             modifier = Modifier.size(24.dp)
                         )
                         Icon(
@@ -221,7 +233,7 @@ fun GridFunctionItem(
                     Icon(
                         imageVector = function.icon ?: Icons.Default.Functions,
                         contentDescription = "${function.name}图标",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = iconTint,
                         modifier = Modifier.size(24.dp)
                     )
                 }

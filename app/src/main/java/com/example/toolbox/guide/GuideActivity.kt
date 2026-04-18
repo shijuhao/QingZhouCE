@@ -238,6 +238,7 @@ fun GuidePageContent(page: Int) {
 
     val currentTheme by viewModel.currentTheme.collectAsState()
     val monetEnabled by viewModel.monetEnabled.collectAsState()
+    val iconColorEnabled by viewModel.iconColorEnabled.collectAsState()
     val colorTheme by viewModel.colorTheme.collectAsState()
     var isLogin by remember { mutableStateOf(false) }
 
@@ -310,11 +311,13 @@ fun GuidePageContent(page: Int) {
                     ThemeSwitchScreen(
                         currentTheme = currentTheme,
                         monetEnabled = monetEnabled,
+                        iconColorEnabled = iconColorEnabled,
                         colorTheme = colorTheme,
                         innerPadding = PaddingValues(0.dp),
                         onThemeChange = { theme -> viewModel.changeTheme(theme, context) },
                         onMonetToggle = { viewModel.toggleMonetEnabled(context) },
-                        onColorThemeChange = { theme -> viewModel.changeColorTheme(theme, context) }
+                        onColorThemeChange = { theme -> viewModel.changeColorTheme(theme, context) },
+                        onIconColorToggle = { viewModel.toggleIconColorEnabled(context) }
                     )
                 }
             }

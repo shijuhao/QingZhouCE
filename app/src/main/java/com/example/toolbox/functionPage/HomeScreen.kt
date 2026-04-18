@@ -383,6 +383,14 @@ private fun FavoriteCategoryCard(
     onToggle: () -> Unit,
     onLongPress: (SearchFunctionModel) -> Unit
 ) {
+    val context = LocalContext.current
+    val useCustomColor = IconColorPrefs.isEnabled(context)
+    val iconTint = if (useCustomColor) {
+        IconColorMap.getColor("red") ?: MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
     val cornerRadius = 24.dp
     val smallRadius = 4.dp
 
@@ -410,16 +418,13 @@ private fun FavoriteCategoryCard(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            CircleShape
-                        ),
+                        .background(iconTint.copy(alpha = 0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Favorite,
                         null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = iconTint,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -518,6 +523,13 @@ private fun CategoryCard(
     )
     else RoundedCornerShape(smallRadius)
 
+    val useCustomColor = IconColorPrefs.isEnabled(context)
+    val iconTint = if (useCustomColor) {
+        IconColorMap.getColor(category.iconColorName) ?: MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
     Surface(
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -534,17 +546,13 @@ private fun CategoryCard(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            CircleShape
-                        ),
+                        .background(iconTint.copy(alpha = 0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = category.icon?.toPainter()
-                            ?: rememberVectorPainter(Icons.Default.Functions),
+                        painter = category.icon?.toPainter() ?: rememberVectorPainter(Icons.Default.Functions),
                         null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = iconTint,
                         modifier = Modifier.size(22.dp)
                     )
                 }
