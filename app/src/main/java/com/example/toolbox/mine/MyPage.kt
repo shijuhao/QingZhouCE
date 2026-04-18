@@ -78,6 +78,7 @@ import com.example.toolbox.LoginActivity
 import com.example.toolbox.R
 import com.example.toolbox.community.CommunityActivity
 import com.example.toolbox.community.UserInfoActivity
+import com.example.toolbox.data.main.UserInfo
 import com.example.toolbox.mine.notice.NoticeActivity
 
 @Composable
@@ -97,6 +98,128 @@ fun OnResumeScreen(
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+}
+
+@Composable
+fun UserCard(
+    userToken: String,
+    userInfo: UserInfo
+) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        if (userToken != "null") {
+            AsyncImage(
+                model = userInfo.background,
+                contentDescription = "背景",
+                modifier = Modifier
+                    .matchParentSize()
+                    .alpha(0.2f),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = if (userInfo.avatar != "null") rememberAsyncImagePainter(
+                        userInfo.avatar
+                    ) else painterResource(
+                        id = R.drawable.user
+                    ),
+                    contentDescription = "头像",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(58.dp)
+                        .clip(CircleShape),
+                    colorFilter = if (userInfo.avatar != "null") null else ColorFilter.tint(
+                        MaterialTheme.colorScheme.primary
+                    )
+                )
+                Column(
+                    modifier = Modifier.padding(start = 15.dp),
+                ) {
+                    Text(
+                        text = if (userToken != "null") userInfo.name else "未登录",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = if (userToken != "null") (if (userInfo.bio != "") userInfo.bio else "这个人懒得写简介~") else "点击登录",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            if (userToken != "null") {
+                if (userInfo.tagStatus != 0 && userInfo.tagStatus != 3) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(14.dp),
+                            contentDescription = null,
+                            imageVector = Icons.Default.CheckCircle,
+                            tint = when (userInfo.tagStatus) {
+                                1 -> MaterialTheme.colorScheme.error
+                                2 -> MaterialTheme.colorScheme.tertiary
+                                4 -> MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            userInfo.tag,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        modifier = Modifier.size(16.dp),
+                        contentDescription = null,
+                        painter = painterResource(
+                            getLevelIconRes(userInfo.level.toString())
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        "${userInfo.level}",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(8.dp),
+                        progress = {
+                            userInfo.exp / (userInfo.level * 100f)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        "${userInfo.exp}/${(userInfo.level * 100f.toInt())}",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
     }
 }
@@ -260,121 +383,7 @@ fun ProfileScreen(
                                         }
                                     }
                                 ) {
-                                    Box(modifier = Modifier.fillMaxWidth()) {
-                                        if (userToken != "null") {
-                                            AsyncImage(
-                                                model = userInfo.background,
-                                                contentDescription = "背景",
-                                                modifier = Modifier
-                                                    .matchParentSize()
-                                                    .alpha(0.2f),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        }
-
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(14.dp),
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.Start,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Image(
-                                                    painter = if (userInfo.avatar != "null") rememberAsyncImagePainter(
-                                                        userInfo.avatar
-                                                    ) else painterResource(
-                                                        id = R.drawable.user
-                                                    ),
-                                                    contentDescription = "头像",
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier
-                                                        .size(58.dp)
-                                                        .clip(CircleShape),
-                                                    colorFilter = if (userInfo.avatar != "null") null else ColorFilter.tint(
-                                                        MaterialTheme.colorScheme.primary
-                                                    )
-                                                )
-                                                Column(
-                                                    modifier = Modifier.padding(start = 15.dp),
-                                                ) {
-                                                    Text(
-                                                        text = if (userToken != "null") userInfo.name else "未登录",
-                                                        fontWeight = FontWeight.Bold,
-                                                        style = MaterialTheme.typography.titleMedium
-                                                    )
-                                                    Text(
-                                                        text = if (userToken != "null") (if (userInfo.bio != "") userInfo.bio else "这个人懒得写简介~") else "点击登录",
-                                                        style = MaterialTheme.typography.bodyMedium
-                                                    )
-                                                }
-                                            }
-                                            if (userToken != "null") {
-                                                if (userInfo.tagStatus != 0 && userInfo.tagStatus != 3) {
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(top = 10.dp),
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        Icon(
-                                                            modifier = Modifier.size(14.dp),
-                                                            contentDescription = null,
-                                                            imageVector = Icons.Default.CheckCircle,
-                                                            tint = when (userInfo.tagStatus) {
-                                                                1 -> MaterialTheme.colorScheme.error
-                                                                2 -> MaterialTheme.colorScheme.tertiary
-                                                                4 -> MaterialTheme.colorScheme.primary
-                                                                else -> MaterialTheme.colorScheme.onSurface
-                                                            }
-                                                        )
-                                                        Spacer(modifier = Modifier.width(5.dp))
-                                                        Text(
-                                                            userInfo.tag,
-                                                            style = MaterialTheme.typography.bodySmall
-                                                        )
-                                                    }
-                                                }
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(top = 10.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Image(
-                                                        modifier = Modifier.size(16.dp),
-                                                        contentDescription = null,
-                                                        painter = painterResource(
-                                                            getLevelIconRes(userInfo.level.toString())
-                                                        )
-                                                    )
-                                                    Spacer(modifier = Modifier.width(3.dp))
-                                                    Text(
-                                                        "${userInfo.level}",
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        style = MaterialTheme.typography.bodySmall
-                                                    )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    LinearProgressIndicator(
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .height(8.dp),
-                                                        progress = {
-                                                            userInfo.exp / (userInfo.level * 100f)
-                                                        }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Text(
-                                                        "${userInfo.exp}/${(userInfo.level * 100f.toInt())}",
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        style = MaterialTheme.typography.bodySmall
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
+                                    UserCard(userToken ?: "null", userInfo)
                                 }
                             }
 
