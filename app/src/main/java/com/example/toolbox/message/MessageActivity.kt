@@ -42,8 +42,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PersonAdd
@@ -774,7 +777,6 @@ fun MessageBubble(
                     onDismissRequest = { showMenu = false },
                     modifier = Modifier.align(if (isMine) Alignment.TopStart else Alignment.TopEnd)
                 ) {
-                    // 新增复制按钮（仅当有文字内容时显示）
                     if (message.content.isNotBlank()) {
                         DropdownMenuItem(
                             text = { Text("复制") },
@@ -784,17 +786,30 @@ fun MessageBubble(
                                 )
                                 showMenu = false
                                 Toast.makeText(context, "复制成功", Toast.LENGTH_SHORT).show()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    null,
+                                    Modifier.size(18.dp)
+                                )
                             }
                         )
                     }
 
-                    // 撤回和编辑仅限自己的消息
                     if (isMine && !message.isRecalled && !message.isDeleted) {
                         DropdownMenuItem(
                             text = { Text("撤回") },
                             onClick = {
                                 showMenu = false
                                 onRecall()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Undo,
+                                    null,
+                                    Modifier.size(18.dp)
+                                )
                             }
                         )
                         DropdownMenuItem(
@@ -802,6 +817,13 @@ fun MessageBubble(
                             onClick = {
                                 showMenu = false
                                 onEdit()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    null,
+                                    Modifier.size(18.dp)
+                                )
                             }
                         )
                     }
