@@ -1,8 +1,8 @@
 # 轻昼CE
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Kotlin-1.9.0-7F52FF?logo=kotlin" alt="Kotlin"/>
-  <img src="https://img.shields.io/badge/Jetpack%20Compose-1.5.0-4285F4?logo=android" alt="Compose"/>
+  <img src="https://img.shields.io/badge/Kotlin-2.3.20-7F52FF?logo=kotlin" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-1.9.0-4285F4?logo=android" alt="Compose"/>
   <img src="https://img.shields.io/badge/Material%20You-3.0-757575?logo=material-design" alt="Material You"/>
   <img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License"/>
   <img src="https://img.shields.io/github/stars/shijuhao/QingZhouCE?style=social" alt="Stars"/>
