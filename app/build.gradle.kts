@@ -9,9 +9,8 @@ plugins {
 
 android {
     namespace = "com.example.toolbox"
-    compileSdk {
-        version = release(36)
-    }
+
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.juhao.toolbox.kotlin"
