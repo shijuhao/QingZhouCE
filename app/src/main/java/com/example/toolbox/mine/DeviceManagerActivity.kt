@@ -55,7 +55,6 @@ class DeviceManagerActivity : ComponentActivity() {
         }
     }
 
-    // 获取设备列表
     private fun fetchDevices(token: String, callback: (List<Device>?, String?) -> Unit) {
         val request = Request.Builder()
             .url("${ApiAddress}get_devices")
@@ -80,7 +79,6 @@ class DeviceManagerActivity : ComponentActivity() {
         })
     }
 
-    // 踢出设备
     private fun revokeDevice(token: String, deviceId: String, callback: (Boolean, String?) -> Unit) {
         val json = AppJson.json.encodeToString(mapOf("device_id" to deviceId))
         val request = Request.Builder()
@@ -116,7 +114,6 @@ fun DeviceManagerScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     var selectedDevice by remember { mutableStateOf<Device?>(null) }
 
-    // 定义刷新逻辑
     val onRefresh: () -> Unit = {
         isRefreshing = true
         token?.let {
@@ -125,13 +122,14 @@ fun DeviceManagerScreen(
                 if (list != null) {
                     devices = list
                 } else {
-                    Toast.makeText(context, "刷新失败: $err", Toast.LENGTH_SHORT).show()
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        Toast.makeText(context, "刷新失败: $err", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
     }
 
-    // 首次进入自动触发刷新
     LaunchedEffect(Unit) {
         onRefresh()
     }
@@ -148,7 +146,6 @@ fun DeviceManagerScreen(
             )
         }
     ) { innerPadding ->
-        // 使用 PullToRefreshBox 包裹列表
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
@@ -157,7 +154,6 @@ fun DeviceManagerScreen(
                 .fillMaxSize()
         ) {
             if (devices.isEmpty() && !isRefreshing) {
-                // 空状态展示
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("暂无登录设备", color = Color.Gray)
                 }
@@ -168,15 +164,12 @@ fun DeviceManagerScreen(
                             device = device,
                             onClick = { selectedDevice = device },
                             onKick = {
-                                // 踢出设备逻辑
-                                token?.let {
-                                    revokeDevice(it, device.device_id) { success, err ->
+                                token?.let { t ->
+                                    revokeDevice(t, device.device_id) { success, err ->
                                         if (success) {
-                                            // 踢出成功后刷新列表
                                             onRefresh()
                                         } else {
-                                            // 切换回主线程显示 Toast (OkHttp回调在子线程)
-                                            (context as? ComponentActivity)?.runOnUiThread {
+                                            android.os.Handler(android.os.Looper.getMainLooper()).post {
                                                 Toast.makeText(context, "操作失败: $err", Toast.LENGTH_SHORT).show()
                                             }
                                         }
@@ -192,7 +185,6 @@ fun DeviceManagerScreen(
             }
         }
 
-        // 详情弹窗 (保持不变)
         selectedDevice?.let { device ->
             AlertDialog(
                 onDismissRequest = { selectedDevice = null },
@@ -234,12 +226,10 @@ fun DeviceItem(device: Device, onClick: () -> Unit, onKick: () -> Unit) {
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            // 对应 Lua 的 主题色-0xde000000 背景效果
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // 第一行：图标 + 型号 + 当前设备标签
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Devices,
@@ -282,7 +272,6 @@ fun DeviceItem(device: Device, onClick: () -> Unit, onKick: () -> Unit) {
                 }
             }
 
-            // 第二行：在线状态 + 踢出按钮
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -312,7 +301,6 @@ fun DeviceItem(device: Device, onClick: () -> Unit, onKick: () -> Unit) {
                 }
             }
 
-            // 第三行：时间信息 (对应 Lua 的 time_info)
             Column(modifier = Modifier.padding(top = 8.dp)) {
                 Text(
                     text = "🕐 登录: ${formatTime(device.login_time)}\n🕒 最后活动: ${formatTime(device.last_activity)}",
@@ -325,7 +313,6 @@ fun DeviceItem(device: Device, onClick: () -> Unit, onKick: () -> Unit) {
     }
 }
 
-// 对应 Lua 的 formatTime 函数
 fun formatTime(timeStr: String?): String {
     if (timeStr == null) return "未知时间"
     return timeStr.replace("-", "年", ignoreCase = false).replaceFirst("-", "月").replace(" ", "日 ")
