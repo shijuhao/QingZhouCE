@@ -47,8 +47,8 @@ object IconColorMap {
 }
 
 object IconColorPrefs {
-    private const val PREFS_NAME = "app_settings"
-    private const val KEY_ICON_COLOR_ENABLED = "isIconColorEnabled"
+    private const val PREFS_NAME = "theme_preferences"
+    private const val KEY_ICON_COLOR_ENABLED = "icon_color_enabled"
 
     fun isEnabled(context: Context): Boolean {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
