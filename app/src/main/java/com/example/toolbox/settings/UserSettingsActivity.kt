@@ -12,7 +12,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -32,6 +30,7 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.TouchApp
@@ -49,7 +48,6 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -57,6 +55,7 @@ import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,24 +63,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil3.ImageLoader
-import coil3.compose.AsyncImage
-import coil3.gif.AnimatedImageDecoder
-import coil3.gif.GifDecoder
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.AppJson
 import com.example.toolbox.TokenManager
 import com.example.toolbox.community.uploadImage
+import com.example.toolbox.data.main.UserInfo
 import com.example.toolbox.data.mine.ApiResponse
 import com.example.toolbox.mine.DeviceManagerActivity
+import com.example.toolbox.mine.UserCard
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -109,44 +103,33 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var isLoading by remember { mutableStateOf(true) }
+    var userInfo by remember {
+        mutableStateOf(UserInfo())
+    }
+
+    var uploadType by remember { mutableIntStateOf(1) }
+
+    var showNameDialog by remember { mutableStateOf(false) }
+    var showBioDialog by remember { mutableStateOf(false) }
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf("") }
+    var newBio by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var checkPassword by remember { mutableStateOf("") }
+    var inputUrl by remember { mutableStateOf("") }
+
     var loadFailed by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
-    var token by remember { mutableStateOf(TokenManager.get(context) ?: "") }
-    var showNameDialog by remember { mutableStateOf(false) }
-    var newName by remember { mutableStateOf("") }
-    var showBioDialog by remember { mutableStateOf(false) }
-    var newBio by remember { mutableStateOf("") }
+    var token by remember { mutableStateOf(TokenManager.get(context) ?: "null") }
 
     var onePointLoginEnabled by remember { mutableStateOf(false) }
-
-    val imageLoader = ImageLoader.Builder(context)
-        .components {
-            if (android.os.Build.VERSION.SDK_INT >= 28) {
-                add(AnimatedImageDecoder.Factory())
-            } else {
-                add(GifDecoder.Factory())
-            }
-        }
-        .build()
-
-    var currentAvatar by remember { mutableStateOf("") }
-    var currentName by remember { mutableStateOf("") }
-    var currentBio by remember { mutableStateOf("") }
-
-    var showPasswordDialog by remember { mutableStateOf(false) }
-    var password by remember { mutableStateOf("") }
-    var checkPassword by remember { mutableStateOf("") }
-
-    var showEditDialog by remember { mutableStateOf(false) }
-    var inputUrl by remember { mutableStateOf("") }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val client = OkHttpClient()
 
     fun loadUserInfo() {
-        isLoading = true
         loadFailed = false
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -171,40 +154,57 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                 if (response.isSuccessful && responseData.isNotEmpty()) {
                     val apiResponse = AppJson.json.decodeFromString<ApiResponse>(responseData)
                     if (apiResponse.success) {
-                        isLoading = false
-                        CoroutineScope(Dispatchers.Main).launch {
-                            currentAvatar = apiResponse.user_info.avatar_url
-                            currentName = apiResponse.user_info.username
-                            currentBio = apiResponse.user_info.bio
-                            newBio = currentBio
-                            onePointLoginEnabled = apiResponse.user_info.quick_login_enabled == 1
+                        withContext(Dispatchers.Main) {
+                            userInfo = userInfo.copy(
+                                isLoaded = true,
+                                tagStatus = apiResponse.user_info.title_status,
+                                tag = apiResponse.user_info.title.ifEmpty { "" },
+                                name = apiResponse.user_info.username,
+                                level = apiResponse.user_info.level,
+                                exp = apiResponse.user_info.experience,
+                                bio = apiResponse.user_info.bio,
+                                avatar = apiResponse.user_info.avatar_url,
+                                background = apiResponse.user_info.background_url ?: "",
+                                coin = apiResponse.user_info.gold,
+                                notice = apiResponse.user_info.has_unread_notifications,
+                                id = apiResponse.user_info.id,
+                                signed = apiResponse.user_info.has_checked_in,
+                                hasPendingAudit = apiResponse.user_info.has_pending_audit,
+                                following = apiResponse.user_info.following_count,
+                                followers = apiResponse.user_info.followers_count
+                            )
+                            newBio = userInfo.bio
                         }
                     } else {
-                        isLoading = false
-                        loadFailed = true
+                        withContext(Dispatchers.Main) {
+                            userInfo = userInfo.copy(isLoaded = true)
+                            loadFailed = true
+                        }
                     }
                 } else {
-                    isLoading = false
+                    withContext(Dispatchers.Main) {
+                        userInfo = userInfo.copy(isLoaded = true)
+                        loadFailed = true
+                    }
+                }
+            } catch (_: Exception) {
+                withContext(Dispatchers.Main) {
+                    userInfo = userInfo.copy(isLoaded = true)
                     loadFailed = true
                 }
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                isLoading = false
-                loadFailed = true
             }
         }
     }
 
     LaunchedEffect(Unit) {
-        if (token != "") {
+        if (token != "null") {
             loadUserInfo()
         }
     }
 
     fun exitLogin(localToken: String) {
         TokenManager.clear(context)
-        token = ""
+        token = "null"
         scope.launch(Dispatchers.IO) {
             val json = JSONObject().put("ha", "ha").toString()
             val mediaType = "application/json; charset=utf-8".toMediaType()
@@ -248,7 +248,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                     val bodyString = response.body.string()
                     withContext(Dispatchers.Main) {
                         if (response.isSuccessful) {
-                            currentName = name
+                            userInfo = userInfo.copy(name = name)
                             Toast.makeText(context, "名称修改成功", Toast.LENGTH_SHORT).show()
                         } else {
                             val message = try {
@@ -285,7 +285,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                     val bodyString = response.body.string()
                     withContext(Dispatchers.Main) {
                         if (response.isSuccessful) {
-                            currentBio = bio
+                            userInfo = userInfo.copy(bio = bio)
                             Toast.makeText(context, "简介修改成功", Toast.LENGTH_SHORT).show()
                         } else {
                             val message = try {
@@ -322,7 +322,8 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                     val bodyString = response.body.string()
                     withContext(Dispatchers.Main) {
                         if (response.isSuccessful) {
-                            Toast.makeText(context, "密码修改成功，请重新登录", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "密码修改成功，请重新登录", Toast.LENGTH_SHORT)
+                                .show()
                             exitLogin(token)
                         } else {
                             val message = try {
@@ -360,21 +361,18 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                         val json = JSONObject(body)
                         val code = json.optInt("code", 0)
                         if (code == 200 || json.has("image_url")) {
-                            if (url == "null") {
-                                val newUrl = json.optString("image_url", inputUrl)
-                                currentAvatar = newUrl
+                            val newUrl = if (url == "null") {
+                                json.optString("image_url", inputUrl)
                             } else {
-                                currentAvatar = url
+                                url
                             }
+                            userInfo = userInfo.copy(avatar = newUrl)
                             Toast.makeText(context, "修改成功", Toast.LENGTH_SHORT).show()
-                        } else {
-                            val msg = json.optString("message", "修改失败")
-                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
             } catch (_: Exception) {
-                currentAvatar = url
+                userInfo = userInfo.copy(avatar = url)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         context,
@@ -433,7 +431,10 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                     val filePath = try {
                         val inputStream = context.contentResolver.openInputStream(uri)
                         if (inputStream != null) {
-                            val tempFile = java.io.File(context.cacheDir, "temp_avatar_${System.currentTimeMillis()}.jpg")
+                            val tempFile = java.io.File(
+                                context.cacheDir,
+                                "temp_upload_${System.currentTimeMillis()}.jpg"
+                            )
                             java.io.FileOutputStream(tempFile).use { output ->
                                 inputStream.copyTo(output)
                             }
@@ -441,23 +442,32 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                         } else {
                             null
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         null
                     }
-                    
+
                     if (filePath == null) {
                         Toast.makeText(context, "无法读取图片", Toast.LENGTH_LONG).show()
                         return@launch
                     }
-                    
-                    val url = uploadImage(filePath, tk, 1) { _ -> }
-    
+
+                    val url = uploadImage(filePath, tk, uploadType) { _ -> }
+
                     if (url != null) {
-                        currentAvatar = url
+                        when (uploadType) {
+                            1 -> {
+                                userInfo = userInfo.copy(avatar = url)
+                                Toast.makeText(context, "头像修改成功", Toast.LENGTH_SHORT).show()
+                            }
+                            2 -> {
+                                userInfo = userInfo.copy(background = url)
+                                Toast.makeText(context, "背景修改成功", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     } else {
                         Toast.makeText(context, "上传失败", Toast.LENGTH_LONG).show()
                     }
-                    
+
                     java.io.File(filePath).delete()
                 }
             }
@@ -631,9 +641,8 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (token != "") {
-                @Suppress("KotlinConstantConditions")
                 when {
-                    isLoading -> {
+                    !userInfo.isLoaded -> {
                         item {
                             Column(
                                 modifier = Modifier
@@ -646,7 +655,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                         }
                     }
 
-                    !isLoading && loadFailed -> {
+                    loadFailed -> {
                         item {
                             Column(
                                 modifier = Modifier
@@ -667,41 +676,17 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                         }
                     }
 
-                    !isLoading && !loadFailed -> {
+                    else -> {
                         item {
-                            Box(modifier = Modifier.padding(vertical = 30.dp)) {
-                                Surface(
-                                    modifier = Modifier.size(120.dp),
-                                    shape = CircleShape
-                                ) {
-                                    AsyncImage(
-                                        model = currentAvatar,
-                                        contentDescription = "Avatar",
-                                        imageLoader = imageLoader,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
+                            SettingsGroup(
+                                items = listOf {
+                                    SettingsCustomItem {
+                                        UserCard(token, userInfo)
+                                    }
                                 }
-                            }
+                            )
                         }
 
-                        item {
-                            Text(
-                                currentName,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                        item {
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                        item {
-                            Text(
-                                currentBio,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
                         item {
                             Spacer(modifier = Modifier.height(8.dp))
                         }
@@ -716,7 +701,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                             title = "修改账号名称",
                                             subtitle = "更改您的显示名称",
                                             onClick = {
-                                                newName = currentName
+                                                newName = userInfo.name
                                                 showNameDialog = true
                                             }
                                         )
@@ -727,7 +712,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                             title = "修改账号简介",
                                             subtitle = "更改您的简介",
                                             onClick = {
-                                                newBio = currentBio
+                                                newBio = userInfo.bio
                                                 showBioDialog = true
                                             }
                                         )
@@ -738,7 +723,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                             title = "修改头像直链",
                                             subtitle = "使用图片 URL 更新头像",
                                             onClick = {
-                                                inputUrl = currentAvatar
+                                                inputUrl = userInfo.avatar
                                                 showEditDialog = true
                                             }
                                         )
@@ -748,7 +733,21 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                             icon = Icons.Default.CloudUpload,
                                             title = "上传头像",
                                             subtitle = "选取本地图片并更新头像",
-                                            onClick = { launcher.launch("image/*") }
+                                            onClick = {
+                                                uploadType = 1
+                                                launcher.launch("image/*")
+                                            }
+                                        )
+                                    },
+                                    {
+                                        SettingsItemCell(
+                                            icon = Icons.Default.Image,
+                                            title = "修改背景图片",
+                                            subtitle = "选取本地图片并更新背景",
+                                            onClick = {
+                                                uploadType = 2
+                                                launcher.launch("image/*")
+                                            }
                                         )
                                     }
                                 )
