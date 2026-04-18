@@ -70,105 +70,45 @@ class Rc4Activity : ComponentActivity() {
 }
 
 object MiniCrypto {
-    private fun numberToBinStr(x: Int): String {
-        var num = x
-        val ret = mutableListOf<Int>()
-        while (num != 1 && num != 0) {
-            ret.add(0, num % 2)
-            num /= 2
-        }
-        ret.add(0, num)
-        while (ret.size < 8) {
-            ret.add(0, 0)
-        }
-        return ret.joinToString("")
-    }
-
-    private fun computeBinaryKey(str: String): String {
-        val t = mutableListOf<String>()
-        for (i in str.length - 1 downTo 0) {
-            t.add(numberToBinStr(str[i].code))
-        }
-        return t.joinToString("")
-    }
-
-    private val binaryKeys = mutableMapOf<String, String>()
-
-    private fun binaryKey(key: String): String {
-        return binaryKeys.getOrPut(key) {
-            computeBinaryKey(key)
-        }
-    }
-
-    private fun initializeState(key: String): MutableList<Int> {
-        val S = MutableList(256) { it }
-        val binaryKey = binaryKey(key)
+    private fun initializeState(key: ByteArray): MutableList<Int> {
+        val s = MutableList(256) { it }
         var j = 0
-
         for (i in 0 until 256) {
-            val idx = i % binaryKey.length
-            j = (j + S[i] + binaryKey[idx].toString().toInt()) % 256
-            // 交换 S[i] 和 S[j]
-            val temp = S[i]
-            S[i] = S[j]
-            S[j] = temp
+            j = (j + s[i] + key[i % key.size].toInt() and 0xFF) % 256
+            s[i] = s[j].also { s[j] = s[i] }
         }
-
-        return S
+        return s
     }
 
     private fun encryptOne(state: MutableList<Int>, byte: Int): Int {
         var i = state[256]
         var j = state[257]
-
         i = (i + 1) % 256
         j = (j + state[i]) % 256
-
-        val temp = state[i]
-        state[i] = state[j]
-        state[j] = temp
-
-        val K = state[(state[i] + state[j]) % 256]
-
+        state[i] = state[j].also { state[j] = state[i] }
+        val k = state[(state[i] + state[j]) % 256]
         state[256] = i
         state[257] = j
-
-        return K xor byte
+        return k xor byte
     }
 
     fun encrypt(text: String, key: String): String {
-        if (key.isEmpty()) throw IllegalArgumentException("密钥不能为空")
-
-        val state = initializeState(key).toMutableList()
-        state.add(0) // i
-        state.add(0) // j
-
-        val encrypted = mutableListOf<String>()
-        for (char in text) {
-            val encryptedByte = encryptOne(state, char.code)
-            encrypted.add("%02X".format(encryptedByte))
+        require(key.isNotEmpty()) { "密钥不能为空" }
+        val keyBytes = key.toByteArray(Charsets.UTF_8)
+        val state = initializeState(keyBytes).apply { addAll(listOf(0, 0)) }.toMutableList()
+        return text.toByteArray(Charsets.UTF_8).joinToString("") { byte ->
+            "%02X".format(encryptOne(state, byte.toInt() and 0xFF))
         }
-        return encrypted.joinToString("")
     }
 
-    fun decrypt(text: String, key: String): String {
-        if (key.isEmpty()) throw IllegalArgumentException("密钥不能为空")
-
-        val state = initializeState(key).toMutableList()
-        // 在状态列表末尾添加 i 和 j
-        state.add(0) // i
-        state.add(0) // j
-
-        val decrypted = mutableListOf<Char>()
-        var i = 0
-        while (i < text.length) {
-            val hexByte = text.substring(i, i + 2)
-            val byteValue = hexByte.toInt(16)
-            val decryptedByte = encryptOne(state, byteValue)
-            decrypted.add(decryptedByte.toChar())
-            i += 2
-        }
-        return decrypted.joinToString("")
+    fun decrypt(hexText: String, key: String): String {
+        require(key.isNotEmpty()) { "密钥不能为空" }
+        require(hexText.length % 2 == 0) { "密文长度必须为偶数" }
+        val keyBytes = key.toByteArray(Charsets.UTF_8)
+        val state = initializeState(keyBytes).apply { addAll(listOf(0, 0)) }.toMutableList()
+        val bytes = hexText.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        val decrypted = bytes.map { encryptOne(state, it.toInt() and 0xFF).toByte() }.toByteArray()
+        return String(decrypted, Charsets.UTF_8)
     }
 }
 
@@ -185,7 +125,6 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("RC4结果", resultText)
         clipboard.setPrimaryClip(clip)
-        // 可以添加 Toast 提示复制成功
     }
 
     fun encryptText() {
@@ -206,7 +145,6 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
             return
         }
         try {
-            // 检查输入是否为有效的十六进制字符串
             if (inputText.length % 2 != 0 || !inputText.matches(Regex("[0-9A-Fa-f]+"))) {
                 resultText = "请输入有效的十六进制密文"
                 return
@@ -230,7 +168,6 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
             }
         )
 
-        // 使用垂直滚动容器包裹内容
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -238,7 +175,6 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 输入区域
             Card(
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
