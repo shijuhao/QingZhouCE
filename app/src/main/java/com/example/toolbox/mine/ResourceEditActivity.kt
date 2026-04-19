@@ -59,10 +59,9 @@ class ResourceEditActivity : ComponentActivity() {
         val token = intent.getStringExtra("token") ?: ""
         val resourceId = intent.getStringExtra("resource_id") ?: ""
         val initialName = intent.getStringExtra("name") ?: ""
-        val initialPackageName = intent.getStringExtra("package_name")
+        val initialDescription = intent.getStringExtra("description")
             ?: intent.getStringExtra("bio")
             ?: ""
-        val initialDescription = intent.getStringExtra("description") ?: ""
         val initialVer = intent.getStringExtra("ver") ?: ""
         val initialUrl = intent.getStringExtra("d_url") ?: ""
         val initialSize = intent.getStringExtra("size") ?: ""
@@ -75,7 +74,6 @@ class ResourceEditActivity : ComponentActivity() {
                     token = token,
                     resourceId = resourceId,
                     initialName = initialName,
-                    initialPackageName = initialPackageName,
                     initialDescription = initialDescription,
                     initialVer = initialVer,
                     initialUrl = initialUrl,
@@ -95,7 +93,6 @@ fun ResourceEditScreen(
     token: String,
     resourceId: String,
     initialName: String,
-    initialPackageName: String,
     initialDescription: String,
     initialVer: String,
     initialUrl: String,
@@ -107,12 +104,11 @@ fun ResourceEditScreen(
     val context = LocalContext.current
     val client = OkHttpClient()
 
-    // 初始化状态 (对应 Lua 的赋值逻辑)
+    // 初始化状态
     var name by remember { mutableStateOf(initialName) }
     var ver by remember { mutableStateOf(initialVer) }
     var size by remember { mutableStateOf(initialSize) }
     var dUrl by remember { mutableStateOf(initialUrl) }
-    var packageName by remember { mutableStateOf(initialPackageName) }
     var description by remember { mutableStateOf(initialDescription) }
     var appIcon by remember { mutableStateOf(initialIcon) }
 
@@ -181,13 +177,13 @@ fun ResourceEditScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    if (name.isEmpty() || packageName.isEmpty() || ver.isEmpty() || dUrl.isEmpty() || size.isEmpty()) {
+                    if (name.isEmpty() || description.isEmpty() || ver.isEmpty() || dUrl.isEmpty() || size.isEmpty()) {
                         Toast.makeText(context, "请填写完整！", Toast.LENGTH_SHORT).show()
                     } else {
                         val jsonObject = buildJsonObject {
                             put("resource_id", resourceId)
                             put("name", name)
-                            put("package_name", packageName)
+                            put("description", description)
                             put("version", ver)
                             put("category_id", selectedIndex + 1)
                             put("download_url", dUrl)
@@ -276,13 +272,6 @@ fun ResourceEditScreen(
 
             // 链接
             OutlinedTextField(value = dUrl, onValueChange = { dUrl = it }, label = { Text("资源链接") }, modifier = Modifier.fillMaxWidth())
-
-            OutlinedTextField(
-                value = packageName,
-                onValueChange = { packageName = it },
-                label = { Text("包名") },
-                modifier = Modifier.fillMaxWidth()
-            )
 
             // 简介
             OutlinedTextField(

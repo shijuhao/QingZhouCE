@@ -27,7 +27,7 @@ data class ResourceItem(
     val release_date: String,
     val download_url: String,
     val developer_name: String,
-    val package_name: String,
+    val description: String,
     val version: String,
     val developer_info: DeveloperInfo
 ) : Parcelable

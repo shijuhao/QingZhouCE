@@ -255,7 +255,7 @@ fun Greeting(item: ResourceItem) {
             }
             item {
                 Text(
-                    item.package_name,
+                    item.description,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

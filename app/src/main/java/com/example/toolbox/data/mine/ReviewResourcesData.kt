@@ -14,8 +14,8 @@ data class LocalResourceItem(
     val icon_url: String?,
     val download_url: String,
     val version: String,
-    val package_name: String,
-    val status: Int, // 0:待审核, 1:通过, 2:驳回
+    val description: String,
+    val status: Int,
     val category: ResourceCategory
 )
 

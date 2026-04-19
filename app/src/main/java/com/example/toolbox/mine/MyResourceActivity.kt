@@ -188,9 +188,8 @@ fun MyResourceScreen(onBack: () -> Unit) {
                                     putExtra("token", token)
                                     putExtra("resource_id", item.id.toString())
                                     putExtra("name", item.name)
-                                    putExtra("package_name", item.packageName)
                                     putExtra("description", item.description)
-                                    putExtra("bio", item.packageName) // 兼容旧版参数
+                                    putExtra("bio", item.description)
                                     putExtra("ver", item.version)
                                     putExtra("d_url", item.downloadUrl)
                                     putExtra("size", item.size)

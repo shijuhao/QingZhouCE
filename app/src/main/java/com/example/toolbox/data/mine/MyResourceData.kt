@@ -14,11 +14,10 @@ data class ResourceItem(
     @SerialName("icon_url") val iconUrl: String = "",
     @SerialName("release_date") val releaseDate: String = "",
     @SerialName("download_url") val downloadUrl: String = "",
-    @SerialName("package_name") val packageName: String = "",
     val description: String = "",
     val size: String = "",
     val version: String = "",
-    val category: Category = Category(0)  // 默认值
+    val category: Category = Category(0)
 )
 
 @Serializable

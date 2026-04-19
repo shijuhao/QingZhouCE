@@ -267,7 +267,7 @@ private fun ResourceUploadScreen(
             Unit
         } else if (token.isNullOrBlank()) {
             Toast.makeText(context, "请先登录", Toast.LENGTH_SHORT).show()
-        } else if (name.isBlank() || packageName.isBlank() || version.isBlank() || size.isBlank()) {
+        } else if (name.isBlank() || version.isBlank() || size.isBlank()) {
             Toast.makeText(context, "请填写完整", Toast.LENGTH_SHORT).show()
         } else {
             scope.launch {
@@ -306,7 +306,6 @@ private fun ResourceUploadScreen(
                 client = client,
                 token = token,
                 name = name,
-                packageName = packageName,
                 version = version,
                 categoryId = selectedIndex + 1,
                 downloadUrl = finalDownloadUrl,
@@ -457,14 +456,6 @@ private fun ResourceUploadScreen(
                 }
             }
 
-            OutlinedTextField(
-                value = packageName,
-                onValueChange = { packageName = it },
-                label = { Text("包名") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = version,
@@ -561,7 +552,6 @@ private suspend fun submitResource(
     client: OkHttpClient,
     token: String,
     name: String,
-    packageName: String,
     version: String,
     categoryId: Int,
     downloadUrl: String,
@@ -571,7 +561,6 @@ private suspend fun submitResource(
 ): Boolean = withContext(Dispatchers.IO) {
     val requestBody = buildJsonObject {
         put("name", name)
-        put("package_name", packageName)
         put("version", version)
         put("category_id", categoryId)
         put("download_url", downloadUrl)
