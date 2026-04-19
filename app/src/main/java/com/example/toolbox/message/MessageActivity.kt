@@ -696,7 +696,9 @@ fun MessageBubble(
 
                         },
                         onLongClick = {
-                            if (!message.isRecalled && !message.isDeleted && message.content.isNotBlank()) {
+                            val hasContent = message.content.isNotBlank() || message.images.isNotEmpty()
+                            val canRecall = isMine && !message.isRecalled && !message.isDeleted
+                            if (hasContent || canRecall) {
                                 showMenu = true
                             }
                         }
@@ -812,20 +814,23 @@ fun MessageBubble(
                                 )
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text("编辑") },
-                            onClick = {
-                                showMenu = false
-                                onEdit()
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    null,
-                                    Modifier.size(18.dp)
-                                )
-                            }
-                        )
+                        
+                        if (message.content.isNotBlank()) {
+                            DropdownMenuItem(
+                                text = { Text("编辑") },
+                                onClick = {
+                                    showMenu = false
+                                    onEdit()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        null,
+                                        Modifier.size(18.dp)
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
