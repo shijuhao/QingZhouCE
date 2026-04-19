@@ -98,8 +98,6 @@ import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-const val ApiAddress = "https://hehenya.dpdns.org:8505/"
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val prefs = this.getSharedPreferences("app_preferences", MODE_PRIVATE)

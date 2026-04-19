@@ -32,7 +32,9 @@ import com.example.toolbox.data.community.Category
 import com.example.toolbox.data.community.Message
 import com.example.toolbox.mine.getLevelIconRes
 import com.example.toolbox.utils.MarkdownRenderer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun CategoryItem(
@@ -67,7 +69,9 @@ fun CategoryItem(
                 contentDescription = "${category.name}头像",
                 modifier = Modifier
                     .size(50.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(8.dp)),
+                placeholder = painterResource(R.drawable.user),
+                error = painterResource(R.drawable.user)
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -137,7 +141,6 @@ fun MessageItem(
     val clipboard = LocalClipboard.current
 
     val userStatus = TokenManager.getTagStatus(context)
-
     val currentUserId = TokenManager.getUserID(context)
 
     val usernameColor = when (message.tag_status) {
@@ -177,7 +180,9 @@ fun MessageItem(
                                 }
                             )
                         },
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.user),
+                    error = painterResource(R.drawable.user)
                 )
 
                 Column(
@@ -292,14 +297,20 @@ fun MessageItem(
                         DropdownMenuItem(
                             text = { Text("+1") },
                             onClick = {
+                                showMenu = false
                                 scope.launch {
-                                    val success = TokenManager.get(context)
-                                        ?.let { addOne(messageId = message.message_id, token = it) }
-
-                                    if (success == true) {
-                                        Toast.makeText(context, "已+1", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "+1失败", Toast.LENGTH_SHORT).show()
+                                    try {
+                                        val token = TokenManager.get(context)
+                                        if (token != null) {
+                                            addOne(messageId = message.message_id, token = token)
+                                        }
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "已+1", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (_: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "+1失败", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 }
                             },
@@ -362,12 +373,14 @@ fun MessageItem(
             if (rawText.isNotEmpty()) {
                 if (message.is_markdown) {
                     MarkdownRenderer.Render(
-                        content = rawText
+                        content = rawText,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 } else {
                     Text(
                         text = rawText,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -381,7 +394,7 @@ fun MessageItem(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     maxItemsInEachRow = 3
                 ) {
-                    images.take(9).forEachIndexed { idx, img ->   // 使用 forEachIndexed 获取索引
+                    images.take(9).forEachIndexed { idx, img ->
                         AsyncImage(
                             model = img,
                             contentDescription = null,
@@ -392,7 +405,9 @@ fun MessageItem(
                                     onImageClick(images, idx)
                                 }
                                 .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.user),
+                            error = painterResource(R.drawable.user)
                         )
                     }
                 }

@@ -49,7 +49,6 @@ class MessageDetailViewModel(
     val editDialog: StateFlow<EditDialogState> = _editDialog.asStateFlow()
 
     private val client = OkHttpClient()
-    private var webSocketManager: WebSocketManager? = null
     private val json = AppJson.json
 
     init {
@@ -402,40 +401,45 @@ class MessageDetailViewModel(
 
     fun connectWebSocket() {
         if (token.isNotBlank()) {
-            webSocketManager = WebSocketManager { type, message ->
-                when (type) {
-                    "new", "edit", "recall" -> {
-                        // 只处理与当前聊天对象相关的消息
-                        if (message.senderId == otherUserId || message.receiverId == otherUserId) {
-                            when (type) {
-                                "new" -> {
-                                    // 设置正确的 isMine 值
-                                    val processedMessage = message.copy(
-                                        isMine = message.senderId != otherUserId
-                                    )
-                                    addNewMessage(processedMessage)
-                                }
-                                "edit" -> {
-                                    val processedMessage = message.copy(
-                                        isMine = message.senderId != otherUserId
-                                    )
-                                    updateMessage(processedMessage)
-                                }
-                                "recall" -> removeMessage(message.id)
-                            }
+            val manager = PrivateChatSocketManager.getInstance()
+            manager.addObserver(messageObserver)
+            manager.connect(token)
+        }
+    }
+
+    fun disconnectWebSocket() {
+        val manager = PrivateChatSocketManager.getInstance()
+        manager.removeObserver(messageObserver)
+    }
+
+    private val messageObserver: (type: String, message: Message) -> Unit = { type, message ->
+        when (type) {
+            "new", "edit", "recall" -> {
+                if (message.senderId == otherUserId || message.receiverId == otherUserId) {
+                    when (type) {
+                        "new" -> {
+                            val processedMessage = message.copy(
+                                isMine = message.senderId != otherUserId
+                            )
+                            addNewMessage(processedMessage)
                         }
+                        "edit" -> {
+                            val processedMessage = message.copy(
+                                isMine = message.senderId != otherUserId
+                            )
+                            updateMessage(processedMessage)
+                        }
+                        "recall" -> removeMessage(message.id)
                     }
                 }
             }
-            webSocketManager?.connect(token)
         }
     }
 
     private fun addNewMessage(message: Message) {
         val currentMessages = _uiState.value.messages.toMutableList()
-        // 检查是否已存在（避免重复）
         if (currentMessages.none { it.id == message.id }) {
-            currentMessages.add(0, message) // 新消息加在前面（reverseLayout）
+            currentMessages.add(0, message)
             _uiState.update { it.copy(messages = currentMessages) }
         }
     }
@@ -454,7 +458,6 @@ class MessageDetailViewModel(
         val index = currentMessages.indexOfFirst { it.id == messageId }
         if (index != -1) {
             val message = currentMessages[index]
-            // 标记为已撤回
             val updatedMessage = message.copy(
                 isRecalled = true,
                 recallHint = "消息已撤回",
@@ -464,11 +467,6 @@ class MessageDetailViewModel(
             currentMessages[index] = updatedMessage
             _uiState.update { it.copy(messages = currentMessages) }
         }
-    }
-
-    fun disconnectWebSocket() {
-        webSocketManager?.disconnect()
-        webSocketManager = null
     }
 
     override fun onCleared() {

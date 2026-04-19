@@ -3,25 +3,31 @@
 package com.example.toolbox.community
 
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.util.Log
 import com.example.toolbox.AppJson
 import com.example.toolbox.data.community.Message
 import io.socket.client.IO
 import io.socket.client.Socket
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class CommunitySocket(
     private val serverUrl: String = "wss://hehenya.dpdns.org:8505/",
-    private val onStatusChanged: (Boolean) -> Unit, // 连接状态回调：true 成功, false 失败/断开
+    private val onStatusChanged: (Boolean) -> Unit,
     private val onEvent: (type: String, msg: Message?, id: Int?, count:Int?) -> Unit
 ) {
     private var socket: Socket? = null
     private var currentToken: String? = null
     private var currentCategoryId: Int = 1
 
-    private val heartbeatHandler = Handler(Looper.getMainLooper())
+    private var heartbeatThread: HandlerThread? = null
+    private var heartbeatHandler: Handler? = null
     private val heartbeatRunnable = object : Runnable {
         override fun run() {
             if (socket?.connected() == true) {
@@ -29,71 +35,123 @@ class CommunitySocket(
                     put("client_time", System.currentTimeMillis().toString())
                 })
             }
-            heartbeatHandler.postDelayed(this, 30000)
+            heartbeatHandler?.postDelayed(this, 30000)
         }
     }
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var scope: CoroutineScope? = null
+
     fun isConnected(): Boolean = socket?.connected() == true
+
+    private fun ensureHeartbeatThread() {
+        if (heartbeatThread == null || !heartbeatThread!!.isAlive) {
+            heartbeatThread = HandlerThread("WS-Heartbeat").apply { start() }
+            heartbeatHandler = Handler(heartbeatThread!!.looper)
+        }
+    }
 
     fun connect(token: String?, categoryId: Int) {
         this.currentToken = token
         this.currentCategoryId = categoryId
 
         try {
+            ensureHeartbeatThread()
+            
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
             val opts = IO.Options().apply {
                 transports = arrayOf("websocket")
-                reconnection = true // 开启自动重连
+                reconnection = false
+                timeout = 5000
             }
             socket = IO.socket(serverUrl, opts)
 
-            // --- 状态监听 ---
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d("WS", "连接成功")
-                heartbeatHandler.post(heartbeatRunnable)
+                heartbeatHandler?.post(heartbeatRunnable)
+                
                 socket?.emit("authenticate", JSONObject().apply {
                     put("token", token)
                 })
                 emitJoin(currentCategoryId)
-                onStatusChanged(true) // 通知调用处：连接成功
+                
+                mainHandler.post {
+                    onStatusChanged(true)
+                }
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
                 Log.d("WS", "连接断开")
-                onStatusChanged(false) // 通知调用处：连接断开
+                heartbeatHandler?.removeCallbacks(heartbeatRunnable)
+                mainHandler.post {
+                    onStatusChanged(false)
+                }
             }
 
             socket?.on(Socket.EVENT_CONNECT_ERROR) {
-                Log.e("WS", "连接失败")
-                onStatusChanged(false) // 通知调用处：连接失败
+                Log.e("WS", "连接失败: ${it.firstOrNull()}")
+                heartbeatHandler?.removeCallbacks(heartbeatRunnable)
+                mainHandler.post {
+                    onStatusChanged(false)
+                }
             }
 
-            // --- 消息解析 ---
             socket?.on("new_message") { args ->
-                val msg = AppJson.json.decodeFromString<Message>(args[0].toString())
-                onEvent("NEW", msg, msg.message_id, null)
+                scope?.launch {
+                    try {
+                        val msg = AppJson.json.decodeFromString<Message>(args[0].toString())
+                        mainHandler.post {
+                            onEvent("NEW", msg, msg.message_id, null)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("WS", "解析新消息失败", e)
+                    }
+                }
             }
 
             socket?.on("message_edited") { args ->
-                val data = args[0] as JSONObject
-                val updatedJson = data.optJSONObject("updated_message")?.toString()
-                val msg = updatedJson?.let { AppJson.json.decodeFromString<Message>(it) }
-                onEvent("EDIT", msg, msg?.message_id, null)
+                scope?.launch {
+                    try {
+                        val data = args[0] as JSONObject
+                        val updatedJson = data.optJSONObject("updated_message")?.toString()
+                        val msg = updatedJson?.let { AppJson.json.decodeFromString<Message>(it) }
+                        mainHandler.post {
+                            onEvent("EDIT", msg, msg?.message_id, null)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("WS", "解析编辑消息失败", e)
+                    }
+                }
             }
 
             socket?.on("message_deleted") { args ->
-                val id = (args[0] as JSONObject).optInt("message_id")
-                onEvent("DELETE", null, id, null)
+                try {
+                    val id = (args[0] as JSONObject).optInt("message_id")
+                    mainHandler.post {
+                        onEvent("DELETE", null, id, null)
+                    }
+                } catch (e: Exception) {
+                    Log.e("WS", "解析删除消息失败", e)
+                }
             }
 
             socket?.on("like_update") { args ->
-                val data = args[0] as JSONObject
-                val id = data.optInt("message_id")
-                val count = data.optInt("like_count")
-                onEvent("LIKE", null, id, count)
+                try {
+                    val data = args[0] as JSONObject
+                    val id = data.optInt("message_id")
+                    val count = data.optInt("like_count")
+                    mainHandler.post {
+                        onEvent("LIKE", null, id, count)
+                    }
+                } catch (e: Exception) {
+                    Log.e("WS", "解析点赞更新失败", e)
+                }
             }
 
             socket?.connect()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("WS", "连接异常", e)
             onStatusChanged(false)
         }
     }
@@ -114,7 +172,13 @@ class CommunitySocket(
     }
 
     fun disconnect() {
-        heartbeatHandler.removeCallbacks(heartbeatRunnable)
+        heartbeatHandler?.removeCallbacks(heartbeatRunnable)
+        
+        scope?.cancel()
+        scope = null
+        
         socket?.disconnect()
+        socket?.off()
+        socket = null
     }
 }

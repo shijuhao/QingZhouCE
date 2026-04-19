@@ -73,7 +73,7 @@ class CommunityActivity : ComponentActivity() {
                 val postArticleLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) { result ->
-                    if (result.resultCode == Activity.RESULT_OK) {
+                    if (result.resultCode == RESULT_OK) {
                         Toast.makeText(this@CommunityActivity, "发布成功", Toast.LENGTH_SHORT).show()
                         refreshTrigger++
                     }
@@ -82,25 +82,34 @@ class CommunityActivity : ComponentActivity() {
                 val editArticleLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) { result ->
-                    if (result.resultCode == Activity.RESULT_OK) {
+                    if (result.resultCode == RESULT_OK) {
                         Toast.makeText(this@CommunityActivity, "编辑成功", Toast.LENGTH_SHORT).show()
                         refreshTrigger++
                     }
                 }
         
+                var categoriesLoaded by remember { mutableStateOf(false) }
+                
                 LaunchedEffect(drawerState.isOpen) {
-                    if (drawerState.isOpen && token.isNotEmpty()) {
+                    if (drawerState.isOpen && token.isNotEmpty() && !categoriesLoaded) {
                         viewModel.fetchCategories(token)
+                        categoriesLoaded = true
                     }
                 }
 
                 val currentCategoryId by remember { derivedStateOf { state.categoryId } }
                 var currentCategoryName by remember { mutableStateOf("轻昼") }
 
-                viewModel.initWebSocket(token)
-
                 LaunchedEffect(Unit) {
                     if (token.isNotEmpty()) {
+                        kotlinx.coroutines.delay(100)
+                        viewModel.initWebSocket(token)
+                    }
+                }
+
+                LaunchedEffect(state.wsConnectState) {
+                    if (state.wsConnectState == 2 && token.isNotEmpty()) {
+                        kotlinx.coroutines.delay(50)
                         viewModel.fetchCategories(token)
                     }
                 }
@@ -113,6 +122,7 @@ class CommunityActivity : ComponentActivity() {
                             onCategorySelected = { categoryId, categoryName ->
                                 viewModel.onCategoryChanged(categoryId)
                                 currentCategoryName = categoryName
+                                categoriesLoaded = false
                                 scope.launch { drawerState.close() }
                             },
                             viewModel = viewModel,
@@ -154,7 +164,7 @@ fun DrawerContent(
 
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-    val client = OkHttpClient()
+    val client = remember { OkHttpClient() }
 
     fun createCategory(name: String, description: String, avatarUrl: String) {
         scope.launch(Dispatchers.IO) {
@@ -293,7 +303,7 @@ fun DrawerContent(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(state.categories) { category ->
+                            items(state.categories, key = { it.id }) { category ->
                                 CategoryItem(
                                     select = state.categoryId == category.id,
                                     category = category,
@@ -362,22 +372,26 @@ fun CommunityScreen(
     val lazyListState = rememberLazyListState()
     val messages = state.messages
 
-    // 监听分类切换和外部刷新
     LaunchedEffect(currentCategoryId, refreshTrigger) {
-        val shouldScroll = refreshTrigger > 0
-        viewModel.fetchMessages(
-            token = token,
-            page = 1,
-            isRefresh = true
-        )
-        if (shouldScroll) {
-            lazyListState.animateScrollToItem(0)
+        if (refreshTrigger > 0 || messages.isEmpty()) {
+            viewModel.fetchMessages(
+                token = token,
+                page = 1,
+                isRefresh = true
+            )
+            if (refreshTrigger > 0) {
+                lazyListState.animateScrollToItem(0)
+            }
         }
     }
 
+    var previousMessageCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(messages.size) {
-        if (lazyListState.firstVisibleItemIndex <= 1) {
-            lazyListState.animateScrollToItem(0)
+        val isNewMessage = messages.size > previousMessageCount
+        previousMessageCount = messages.size
+        
+        if (isNewMessage && lazyListState.firstVisibleItemIndex <= 1) {
+            lazyListState.scrollToItem(0)
         }
     }
 
@@ -616,55 +630,46 @@ fun CommunityScreen(
                             state = lazyListState,
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            itemsIndexed(state.messages, key = { index, msg ->
-                                "${msg.message_id}_$index"
-                            }) { _, msg ->
-                                Box(
-                                    modifier = Modifier
-                                        .animateItem(
-                                            fadeInSpec = spring(stiffness = Spring.StiffnessLow),
-                                            placementSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                            fadeOutSpec = spring(stiffness = Spring.StiffnessLow)
-                                        )
-                                ) {
-                                    MessageItem(
-                                        message = msg,
-                                        onLike = {
-                                            viewModel.toggleLike(
-                                                token = token,
-                                                message = msg,
-                                                onError = { error ->
-                                                    Toast.makeText(
-                                                        context,
-                                                        error,
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
-                                            )
-                                        },
-                                        onDelete = {
-                                            messageToDelete = msg
-                                        },
-                                        onEdit = {
-                                            val intent = Intent(context, PostArticleActivity::class.java).apply {
-                                                putExtra("edit_message_id", msg.message_id)
-                                                putExtra("userId", userId)
-                                                putExtra("old_title", msg.content.title ?: "")
-                                                val textContent = msg.content.text ?: msg.content.content ?: ""
-                                                putExtra("old_content", textContent)
-                                                val images = msg.content.images ?: emptyList()
-                                                putStringArrayListExtra("old_images", ArrayList(images))
-                                                val visibleList = msg.visible_to ?: emptyList()
-                                                putIntegerArrayListExtra("old_private", ArrayList(visibleList))
-                                                putExtra("old_is_markdown", msg.is_markdown)
+                            items(state.messages, key = { msg ->
+                                msg.message_id
+                            }) { msg ->
+                                MessageItem(
+                                    message = msg,
+                                    onLike = {
+                                        viewModel.toggleLike(
+                                            token = token,
+                                            message = msg,
+                                            onError = { error ->
+                                                Toast.makeText(
+                                                    context,
+                                                    error,
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
                                             }
-                                            editArticleLauncher.launch(intent)  // ← 改这一行
-                                        },
-                                        onReply = { replyToMessage = msg },
-                                        onHistory = { showHistoryRecords = msg.edit_records },
-                                        onImageClick = { urls, index -> viewerState = urls to index }
-                                    )
-                                }
+                                        )
+                                    },
+                                    onDelete = {
+                                        messageToDelete = msg
+                                    },
+                                    onEdit = {
+                                        val intent = Intent(context, PostArticleActivity::class.java).apply {
+                                            putExtra("edit_message_id", msg.message_id)
+                                            putExtra("userId", userId)
+                                            putExtra("old_title", msg.content.title ?: "")
+                                            val textContent = msg.content.text ?: msg.content.content ?: ""
+                                            putExtra("old_content", textContent)
+                                            val images = msg.content.images ?: emptyList()
+                                            putStringArrayListExtra("old_images", ArrayList(images))
+                                            val visibleList = msg.visible_to ?: emptyList()
+                                            putIntegerArrayListExtra("old_private", ArrayList(visibleList))
+                                            putExtra("old_is_markdown", msg.is_markdown)
+                                        }
+                                        editArticleLauncher.launch(intent)
+                                    },
+                                    onReply = { replyToMessage = msg },
+                                    onHistory = { showHistoryRecords = msg.edit_records },
+                                    onImageClick = { urls, index -> viewerState = urls to index }
+                                )
                             }
 
                             if (state.isLoadingMore) {

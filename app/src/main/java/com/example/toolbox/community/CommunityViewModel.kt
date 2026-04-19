@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.toolbox.data.community.CommunityState
 import com.example.toolbox.data.community.Message
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +23,8 @@ class CommunityViewModel : ViewModel() {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    fun handleSocketEvent(type: String, msg: Message?, msgId: Int?, count: Int?, currentCategoryId: Int) {
+    fun handleSocketEvent(type: String, msg: Message?, msgId: Int?, count: Int?) {
+        val currentCategoryId = _state.value.categoryId
         when (type) {
             "NEW" -> {
                 if (msg != null && msg.category_id == currentCategoryId) {
@@ -70,16 +72,19 @@ class CommunityViewModel : ViewModel() {
     fun initWebSocket(token: String) {
         if (communitySocket?.isConnected() == true) return
 
-        communitySocket?.disconnect()
-        communitySocket = CommunitySocket(
-            onStatusChanged = { isConnected ->
-                _state.update { it.copy(wsConnectState = if (isConnected) 2 else 1) }
-            },
-            onEvent = { type, msg, id, count ->
-                handleSocketEvent(type, msg, id, count, state.value.categoryId)
-            }
-        )
-        communitySocket?.connect(token, state.value.categoryId)
+        viewModelScope.launch(Dispatchers.Default) {
+            communitySocket?.disconnect()
+            val currentCategoryId = _state.value.categoryId
+            communitySocket = CommunitySocket(
+                onStatusChanged = { isConnected ->
+                    _state.update { it.copy(wsConnectState = if (isConnected) 2 else 1) }
+                },
+                onEvent = { type, msg, id, count ->
+                    handleSocketEvent(type, msg, id, count)
+                }
+            )
+            communitySocket?.connect(token, currentCategoryId)
+        }
     }
 
     fun onCategoryChanged(newCategoryId: Int) {
@@ -130,8 +135,9 @@ class CommunityViewModel : ViewModel() {
                 )
 
                 _state.update { state ->
+                    val newMessages = if (page == 1) response.messages else state.messages + response.messages
                     state.copy(
-                        messages = if (page == 1) response.messages else state.messages + response.messages,
+                        messages = newMessages.distinctBy { it.message_id },
                         currentPage = response.pagination.current_page,
                         totalPages = response.pagination.total_pages,
                         isLoading = false,

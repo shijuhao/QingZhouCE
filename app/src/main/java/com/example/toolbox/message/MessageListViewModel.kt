@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.AppJson
 import com.example.toolbox.data.FriendsResponse
+import com.example.toolbox.data.Message
 import com.example.toolbox.data.MessageUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,8 +27,16 @@ class MessageViewModel(
     val uiState: StateFlow<MessageUiState> = _uiState.asStateFlow()
 
     private val client = OkHttpClient()
-    private var webSocketManager: WebSocketManager? = null
     private var isWebSocketUpdate = false
+    
+    private val messageObserver: (type: String, message: Message) -> Unit = { type, _ ->
+        when (type) {
+            "new", "edit", "recall" -> {
+                isWebSocketUpdate = true
+                silentRefresh()
+            }
+        }
+    }
 
     init {
         loadFriends(page = 1, isRefresh = true)
@@ -36,7 +45,7 @@ class MessageViewModel(
     private fun silentRefresh() {
         viewModelScope.launch {
             _uiState.update {
-                it.copy(error = null) // 只清除错误，不改变刷新状态
+                it.copy(error = null)
             }
 
             val result = runCatching {
@@ -70,20 +79,16 @@ class MessageViewModel(
                             pagination = friendsResponse.pagination,
                             hasMore = friendsResponse.pagination.currentPage < friendsResponse.pagination.pages,
                             error = null
-                            // 注意：没有修改 isRefreshing 状态
                         )
                     }
                 }
             }
 
-            // 重置标志
             isWebSocketUpdate = false
         }
     }
 
-    // 修改原有的 refresh 方法
     fun refresh() {
-        // 如果是WebSocket触发的更新，不执行刷新
         if (isWebSocketUpdate) {
             isWebSocketUpdate = false
             return
@@ -162,22 +167,15 @@ class MessageViewModel(
 
     fun connectWebSocket() {
         if (token.isNotBlank()) {
-            webSocketManager = WebSocketManager { type, message ->
-                // 收到新消息时刷新好友列表
-                when (type) {
-                    "new", "edit", "recall" -> {
-                        isWebSocketUpdate = true
-                        silentRefresh()
-                    }
-                }
-            }
-            webSocketManager?.connect(token)
+            val manager = PrivateChatSocketManager.getInstance()
+            manager.addObserver(messageObserver)
+            manager.connect(token)
         }
     }
 
     fun disconnectWebSocket() {
-        webSocketManager?.disconnect()
-        webSocketManager = null
+        val manager = PrivateChatSocketManager.getInstance()
+        manager.removeObserver(messageObserver)
     }
 
     override fun onCleared() {
