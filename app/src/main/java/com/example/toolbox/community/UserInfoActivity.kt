@@ -29,10 +29,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -43,6 +43,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
@@ -92,20 +93,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.AppJson
+import com.example.toolbox.R
 import com.example.toolbox.TokenManager
+import com.example.toolbox.data.community.ResourceItem
 import com.example.toolbox.data.community.UserInfo
 import com.example.toolbox.data.community.UserMessage
 import com.example.toolbox.data.community.UserReferencedMessage
-import com.example.toolbox.data.community.ResourceItem
 import com.example.toolbox.message.MessageDetailActivity
 import com.example.toolbox.mine.getLevelIconRes
 import com.example.toolbox.resourceLib.ResourceDetailActivity
@@ -323,45 +325,6 @@ fun UserInfoScreen(userId: Int) {
     }
 
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val threshold = with(LocalDensity.current) { (statusBarHeight + 64.dp).toPx() }.toInt()
-    var lastHeaderBottom by remember { mutableIntStateOf(Int.MAX_VALUE) }
-    var isAdjusting by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isScrolling) {
-        snapshotFlow {
-            if (isAdjusting) return@snapshotFlow lastHeaderBottom
-
-            val headerItem = isScrolling.layoutInfo.visibleItemsInfo.find { it.index == 0 }
-            headerItem?.let {
-                it.offset + it.size
-            } ?: -1
-        }.collect { headerBottom ->
-            if (headerBottom > 0 && !isAdjusting) {
-                when (threshold) {
-                    in (headerBottom + 1)..lastHeaderBottom -> {
-                        isAdjusting = true
-                        val targetScroll =
-                            isScrolling.firstVisibleItemScrollOffset + (threshold - headerBottom)
-                        coroutineScope.launch {
-                            isScrolling.scrollToItem(0, targetScroll)
-                            isAdjusting = false
-                        }
-                    }
-
-                    in lastHeaderBottom..<headerBottom -> {
-                        isAdjusting = true
-                        val targetScroll =
-                            isScrolling.firstVisibleItemScrollOffset - (headerBottom - threshold)
-                        coroutineScope.launch {
-                            isScrolling.scrollToItem(0, targetScroll)
-                            isAdjusting = false
-                        }
-                    }
-                }
-                lastHeaderBottom = headerBottom
-            }
-        }
-    }
 
     Scaffold { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
@@ -385,7 +348,10 @@ fun UserInfoScreen(userId: Int) {
                         item {
                             userInfo?.let {
                                 Box(
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .offset(y = -(statusBarHeight + 64.dp))
+                                        .padding(bottom = statusBarHeight + 64.dp)
                                 ) {
                                     it.backgroundUrl?.let { backgroundUrl ->
                                         AsyncImage(
@@ -397,57 +363,36 @@ fun UserInfoScreen(userId: Int) {
                                             contentScale = ContentScale.Crop
                                         )
                                     }
-                                    UserInfoHeader(
-                                        userInfo = it,
-                                        isFollowing = isFollowing,
-                                        onMessageClick = {
-                                            val intent =
-                                                Intent(context, MessageDetailActivity::class.java)
-                                            intent.putExtra("user_id", it.userId)
-                                            context.startActivity(intent)
-                                        },
-                                        onFollowClick = {
-                                            scope.launch {
-                                                toggleFollow(context, it.userId) { success ->
-                                                    if (success) {
-                                                        isFollowing = !isFollowing
-                                                    }
+                                }
+                                
+                                UserInfoHeader(
+                                    userInfo = it,
+                                    isFollowing = isFollowing,
+                                    onMessageClick = {
+                                        val intent =
+                                            Intent(context, MessageDetailActivity::class.java)
+                                        intent.putExtra("user_id", it.userId)
+                                        context.startActivity(intent)
+                                    },
+                                    onFollowClick = {
+                                        scope.launch {
+                                            toggleFollow(context, it.userId) { success ->
+                                                if (success) {
+                                                    isFollowing = !isFollowing
                                                 }
                                             }
                                         }
-                                    )
-                                }
+                                    },
+                                    statusBarHeight = statusBarHeight
+                                )
                             }
                         }
 
                         stickyHeader {
-                            val localDy = LocalDensity.current
-                            val topPadding = remember(isScrolling) {
-                                derivedStateOf {
-                                    val headerItem =
-                                        isScrolling.layoutInfo.visibleItemsInfo.find { it.index == 0 }
-                                    if (headerItem != null) {
-                                        val headerBottom = headerItem.offset + headerItem.size
-                                        val threshold = paddingValues.calculateTopPadding() + 64.dp
-                                        val thresholdPx = with(localDy) { threshold.toPx() }.toInt()
-
-                                        if (headerBottom < thresholdPx) {
-                                            val neededPadding = thresholdPx - headerBottom
-                                            with(localDy) { neededPadding.toDp() }
-                                        } else {
-                                            0.dp
-                                        }
-                                    } else {
-                                        paddingValues.calculateTopPadding() + 64.dp
-                                    }
-                                }
-                            }
-
                             Surface(
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .background(MaterialTheme.colorScheme.background)
-                                    .padding(top = topPadding.value)
                             ) {
                                 SecondaryTabRow(selectedTabIndex = currentTab) {
                                     Tab(
@@ -480,7 +425,7 @@ fun UserInfoScreen(userId: Int) {
                                     }
                                 }
                             } else {
-                                items(messages) { userMessage ->
+                                items(messages, key = { it.id }) { userMessage ->
                                     MessageItem(
                                         message = userMessage,
                                         onLikeClick = {
@@ -489,36 +434,34 @@ fun UserInfoScreen(userId: Int) {
                                                     TokenManager.get(context) ?: return@launch
                                                 val client = OkHttpClient()
 
-                                                coroutineScope.launch {
-                                                    try {
-                                                        val (newIsLiked, newLikeCount) = toggleLike(
-                                                            client,
-                                                            token,
-                                                            userMessage.id,
-                                                            userMessage.is_liked,
-                                                            userMessage.likeCount
-                                                        )
+                                                try {
+                                                    val (newIsLiked, newLikeCount) = toggleLike(
+                                                        client,
+                                                        token,
+                                                        userMessage.id,
+                                                        userMessage.is_liked,
+                                                        userMessage.likeCount
+                                                    )
 
-                                                        messages = messages.map {
-                                                            if (it.id == userMessage.id) {
-                                                                it.copy(
-                                                                    is_liked = newIsLiked,
-                                                                    likeCount = newLikeCount
-                                                                )
-                                                            } else it
-                                                        }
-                                                    } catch (e: Exception) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            e.message ?: "操作失败",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
+                                                    messages = messages.map {
+                                                        if (it.id == userMessage.id) {
+                                                            it.copy(
+                                                                is_liked = newIsLiked,
+                                                                likeCount = newLikeCount
+                                                            )
+                                                        } else it
                                                     }
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        e.message ?: "操作失败",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             }
                                         },
                                         onMenuClick = {
-                                            // 显示菜单
+                                            // TODO: 实现菜单功能
                                         }
                                     )
                                 }
@@ -536,7 +479,7 @@ fun UserInfoScreen(userId: Int) {
                                     }
                                 }
                             } else {
-                                items(resources) { resource ->
+                                items(resources, key = { "${it.description}_${it.version}" }) { resource ->
                                     ResourceItem(
                                         resource = resource,
                                         onClick = {
@@ -663,15 +606,15 @@ fun UserInfoHeader(
     userInfo: UserInfo,
     isFollowing: Boolean,
     onFollowClick: () -> Unit,
-    onMessageClick: () -> Unit
+    onMessageClick: () -> Unit,
+    statusBarHeight: Dp
 ) {
     val context = LocalContext.current
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(top = 64.dp)
+            .padding(16.dp)
     ) {
         Column(
             modifier = Modifier
@@ -689,7 +632,9 @@ fun UserInfoHeader(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(80.dp)
-                        .clip(CircleShape)
+                        .clip(CircleShape),
+                    placeholder = painterResource(R.drawable.user),
+                    error = painterResource(R.drawable.user)
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -699,6 +644,30 @@ fun UserInfoHeader(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
+
+                if (userInfo.titleStatus != 0 && userInfo.titleStatus != 3 && !userInfo.title.isNullOrEmpty()) {
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(14.dp),
+                            contentDescription = null,
+                            imageVector = Icons.Default.CheckCircle,
+                            tint = when (userInfo.titleStatus) {
+                                1 -> MaterialTheme.colorScheme.error
+                                2 -> MaterialTheme.colorScheme.tertiary
+                                4 -> MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = userInfo.title,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -720,7 +689,6 @@ fun UserInfoHeader(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // 经验条
                     LinearProgressIndicator(
                         progress = { userInfo.experience.toFloat() / (userInfo.level * 100f) },
                         modifier = Modifier
@@ -907,7 +875,9 @@ fun MessageItem(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.user),
+                    error = painterResource(R.drawable.user)
                 )
 
                 Column(
@@ -977,7 +947,9 @@ fun MessageItem(
                                 .fillMaxWidth(0.325f)
                                 .aspectRatio(1f)
                                 .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.user),
+                            error = painterResource(R.drawable.user)
                         )
                     }
                 }
@@ -1060,7 +1032,9 @@ fun ResourceItem(resource: ResourceItem, onClick: () -> Unit) {
             AsyncImage(
                 model = resource.icon_url,
                 contentDescription = "图标",
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
+                placeholder = painterResource(R.drawable.user),
+                error = painterResource(R.drawable.user)
             )
 
             Spacer(modifier = Modifier.width(12.dp))
