@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -37,6 +39,20 @@ jobs:
           name: app-release-signed
           path: app/build/outputs/apk/release/*.apk
 
+      - name: Get commit history
+        id: commits
+        run: |
+          COMMITS=$(git log -5 --format='- %s (%an)' --no-merges)
+          COMMITS="${COMMITS//'%'/'%25'}"
+          COMMITS="${COMMITS//$'\n'/'%0A'}"
+          echo "list=$COMMITS" >> $GITHUB_OUTPUT
+
+      - name: Get commit hash
+        id: commit
+        run: |
+          HASH=$(git rev-parse --short HEAD)
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
       - name: Send APK to bot
         if: success()
         continue-on-error: true
@@ -55,7 +71,24 @@ jobs:
           APK_SIZE=$(stat -c%s "$APK_PATH")
           APK_NAME=$(basename "$APK_PATH")
           
-          MESSAGE="## 📱 轻昼CE 构建完成\n\n**APK**: $APK_NAME\n**大小**: $(($APK_SIZE / 1024)) KB\n**触发者**: ${{ github.actor }}\n**下载**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          cat > /tmp/message.md << 'EOF'
+          **项目**: 轻昼CE
+          **版本**: ${{ steps.commit.outputs.hash }}
+          **触发者**: ${{ github.actor }}
+          **构建时间**: $(date '+%Y-%m-%d %H:%M:%S')
+          
+          **最近提交**:
+          ${{ steps.commits.outputs.list }}
+          
+          **下载地址**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
+          
+          sed -i "s|\${{ steps.commit.outputs.hash }}|${{ steps.commit.outputs.hash }}|g" /tmp/message.md
+          sed -i "s|\${{ github.actor }}|${{ github.actor }}|g" /tmp/message.md
+          sed -i "s|\${{ github.repository }}|${{ github.repository }}|g" /tmp/message.md
+          sed -i "s|\${{ github.run_id }}|${{ github.run_id }}|g" /tmp/message.md
+          
+          MESSAGE=$(cat /tmp/message.md)
           
           curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
             -H "Content-Type: application/json" \
