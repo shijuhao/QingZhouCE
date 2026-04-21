@@ -36,3 +36,52 @@ jobs:
         with:
           name: app-release-signed
           path: app/build/outputs/apk/release/*.apk
+
+      - name: Send APK to bot
+        if: success()
+        continue-on-error: true
+        env:
+          BOT_SEND_TOKEN: ${{ secrets.YHCHAT_BOT_SEND_TOKEN }}
+          BOT_RECV_ID: ${{ secrets.YHCHAT_BOT_RECV_ID }}
+          BOT_RECV_TYPE: ${{ secrets.YHCHAT_BOT_RECV_TYPE }}
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK found"
+            exit 0
+          fi
+          
+          APK_SIZE=$(stat -c%s "$APK_PATH")
+          APK_NAME=$(basename "$APK_PATH")
+          
+          MESSAGE="## 📱 轻昼CE 构建完成\n\n**APK**: $APK_NAME\n**大小**: $(($APK_SIZE / 1024)) KB\n**触发者**: ${{ github.actor }}\n**下载**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg recvId "$BOT_RECV_ID" \
+              --arg recvType "$BOT_RECV_TYPE" \
+              --arg text "$MESSAGE" \
+              '{recvId: $recvId, recvType: $recvType, contentType: "markdown", content: { text: $text }}')"
+          
+          if [ "$APK_SIZE" -lt 20971520 ]; then
+            UPLOAD_RESPONSE=$(curl -sS -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${BOT_SEND_TOKEN}" \
+              -F "file=@${APK_PATH};filename=${APK_NAME}")
+            
+            FILE_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.data.fileKey')
+            
+            if [ -n "$FILE_KEY" ] && [ "$FILE_KEY" != "null" ]; then
+              curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "$(jq -n \
+                  --arg recvId "$BOT_RECV_ID" \
+                  --arg recvType "$BOT_RECV_TYPE" \
+                  --arg fileKey "$FILE_KEY" \
+                  '{recvId: $recvId, recvType: $recvType, contentType: "file", content: { fileKey: $fileKey }}')"
+            else
+              echo "File upload failed, APK sent via link only"
+            fi
+          else
+            echo "APK size $(($APK_SIZE / 1048576))MB >= 20MB, sent link only"
+          fi
