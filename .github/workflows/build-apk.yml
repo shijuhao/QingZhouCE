@@ -39,19 +39,9 @@ jobs:
           name: app-release-signed
           path: app/build/outputs/apk/release/*.apk
 
-      - name: Get commit history
-        id: commits
-        run: |
-          COMMITS=$(git log -5 --format='- %s (%an)' --no-merges)
-          COMMITS="${COMMITS//'%'/'%25'}"
-          COMMITS="${COMMITS//$'\n'/'%0A'}"
-          echo "list=$COMMITS" >> $GITHUB_OUTPUT
-
       - name: Get commit hash
         id: commit
-        run: |
-          HASH=$(git rev-parse --short HEAD)
-          echo "hash=$HASH" >> $GITHUB_OUTPUT
+        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Send APK to bot
         if: success()
@@ -60,36 +50,25 @@ jobs:
           BOT_SEND_TOKEN: ${{ secrets.YHCHAT_BOT_SEND_TOKEN }}
           BOT_RECV_ID: ${{ secrets.YHCHAT_BOT_RECV_ID }}
           BOT_RECV_TYPE: ${{ secrets.YHCHAT_BOT_RECV_TYPE }}
+          COMMIT_HASH: ${{ steps.commit.outputs.hash }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          
+
           if [ -z "$APK_PATH" ]; then
             echo "No APK found"
             exit 0
           fi
-          
+
           APK_SIZE=$(stat -c%s "$APK_PATH")
           APK_NAME=$(basename "$APK_PATH")
-          
-          cat > /tmp/message.md << 'EOF'
-          **项目**: 轻昼CE
-          **版本**: ${{ steps.commit.outputs.hash }}
-          **触发者**: ${{ github.actor }}
-          **构建时间**: $(date '+%Y-%m-%d %H:%M:%S')
-          
-          **最近提交**:
-          ${{ steps.commits.outputs.list }}
-          
-          **下载地址**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          EOF
-          
-          sed -i "s|\${{ steps.commit.outputs.hash }}|${{ steps.commit.outputs.hash }}|g" /tmp/message.md
-          sed -i "s|\${{ github.actor }}|${{ github.actor }}|g" /tmp/message.md
-          sed -i "s|\${{ github.repository }}|${{ github.repository }}|g" /tmp/message.md
-          sed -i "s|\${{ github.run_id }}|${{ github.run_id }}|g" /tmp/message.md
-          
-          MESSAGE=$(cat /tmp/message.md)
-          
+
+          COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges | sed ':a;N;$!ba;s/\n/%0A/g')
+
+          MESSAGE="**项目**: 轻昼CE\n**版本**: ${COMMIT_HASH}\n**触发者**: ${ACTOR}\n**构建时间**: $(date '+%Y-%m-%d %H:%M:%S')\n\n**最近提交**:\n${COMMIT_LIST}\n\n**下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}"
+
           curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "$(jq -n \
@@ -97,13 +76,13 @@ jobs:
               --arg recvType "$BOT_RECV_TYPE" \
               --arg text "$MESSAGE" \
               '{recvId: $recvId, recvType: $recvType, contentType: "markdown", content: { text: $text }}')"
-          
+
           if [ "$APK_SIZE" -lt 20971520 ]; then
             UPLOAD_RESPONSE=$(curl -sS -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${BOT_SEND_TOKEN}" \
               -F "file=@${APK_PATH};filename=${APK_NAME}")
-            
+
             FILE_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.data.fileKey')
-            
+
             if [ -n "$FILE_KEY" ] && [ "$FILE_KEY" != "null" ]; then
               curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
                 -H "Content-Type: application/json" \
