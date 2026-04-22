@@ -65,16 +65,26 @@ jobs:
           APK_SIZE=$(stat -c%s "$APK_PATH")
           APK_NAME=$(basename "$APK_PATH")
 
-          COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges | sed ':a;N;$!ba;s/\n/%0A/g')
+          COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          MESSAGE="**项目**: 轻昼CE\n**版本**: ${COMMIT_HASH}\n**触发者**: ${ACTOR}\n**构建时间**: $(date '+%Y-%m-%d %H:%M:%S')\n\n**最近提交**:\n${COMMIT_LIST}\n\n**下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}"
+          cat > /tmp/message.md << EOF
+**项目**: 轻昼CE
+**版本**: ${COMMIT_HASH}
+**触发者**: ${ACTOR}
+**构建时间**: $(date '+%Y-%m-%d %H:%M:%S')
+
+**最近提交**:
+${COMMIT_LIST}
+
+**下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}
+EOF
 
           curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "$(jq -n \
               --arg recvId "$BOT_RECV_ID" \
               --arg recvType "$BOT_RECV_TYPE" \
-              --arg text "$MESSAGE" \
+              --arg text "$(cat /tmp/message.md)" \
               '{recvId: $recvId, recvType: $recvType, contentType: "markdown", content: { text: $text }}')"
 
           if [ "$APK_SIZE" -lt 20971520 ]; then
