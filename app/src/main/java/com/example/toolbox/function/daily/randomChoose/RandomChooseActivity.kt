@@ -1012,7 +1012,6 @@ fun ItemsListCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             Column(
-                modifier = Modifier.heightIn(max = 300.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items.forEach { item ->
