@@ -65,27 +65,17 @@ jobs:
           APK_SIZE=$(stat -c%s "$APK_PATH")
           APK_NAME=$(basename "$APK_PATH")
 
-          COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges | sed ':a;N;$!ba;s/\n/\\n/g')
+          COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges | awk '{printf "%s\\n", $0}')
 
-          cat << EOF > /tmp/message.md
-**项目**: 轻昼CE
-**版本**: ${COMMIT_HASH}
-**触发者**: ${ACTOR}
-**构建时间**: $(date '+%Y-%m-%d %H:%M:%S')
-
-**最近提交**:
-${COMMIT_LIST}
-
-**下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}
-EOF
+          jq -n \
+            --arg recvId "$BOT_RECV_ID" \
+            --arg recvType "$BOT_RECV_TYPE" \
+            --arg text "**项目**: 轻昼CE\n**版本**: ${COMMIT_HASH}\n**触发者**: ${ACTOR}\n**构建时间**: $(date '+%Y-%m-%d %H:%M:%S')\n\n**最近提交**:\n${COMMIT_LIST}\n\n**下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}" \
+            '{recvId: $recvId, recvType: $recvType, contentType: "markdown", content: { text: $text }}' > /tmp/payload.json
 
           curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n \
-              --arg recvId "$BOT_RECV_ID" \
-              --arg recvType "$BOT_RECV_TYPE" \
-              --arg text "$(cat /tmp/message.md)" \
-              '{recvId: $recvId, recvType: $recvType, contentType: "markdown", content: { text: $text }}')"
+            -d @/tmp/payload.json
 
           if [ "$APK_SIZE" -lt 20971520 ]; then
             UPLOAD_RESPONSE=$(curl -sS -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${BOT_SEND_TOKEN}" \
@@ -94,13 +84,15 @@ EOF
             FILE_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.data.fileKey')
 
             if [ -n "$FILE_KEY" ] && [ "$FILE_KEY" != "null" ]; then
+              jq -n \
+                --arg recvId "$BOT_RECV_ID" \
+                --arg recvType "$BOT_RECV_TYPE" \
+                --arg fileKey "$FILE_KEY" \
+                '{recvId: $recvId, recvType: $recvType, contentType: "file", content: { fileKey: $fileKey }}' > /tmp/file_payload.json
+
               curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
                 -H "Content-Type: application/json" \
-                -d "$(jq -n \
-                  --arg recvId "$BOT_RECV_ID" \
-                  --arg recvType "$BOT_RECV_TYPE" \
-                  --arg fileKey "$FILE_KEY" \
-                  '{recvId: $recvId, recvType: $recvType, contentType: "file", content: { fileKey: $fileKey }}')"
+                -d @/tmp/file_payload.json
             else
               echo "File upload failed, APK sent via link only"
             fi
