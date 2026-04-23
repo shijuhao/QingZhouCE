@@ -578,7 +578,7 @@ fun PostDetailScreen(
                     Text(errorState!!, style = MaterialTheme.typography.bodyLarge)
                 }
             } else if (uiState == null) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
+                ContainedLoadingIndicator(Modifier.align(Alignment.Center))
             } else {
                 MessageMainLayout(
                     msg = uiState!!,

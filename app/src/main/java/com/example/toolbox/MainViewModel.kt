@@ -147,13 +147,9 @@ class YiYanViewModel : ViewModel() {
 
     fun loadYiYan() {
         viewModelScope.launch {
-            _hitokoto.value = try {
-                fetchYiYan()
-            } catch (_: IOException) {
-                "网络连接失败，请检查网络"
-            } catch (e: Exception) {
-                "请求异常: ${e.message}"
-            }
+            try {
+                _hitokoto.value = fetchYiYan()
+            } catch (_: IOException) { } catch (_: Exception) { }
         }
     }
 

@@ -11,14 +11,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -67,29 +64,31 @@ class CommunityActivity : ComponentActivity() {
                 val state by viewModel.state.collectAsState()
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
-                
+
                 var refreshTrigger by remember { mutableIntStateOf(0) }
-                
+
                 val postArticleLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) { result ->
                     if (result.resultCode == RESULT_OK) {
-                        Toast.makeText(this@CommunityActivity, "发布成功", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@CommunityActivity, "发布成功", Toast.LENGTH_SHORT)
+                            .show()
                         refreshTrigger++
                     }
                 }
-                
+
                 val editArticleLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) { result ->
                     if (result.resultCode == RESULT_OK) {
-                        Toast.makeText(this@CommunityActivity, "编辑成功", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@CommunityActivity, "编辑成功", Toast.LENGTH_SHORT)
+                            .show()
                         refreshTrigger++
                     }
                 }
-        
+
                 var categoriesLoaded by remember { mutableStateOf(false) }
-                
+
                 LaunchedEffect(drawerState.isOpen) {
                     if (drawerState.isOpen && token.isNotEmpty() && !categoriesLoaded) {
                         viewModel.fetchCategories(token)
@@ -338,7 +337,7 @@ fun DrawerContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CommunityScreen(
     modifier: Modifier = Modifier,
@@ -389,7 +388,7 @@ fun CommunityScreen(
     LaunchedEffect(messages.size) {
         val isNewMessage = messages.size > previousMessageCount
         previousMessageCount = messages.size
-        
+
         if (isNewMessage && lazyListState.firstVisibleItemIndex <= 1) {
             lazyListState.scrollToItem(0)
         }
@@ -600,12 +599,6 @@ fun CommunityScreen(
 
         Box(modifier = Modifier.fillMaxSize()) {
             when {
-                state.isLoading && state.messages.isEmpty() -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-
                 state.errorMessage != null && state.messages.isEmpty() -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -620,7 +613,6 @@ fun CommunityScreen(
                 }
 
                 else -> {
-                    // 使用 PullToRefreshBox 替代原来的 pullRefresh 修饰符和 PullRefreshIndicator
                     PullToRefreshBox(
                         isRefreshing = state.isRefreshing,
                         onRefresh = { viewModel.fetchMessages(token, 1, true) },
@@ -652,18 +644,26 @@ fun CommunityScreen(
                                         messageToDelete = msg
                                     },
                                     onEdit = {
-                                        val intent = Intent(context, PostArticleActivity::class.java).apply {
-                                            putExtra("edit_message_id", msg.message_id)
-                                            putExtra("userId", userId)
-                                            putExtra("old_title", msg.content.title ?: "")
-                                            val textContent = msg.content.text ?: msg.content.content ?: ""
-                                            putExtra("old_content", textContent)
-                                            val images = msg.content.images ?: emptyList()
-                                            putStringArrayListExtra("old_images", ArrayList(images))
-                                            val visibleList = msg.visible_to ?: emptyList()
-                                            putIntegerArrayListExtra("old_private", ArrayList(visibleList))
-                                            putExtra("old_is_markdown", msg.is_markdown)
-                                        }
+                                        val intent =
+                                            Intent(context, PostArticleActivity::class.java).apply {
+                                                putExtra("edit_message_id", msg.message_id)
+                                                putExtra("userId", userId)
+                                                putExtra("old_title", msg.content.title ?: "")
+                                                val textContent =
+                                                    msg.content.text ?: msg.content.content ?: ""
+                                                putExtra("old_content", textContent)
+                                                val images = msg.content.images ?: emptyList()
+                                                putStringArrayListExtra(
+                                                    "old_images",
+                                                    ArrayList(images)
+                                                )
+                                                val visibleList = msg.visible_to ?: emptyList()
+                                                putIntegerArrayListExtra(
+                                                    "old_private",
+                                                    ArrayList(visibleList)
+                                                )
+                                                putExtra("old_is_markdown", msg.is_markdown)
+                                            }
                                         editArticleLauncher.launch(intent)
                                     },
                                     onReply = { replyToMessage = msg },
@@ -680,7 +680,7 @@ fun CommunityScreen(
                                             .padding(16.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                        ContainedLoadingIndicator(modifier = Modifier.size(24.dp))
                                     }
                                 }
                             }
@@ -698,10 +698,20 @@ fun CommunityScreen(
                 }
             }
 
+            if ((state.isLoading && state.messages.isEmpty()) || state.isRefreshing) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ContainedLoadingIndicator()
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp).padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()),
+                    .padding(16.dp)
+                    .padding(
+                        bottom = WindowInsets.navigationBars.asPaddingValues()
+                            .calculateBottomPadding()
+                    ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

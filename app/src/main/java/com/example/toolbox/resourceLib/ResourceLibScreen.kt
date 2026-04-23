@@ -3,7 +3,6 @@
 package com.example.toolbox.resourceLib
 
 import android.content.Intent
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
@@ -36,7 +35,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
@@ -108,25 +107,20 @@ fun ResourceLibScreen(
 
     Scaffold(
         topBar = {
-            // 使用 AnimatedContent 实现标题栏和搜索栏的平滑切换
             AnimatedContent(
                 targetState = isSearchActive,
                 transitionSpec = {
-                    // 根据状态决定进入/退出方向
                     if (targetState) {
-                        // 进入搜索：从右侧滑入 + 淡入
                         slideInHorizontally(initialOffsetX = { it }) + fadeIn() togetherWith
                                 slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
                     } else {
-                        // 退出搜索：从左侧滑出 + 淡出
                         slideInHorizontally(initialOffsetX = { -it }) + fadeIn() togetherWith
                                 slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
-                    }.using(SizeTransform(clip = false)) // 尺寸变换不裁剪
+                    }.using(SizeTransform(clip = false))
                 },
                 label = "topBarTransition"
             ) { isSearching ->
                 if (isSearching) {
-                    // 搜索状态：显示全屏搜索栏
                     SearchBar(
                         modifier = Modifier.fillMaxWidth(),
                         query = searchQuery,
@@ -152,7 +146,6 @@ fun ResourceLibScreen(
                             }
                         }
                     ) {
-                        // 搜索结果列表
                         Column {
                             HorizontalDivider(
                                 modifier = Modifier.fillMaxWidth(),
@@ -194,7 +187,6 @@ fun ResourceLibScreen(
                         }
                     }
                 } else {
-                    // 非搜索状态：显示普通标题栏（可包含标题和搜索图标）
                     TopAppBar(
                         title = { Text("资源库") },
                         actions = {
@@ -238,7 +230,7 @@ fun ResourceLibScreen(
 
             Box(modifier = Modifier.fillMaxSize()) {
                 if (viewModel.isLoading) {
-                    CircularWavyProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    ContainedLoadingIndicator(modifier = Modifier.align(Alignment.Center))
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
