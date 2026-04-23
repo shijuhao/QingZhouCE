@@ -2,6 +2,9 @@ package com.example.toolbox
 
 import android.app.Application
 import cat.ereza.customactivityoncrash.config.CaocConfig
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.request.crossfade
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 
@@ -24,7 +27,7 @@ object AppJson {
     }
 }
 
-class MyApplication : Application() {
+class MyApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
 
@@ -38,5 +41,11 @@ class MyApplication : Application() {
             .minTimeBetweenCrashesMs(2000)
             .restartActivity(MainActivity::class.java)
             .apply()
+    }
+
+    override fun newImageLoader(context: android.content.Context): ImageLoader {
+        return ImageLoader.Builder(context)
+            .crossfade(true)
+            .build()
     }
 }
