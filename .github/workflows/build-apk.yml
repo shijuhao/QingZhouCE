@@ -38,3 +38,72 @@ jobs:
         with:
           name: app-release-signed
           path: app/build/outputs/apk/release/*.apk
+
+      - name: Get commit hash
+        id: commit
+        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Send APK to bot
+        if: success()
+        continue-on-error: true
+        env:
+          BOT_SEND_TOKEN: ${{ secrets.YHCHAT_BOT_SEND_TOKEN }}
+          BOT_RECV_ID: ${{ secrets.YHCHAT_BOT_RECV_ID }}
+          BOT_RECV_TYPE: ${{ secrets.YHCHAT_BOT_RECV_TYPE }}
+          COMMIT_HASH: ${{ steps.commit.outputs.hash }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK found"
+            exit 0
+          fi
+
+          APK_SIZE=$(stat -c%s "$APK_PATH")
+          APK_NAME=$(basename "$APK_PATH")
+
+          COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges | sed ':a;N;$!ba;s/\n/\\n/g')
+
+          cat > /tmp/message.md << EOF
+**项目**: 轻昼CE
+**版本**: ${COMMIT_HASH}
+**触发者**: ${ACTOR}
+**构建时间**: $(date '+%Y-%m-%d %H:%M:%S')
+
+**最近提交**:
+${COMMIT_LIST}
+
+**下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}
+EOF
+
+          curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg recvId "$BOT_RECV_ID" \
+              --arg recvType "$BOT_RECV_TYPE" \
+              --arg text "$(cat /tmp/message.md)" \
+              '{recvId: $recvId, recvType: $recvType, contentType: "markdown", content: { text: $text }}')"
+
+          if [ "$APK_SIZE" -lt 20971520 ]; then
+            UPLOAD_RESPONSE=$(curl -sS -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${BOT_SEND_TOKEN}" \
+              -F "file=@${APK_PATH};filename=${APK_NAME}")
+
+            FILE_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.data.fileKey')
+
+            if [ -n "$FILE_KEY" ] && [ "$FILE_KEY" != "null" ]; then
+              curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "$(jq -n \
+                  --arg recvId "$BOT_RECV_ID" \
+                  --arg recvType "$BOT_RECV_TYPE" \
+                  --arg fileKey "$FILE_KEY" \
+                  '{recvId: $recvId, recvType: $recvType, contentType: "file", content: { fileKey: $fileKey }}')"
+            else
+              echo "File upload failed, APK sent via link only"
+            fi
+          else
+            echo "APK size $(($APK_SIZE / 1048576))MB >= 20MB, sent link only"
+          fi
