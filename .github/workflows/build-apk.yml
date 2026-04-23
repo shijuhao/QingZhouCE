@@ -67,7 +67,7 @@ jobs:
 
           COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          cat > /tmp/message.md << EOF
+          cat << EOF > /tmp/message.md
 **项目**: 轻昼CE
 **版本**: ${COMMIT_HASH}
 **触发者**: ${ACTOR}
