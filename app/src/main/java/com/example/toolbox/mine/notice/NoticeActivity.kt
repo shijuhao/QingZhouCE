@@ -162,7 +162,7 @@ fun NoticeNavHost(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MainNoticeScreen(
     onBack: () -> Unit,
@@ -280,7 +280,7 @@ fun MainNoticeScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        ContainedLoadingIndicator()
                     }
                 } else {
                     if (notifications.isEmpty()) {
@@ -393,7 +393,7 @@ fun MainNoticeScreen(
                                                 .padding(16.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            CircularProgressIndicator(
+                                            ContainedLoadingIndicator(
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
@@ -434,7 +434,7 @@ fun MainNoticeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TypeNoticeScreen(
     typeName: String,
@@ -530,7 +530,7 @@ fun TypeNoticeScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    ContainedLoadingIndicator()
                 }
             } else {
                 if (notifications.isEmpty()) {
@@ -582,7 +582,7 @@ fun TypeNoticeScreen(
                                             .padding(16.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        CircularProgressIndicator(
+                                        ContainedLoadingIndicator(
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
