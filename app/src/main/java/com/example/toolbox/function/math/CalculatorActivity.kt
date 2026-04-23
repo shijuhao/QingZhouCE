@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,10 +33,85 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.ln
+import kotlin.math.log10
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.math.tan
+
+fun evaluateRecursive(expr: String, pos: Int): Pair<Double, Int> {
+    var (result, currentPos) = parseTerm(expr, pos)
+    var position = currentPos
+    
+    while (position < expr.length && (expr[position] == '+' || expr[position] == '-')) {
+        val op = expr[position]
+        position++
+        val (right, newPos) = parseTerm(expr, position)
+        result = if (op == '+') result + right else result - right
+        position = newPos
+    }
+    
+    return Pair(result, position)
+}
+
+fun parseTerm(expr: String, pos: Int): Pair<Double, Int> {
+    var (result, currentPos) = parsePower(expr, pos)
+    var position = currentPos
+    
+    while (position < expr.length && (expr[position] == '*' || expr[position] == '/')) {
+        val op = expr[position]
+        position++
+        val (right, newPos) = parsePower(expr, position)
+        result = if (op == '*') result * right else result / right
+        position = newPos
+    }
+    
+    return Pair(result, position)
+}
+
+fun parsePower(expr: String, pos: Int): Pair<Double, Int> {
+    val (base, currentPos) = parseNumber(expr, pos)
+    var position = currentPos
+    
+    if (position < expr.length && expr[position] == '^') {
+        position++
+        val (exponent, newPos) = parsePower(expr, position)
+        return Pair(base.pow(exponent), newPos)
+    }
+    
+    return Pair(base, position)
+}
+
+fun parseNumber(expr: String, pos: Int): Pair<Double, Int> {
+    if (pos >= expr.length) return Pair(0.0, pos)
+
+    var currentPos = pos
+    
+    while (currentPos < expr.length && (expr[currentPos].isDigit() || expr[currentPos] == '.')) {
+        currentPos++
+    }
+    
+    if (currentPos == pos) return Pair(0.0, currentPos)
+    
+    val number = expr.substring(pos, currentPos).toDoubleOrNull() ?: 0.0
+    return Pair(number, currentPos)
+}
+
+fun simpleEval(expr: String): Double {
+    val cleaned = expr.replace(" ", "")
+    if (cleaned.isEmpty()) return 0.0
+
+    return try {
+        evaluateRecursive(cleaned, 0).first
+    } catch (_: Exception) {
+        0.0
+    }
+}
 
 class CalculatorActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,11 +135,9 @@ fun getVisualText(text: String): String {
     return try {
         val parts = text.split(".")
         val intPart = parts[0].toBigDecimal()
-        // 格式化整数部分，加入千分位
         val df = DecimalFormat("#,###", DecimalFormatSymbols.getInstance(Locale.US))
         val formattedInt = df.format(intPart)
 
-        // 如果有小数部分，拼回去
         if (parts.size > 1) {
             "$formattedInt.${parts[1]}"
         } else if (text.endsWith(".")) {
@@ -93,7 +168,6 @@ fun AutoSizeText(
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val maxWidthPx = with(density) { maxWidth.toPx() }
 
-        // 辅助函数：测量当前字号下的文字宽度
         fun measureWidth(size: TextUnit): Float {
             val textPainter = androidx.compose.ui.text.ParagraphIntrinsics(
                 text = visualText,
@@ -101,20 +175,17 @@ fun AutoSizeText(
                 density = density,
                 fontFamilyResolver = createFontFamilyResolver(context)
             )
-            return textPainter.maxIntrinsicWidth
+            return textPainter.minIntrinsicWidth
         }
 
-        // 每一帧渲染前检查逻辑
         SideEffect {
             val currentWidth = measureWidth(fontSizeValue)
 
             if (currentWidth > maxWidthPx) {
-                // 情况1：文字太长了，继续缩小
                 if (fontSizeValue > minFontSize) {
                     fontSizeValue = (fontSizeValue.value - 2f).sp
                 }
             } else if (fontSizeValue < baseFontSize) {
-                // 情况2：文字变短了，尝试恢复变大
                 val nextSize = (fontSizeValue.value + 2f).sp
                 if (measureWidth(nextSize) <= maxWidthPx) {
                     fontSizeValue = nextSize
@@ -138,74 +209,85 @@ fun AutoSizeText(
     }
 }
 
-@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalculatorScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
-    var displayValue by remember { mutableStateOf("0") }
-    var previousValue by remember { mutableStateOf("") }
-    var currentOperator by remember { mutableStateOf("") }
-    var waitingForNewValue by remember { mutableStateOf(false) }
+    var displayValue by remember { mutableStateOf("") }
+    var expression by remember { mutableStateOf("") }
     var hasResult by remember { mutableStateOf(false) }
-    var lastOperand by remember { mutableStateOf("") }
+    var isScientificMode by remember { mutableStateOf(false) }
+
+    fun evaluateExpression(expr: String): Double {
+        var processed = expr.replace("×", "*").replace("÷", "/")
+        processed = processed.replace("π", "${Math.PI}").replace("e", "${Math.E}")
+
+        val sinPattern = Regex("sin\\(([^)]+)\\)")
+        val cosPattern = Regex("cos\\(([^)]+)\\)")
+        val tanPattern = Regex("tan\\(([^)]+)\\)")
+        val log10Pattern = Regex("log\\(([^)]+)\\)")
+        val lnPattern = Regex("ln\\(([^)]+)\\)")
+        val sqrtPattern = Regex("sqrt\\(([^)]+)\\)")
+
+        processed = sinPattern.replace(processed) { match ->
+            sin(Math.toRadians(match.groupValues[1].toDouble())).toString()
+        }
+        processed = cosPattern.replace(processed) { match ->
+            cos(Math.toRadians(match.groupValues[1].toDouble())).toString()
+        }
+        processed = tanPattern.replace(processed) { match ->
+            tan(Math.toRadians(match.groupValues[1].toDouble())).toString()
+        }
+        processed = log10Pattern.replace(processed) { match ->
+            log10(match.groupValues[1].toDouble()).toString()
+        }
+        processed = lnPattern.replace(processed) { match ->
+            ln(match.groupValues[1].toDouble()).toString()
+        }
+        processed = sqrtPattern.replace(processed) { match ->
+            sqrt(match.groupValues[1].toDouble()).toString()
+        }
+
+        return simpleEval(processed)
+    }
 
     fun clear() {
-        displayValue = "0"
-        previousValue = ""
-        currentOperator = ""
-        lastOperand = "" // 清空
-        waitingForNewValue = false
+        displayValue = ""
+        expression = ""
         hasResult = false
     }
 
     fun delete() {
         if (hasResult) {
-            displayValue = "0"
-            hasResult = false
-        } else {
-            displayValue = if (displayValue.length > 1) displayValue.dropLast(1) else "0"
+            clear()
+        } else if (displayValue.isNotEmpty()) {
+            displayValue = displayValue.dropLast(1)
         }
     }
 
 
     fun appendNumber(number: String) {
-        if (hasResult || displayValue == "错误") {
+        if (hasResult) {
             displayValue = number
+            expression = ""
             hasResult = false
-            waitingForNewValue = false
-            currentOperator = ""
-            previousValue = ""
-            lastOperand = ""
-        }
-        else if (waitingForNewValue) {
-            displayValue = number
-            waitingForNewValue = false
-        }
-        else {
-            if (displayValue.length < 15) {
-                displayValue = if (displayValue == "0") {
-                    number
-                } else {
-                    displayValue + number
-                }
-            }
+        } else {
+            displayValue += number
         }
     }
 
     fun appendDecimal() {
         if (hasResult) {
             displayValue = "0."
-            previousValue = ""
-            currentOperator = ""
+            expression = ""
             hasResult = false
-            waitingForNewValue = false
-        } else if (waitingForNewValue) {
-            displayValue = "0."
-            waitingForNewValue = false
         } else if (!displayValue.contains(".")) {
-            displayValue += "."
+            if (displayValue.isEmpty()) {
+                displayValue = "0."
+            } else {
+                displayValue += "."
+            }
         }
     }
 
@@ -213,7 +295,6 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
         if (value.compareTo(BigDecimal.ZERO) == 0) return "0"
         val absValue = value.abs()
 
-        // 科学计数法阈值
         val useScientific = absValue >= BigDecimal("1000000000000") ||
                 (absValue < BigDecimal("0.000001") && absValue > BigDecimal.ZERO)
 
@@ -221,7 +302,6 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
             val df = DecimalFormat("0.######E0", DecimalFormatSymbols.getInstance(Locale.US))
             df.format(value)
         } else {
-            // 关键：去掉这里的逗号 #,### -> #
             val df = DecimalFormat("#.########", DecimalFormatSymbols.getInstance(Locale.US))
             val result = df.format(value)
             if (result.length > 15) {
@@ -233,86 +313,86 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    fun calculate() {
-        val first: BigDecimal
-        val second: BigDecimal
-
-        if (hasResult && lastOperand.isNotEmpty()) {
-            // --- 情况 A: 连续点击“=” ---
-            // 比如 8 (display) + 1 (lastOperand)
-            first = try { BigDecimal(displayValue) } catch (_: Exception) { BigDecimal.ZERO }
-            second = try { BigDecimal(lastOperand) } catch (_: Exception) { BigDecimal.ZERO }
-        } else if (previousValue.isNotEmpty() && currentOperator.isNotEmpty()) {
-            // --- 情况 B: 第一次点击“=” ---
-            // 比如 7 (previous) + 1 (display)
-            first = try { BigDecimal(previousValue) } catch (_: Exception) { BigDecimal.ZERO }
-            second = try { BigDecimal(displayValue) } catch (_: Exception) { BigDecimal.ZERO }
-            // 关键：记录下这个 1，供下次连续点击使用
-            lastOperand = displayValue
-        } else {
-            return // 没有足够的条件进行计算
-        }
-
-        val result = when (currentOperator) {
-            "+" -> first + second
-            "-" -> first - second
-            "×" -> first.multiply(second)
-            "÷" -> {
-                if (second.compareTo(BigDecimal.ZERO) == 0) null
-                else first.divide(second, 15, RoundingMode.HALF_UP)
-            }
-            else -> first
-        }
-
-        if (result == null) {
-            displayValue = "错误"
-            previousValue = ""
-            lastOperand = ""
-        } else {
-            displayValue = formatBigDecimal(result)
-            // 注意：这里不要清空 currentOperator 和 lastOperand，以便连续计算
-            previousValue = ""
-            hasResult = true
-            waitingForNewValue = true
+    fun setOperator(operator: String) {
+        if (hasResult) {
+            expression = "$displayValue $operator "
+            displayValue = ""
+            hasResult = false
+        } else if (displayValue.isNotEmpty()) {
+            expression += "$displayValue $operator "
+            displayValue = ""
+        } else if (expression.isNotEmpty() && expression.trimEnd().last().isLetterOrDigit()) {
+            expression = expression.trimEnd().dropLast(1) + " " + operator + " "
         }
     }
 
-    fun setOperator(operator: String) {
-        lastOperand = "" // 重置连续计算操作数
+    fun appendFunction(funcName: String) {
         if (hasResult) {
-            previousValue = displayValue
-            currentOperator = operator
-            waitingForNewValue = true
-            hasResult = false
-        } else if (currentOperator.isNotEmpty() && !waitingForNewValue) {
-            calculate()
-            previousValue = displayValue
-            currentOperator = operator
-            waitingForNewValue = true
+            expression = "$funcName("
+            displayValue = ""
             hasResult = false
         } else {
-            previousValue = displayValue
-            currentOperator = operator
-            waitingForNewValue = true
+            if (displayValue.isNotEmpty()) {
+                expression += "$displayValue * $funcName("
+                displayValue = ""
+            } else {
+                expression += "$funcName("
+            }
+        }
+    }
+
+    fun appendConstant(value: String) {
+        if (hasResult) {
+            displayValue = value
+            expression = ""
+            hasResult = false
+        } else {
+            displayValue += value
+        }
+    }
+
+    fun appendCloseParenthesis() {
+        if (displayValue.isNotEmpty()) {
+            expression += "$displayValue)"
+            displayValue = ""
+        } else if (expression.isNotEmpty()) {
+            expression += ")"
+        }
+    }
+
+    fun calculate() {
+        val fullExpression = expression + displayValue
+        if (fullExpression.isEmpty()) return
+        
+        try {
+            val result = evaluateExpression(fullExpression)
+            displayValue = formatBigDecimal(BigDecimal(result.toString()))
+            expression = ""
+            hasResult = true
+        } catch (_: Exception) {
+            displayValue = "错误"
+            expression = ""
+            hasResult = true
         }
     }
 
     fun percentage() {
-        val value = try { BigDecimal(displayValue) } catch (_: Exception) { BigDecimal.ZERO }
-        val result = value.divide(BigDecimal(100), 15, RoundingMode.HALF_UP)
-        displayValue = formatBigDecimal(result)
-        hasResult = false
+        if (displayValue.isNotEmpty()) {
+            expression += "($displayValue/100)"
+            displayValue = ""
+        }
     }
 
     fun toggleSign() {
-        if (displayValue != "0") {
+        if (displayValue.isNotEmpty()) {
             displayValue = if (displayValue.startsWith("-")) {
                 displayValue.substring(1)
             } else {
                 "-$displayValue"
             }
+        } else if (expression.isNotEmpty()) {
+            expression += "(-"
         }
-        hasResult = false
     }
 
     Column(
@@ -325,15 +405,21 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
                 FilledTonalIconButton(onClick = { (context as ComponentActivity).finish() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
                 }
+            },
+            actions = {
+                IconButton(onClick = { isScientificMode = !isScientificMode }) {
+                    Icon(
+                        if (isScientificMode) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        if (isScientificMode) "收起科学模式" else "展开科学模式"
+                    )
+                }
             }
         )
 
-        // 计算器显示区域
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .heightIn(max = 150.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
@@ -341,9 +427,9 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                if (previousValue.isNotEmpty()) {
+                if (expression.isNotEmpty()) {
                     Text(
-                        text = "$previousValue $currentOperator",
+                        text = expression,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 4.dp),
@@ -358,12 +444,11 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     contentAlignment = Alignment.BottomEnd
                 ) {
                     AutoSizeText(
-                        text = displayValue,
+                        text = displayValue.ifEmpty { "0" },
                         baseFontSize = 60.sp,
                         minFontSize = 30.sp
                     )
@@ -371,174 +456,279 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
             }
         }
 
-        // 按钮区域 - 使用垂直滚动
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f) // 使用权重占用剩余空间
-                .verticalScroll(rememberScrollState()) // 添加垂直滚动
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .weight(1f)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            // 第一行：清除、正负、百分比、除号
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            val buttonSpacing = 8.dp
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(buttonSpacing)
             ) {
-                CalculatorButton(
-                    text = "C",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    onClick = { clear() }
-                )
-                CalculatorButton(
-                    text = "±",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    onClick = { toggleSign() }
-                )
-                CalculatorButton(
-                    text = "%",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    onClick = { percentage() }
-                )
-                CalculatorButton(
-                    text = "÷",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    onClick = { setOperator("÷") }
-                )
-            }
-
-            // 第二行：7、8、9、乘号
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CalculatorButton(
-                    text = "7",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("7") }
-                )
-                CalculatorButton(
-                    text = "8",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("8") }
-                )
-                CalculatorButton(
-                    text = "9",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("9") }
-                )
-                CalculatorButton(
-                    text = "×",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    onClick = { setOperator("×") }
-                )
-            }
-
-            // 第三行：4、5、6、减号
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CalculatorButton(
-                    text = "4",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("4") }
-                )
-                CalculatorButton(
-                    text = "5",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("5") }
-                )
-                CalculatorButton(
-                    text = "6",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("6") }
-                )
-                CalculatorButton(
-                    text = "-",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    onClick = { setOperator("-") }
-                )
-            }
-
-            // 第四行：1、2、3、加号
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CalculatorButton(
-                    text = "1",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("1") }
-                )
-                CalculatorButton(
-                    text = "2",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("2") }
-                )
-                CalculatorButton(
-                    text = "3",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendNumber("3") }
-                )
-                CalculatorButton(
-                    text = "+",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    onClick = { setOperator("+") }
-                )
-            }
-
-            // 第五行：0、小数点、删除、等于
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Card(
-                    modifier = Modifier
-                        .weight(2f)
-                        .aspectRatio(2f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    onClick = { appendNumber("0") }
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                if (isScientificMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
                     ) {
-                        Text(
-                            text = "0",
-                            fontSize = 24.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium
+                        CalculatorButton(
+                            text = "sin",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            onClick = { appendFunction("sin") }
+                        )
+                        CalculatorButton(
+                            text = "cos",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            onClick = { appendFunction("cos") }
+                        )
+                        CalculatorButton(
+                            text = "tan",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            onClick = { appendFunction("tan") }
+                        )
+                        CalculatorButton(
+                            text = "log",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            onClick = { appendFunction("log") }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                    ) {
+                        CalculatorButton(
+                            text = "ln",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            onClick = { appendFunction("ln") }
+                        )
+                        CalculatorButton(
+                            text = "x²",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            onClick = { 
+                                if (displayValue.isNotEmpty()) {
+                                    expression += "($displayValue)^2"
+                                    displayValue = ""
+                                }
+                            }
+                        )
+                        CalculatorButton(
+                            text = "√",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            onClick = { appendFunction("sqrt") }
+                        )
+                        CalculatorButton(
+                            text = "xʸ",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            onClick = { setOperator("^") }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                    ) {
+                        CalculatorButton(
+                            text = "(",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            onClick = { 
+                                if (displayValue.isNotEmpty()) {
+                                    expression += "$displayValue * ("
+                                    displayValue = ""
+                                } else {
+                                    expression += "("
+                                }
+                            }
+                        )
+                        CalculatorButton(
+                            text = ")",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            onClick = { appendCloseParenthesis() }
+                        )
+                        CalculatorButton(
+                            text = "π",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            onClick = { appendConstant(Math.PI.toString().take(10)) }
+                        )
+                        CalculatorButton(
+                            text = "e",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            onClick = { appendConstant(Math.E.toString().take(10)) }
                         )
                     }
                 }
-                CalculatorButton(
-                    text = ".",
-                    modifier = Modifier.weight(1f),
-                    onClick = { appendDecimal() }
-                )
-                CalculatorButton(
-                    icon = Icons.AutoMirrored.Filled.Backspace,
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    onClick = { delete() }
-                )
-                CalculatorButton(
-                    text = "=",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.primary,
-                    textColor = MaterialTheme.colorScheme.onPrimary,
-                    onClick = { calculate() }
-                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                ) {
+                    CalculatorButton(
+                        text = "C",
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        onClick = { clear() }
+                    )
+                    CalculatorButton(
+                        text = "±",
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        onClick = { toggleSign() }
+                    )
+                    CalculatorButton(
+                        text = "%",
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        onClick = { percentage() }
+                    )
+                    CalculatorButton(
+                        text = "÷",
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        onClick = { setOperator("÷") }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                ) {
+                    CalculatorButton(
+                        text = "7",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("7") }
+                    )
+                    CalculatorButton(
+                        text = "8",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("8") }
+                    )
+                    CalculatorButton(
+                        text = "9",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("9") }
+                    )
+                    CalculatorButton(
+                        text = "×",
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        onClick = { setOperator("×") }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                ) {
+                    CalculatorButton(
+                        text = "4",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("4") }
+                    )
+                    CalculatorButton(
+                        text = "5",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("5") }
+                    )
+                    CalculatorButton(
+                        text = "6",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("6") }
+                    )
+                    CalculatorButton(
+                        text = "-",
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        onClick = { setOperator("-") }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                ) {
+                    CalculatorButton(
+                        text = "1",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("1") }
+                    )
+                    CalculatorButton(
+                        text = "2",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("2") }
+                    )
+                    CalculatorButton(
+                        text = "3",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendNumber("3") }
+                    )
+                    CalculatorButton(
+                        text = "+",
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        onClick = { setOperator("+") }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .weight(2f)
+                            .aspectRatio(2f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        onClick = { appendNumber("0") }
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "0",
+                                fontSize = 24.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    CalculatorButton(
+                        text = ".",
+                        modifier = Modifier.weight(1f),
+                        onClick = { appendDecimal() }
+                    )
+                    CalculatorButton(
+                        icon = Icons.AutoMirrored.Filled.Backspace,
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        onClick = { delete() }
+                    )
+                    CalculatorButton(
+                        text = "=",
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.primary,
+                        textColor = MaterialTheme.colorScheme.onPrimary,
+                        onClick = { calculate() }
+                    )
+                }
             }
         }
     }
@@ -562,7 +752,7 @@ fun CalculatorButton(
         colors = CardDefaults.cardColors(containerColor = color),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) // 触发轻微震动
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             onClick()
         }
     ) {
