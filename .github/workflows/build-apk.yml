@@ -43,6 +43,14 @@ jobs:
         id: commit
         run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
+      - name: Get commit list
+        id: commits
+        run: |
+          COMMITS=$(git log -5 --format='- %s (%an)' --no-merges)
+          echo "list<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Send APK to bot
         if: success()
         continue-on-error: true
@@ -65,15 +73,13 @@ jobs:
           APK_SIZE=$(stat -c%s "$APK_PATH")
           APK_NAME=$(basename "$APK_PATH")
 
-          COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges)
-
           MESSAGE="**项目**: 轻昼CE
 **版本**: ${COMMIT_HASH}
 **触发者**: ${ACTOR}
 **构建时间**: $(date '+%Y-%m-%d %H:%M:%S')
 
 **最近提交**:
-${COMMIT_LIST}
+${{ steps.commits.outputs.list }}
 
 **下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}"
 
