@@ -46,10 +46,11 @@ jobs:
       - name: Get commit list
         id: commits
         run: |
-          COMMITS=$(git log -5 --format='- %s (%an)' --no-merges)
-          echo "list<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo 'list<<EOF'
+            git log -5 --format='- %s (%an)' --no-merges
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
 
       - name: Send APK to bot
         if: success()
@@ -58,10 +59,6 @@ jobs:
           BOT_SEND_TOKEN: ${{ secrets.YHCHAT_BOT_SEND_TOKEN }}
           BOT_RECV_ID: ${{ secrets.YHCHAT_BOT_RECV_ID }}
           BOT_RECV_TYPE: ${{ secrets.YHCHAT_BOT_RECV_TYPE }}
-          COMMIT_HASH: ${{ steps.commit.outputs.hash }}
-          ACTOR: ${{ github.actor }}
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
         run: |
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
 
@@ -73,36 +70,39 @@ jobs:
           APK_SIZE=$(stat -c%s "$APK_PATH")
           APK_NAME=$(basename "$APK_PATH")
 
-          MESSAGE="**项目**: 轻昼CE
-**版本**: ${COMMIT_HASH}
-**触发者**: ${ACTOR}
+          MESSAGE=$(cat <<'EOF'
+**项目**: 轻昼CE
+**版本**: ${{ steps.commit.outputs.hash }}
+**触发者**: ${{ github.actor }}
 **构建时间**: $(date '+%Y-%m-%d %H:%M:%S')
 
 **最近提交**:
 ${{ steps.commits.outputs.list }}
 
-**下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}"
+**下载地址**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+EOF
+)
 
-          curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+          curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${{ secrets.YHCHAT_BOT_SEND_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "$(jq -n \
-              --arg recvId "$BOT_RECV_ID" \
-              --arg recvType "$BOT_RECV_TYPE" \
+              --arg recvId "${{ secrets.YHCHAT_BOT_RECV_ID }}" \
+              --arg recvType "${{ secrets.YHCHAT_BOT_RECV_TYPE }}" \
               --arg text "$MESSAGE" \
               '{recvId: $recvId, recvType: $recvType, contentType: "markdown", content: { text: $text }}')"
 
           if [ "$APK_SIZE" -lt 20971520 ]; then
-            UPLOAD_RESPONSE=$(curl -sS -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${BOT_SEND_TOKEN}" \
+            UPLOAD_RESPONSE=$(curl -sS -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${{ secrets.YHCHAT_BOT_SEND_TOKEN }}" \
               -F "file=@${APK_PATH};filename=${APK_NAME}")
 
             FILE_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.data.fileKey')
 
             if [ -n "$FILE_KEY" ] && [ "$FILE_KEY" != "null" ]; then
-              curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+              curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${{ secrets.YHCHAT_BOT_SEND_TOKEN }}" \
                 -H "Content-Type: application/json" \
                 -d "$(jq -n \
-                  --arg recvId "$BOT_RECV_ID" \
-                  --arg recvType "$BOT_RECV_TYPE" \
+                  --arg recvId "${{ secrets.YHCHAT_BOT_RECV_ID }}" \
+                  --arg recvType "${{ secrets.YHCHAT_BOT_RECV_TYPE }}" \
                   --arg fileKey "$FILE_KEY" \
                   '{recvId: $recvId, recvType: $recvType, contentType: "file", content: { fileKey: $fileKey }}')"
             else
