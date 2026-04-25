@@ -61,7 +61,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           cat > build-body.md <<EOF
-          **🎉 正式版发布：${VERSION} (${GITHUB_REF_NAME})**
+          ### 🎉 正式版发布！
 
           - **版本**: ${VERSION}
           - **触发者**: ${{ github.actor }}
@@ -112,11 +112,62 @@ jobs:
               -d "$payload"
           }
 
+          send_file() {
+            local file_path="$1"
+            local file_name
+            local upload_response
+            local file_key
+            local payload
+
+            file_name=$(basename "$file_path")
+            upload_response=$(curl --fail-with-body -sS \
+              -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${BOT_SEND_TOKEN}" \
+              -F "file=@${file_path};filename=${file_name}") || return 1
+
+            file_key=$(printf '%s' "$upload_response" | jq -r '.data.fileKey // empty')
+            if [ -z "$file_key" ]; then
+              echo "Upload did not return fileKey for ${file_name}"
+              return 1
+            fi
+
+            payload=$(jq -n \
+              --arg recvId "$BOT_RECV_ID" \
+              --arg recvType "$BOT_RECV_TYPE" \
+              --arg fileKey "$file_key" \
+              '{
+                recvId: $recvId,
+                recvType: $recvType,
+                contentType: "file",
+                content: {
+                  fileKey: $fileKey
+                }
+              }')
+
+            curl --fail-with-body \
+              -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$payload"
+          }
+
           BUILD_MESSAGE="$(cat build-body.md)"
 
           if ! send_markdown "$BUILD_MESSAGE"; then
             echo "Release markdown notification failed"
             exit 0
+          fi
+
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+
+          if [ -n "$APK_PATH" ]; then
+            APK_SIZE=$(stat -c%s "$APK_PATH")
+
+            if [ "$APK_SIZE" -lt 20971520 ]; then
+              if ! send_file "$APK_PATH"; then
+                echo "Bot file send failed"
+              fi
+            else
+              echo "APK size $(($APK_SIZE / 1048576))MB >= 20MB, sent link only"
+            fi
           fi
 
           echo "Release announcement sent successfully"
