@@ -2,7 +2,7 @@
 accompanistSwiperefresh = "0.36.0"
 agp = "9.1.0"
 coil = "3.4.0"
-zixingCore = "3.5.4"
+zxingCore = "3.5.4"
 customactivityoncrash = "2.4.0"
 exp4j = "0.4.8"
 jsoup = "1.22.2"
@@ -33,7 +33,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.1
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelKtx" }
 androidx-material3-adaptive-navigation-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite", version.ref = "material3AdaptiveNavigationSuite" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
-zixing-core = { module = "com.google.zxing:core", version.ref = "zixingCore" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxingCore" }
 customactivityoncrash = { module = "cat.ereza:customactivityoncrash", version.ref = "customactivityoncrash" }
 exp4j = { module = "net.objecthunter:exp4j", version.ref = "exp4j" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
