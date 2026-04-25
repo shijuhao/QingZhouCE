@@ -214,7 +214,6 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
                         onValueChange = { inputText = it },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("请输入文本或摩斯密码") },
-                        singleLine = false,
                         maxLines = 5
                     )
                 }
