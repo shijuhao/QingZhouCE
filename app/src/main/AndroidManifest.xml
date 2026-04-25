@@ -266,6 +266,10 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".function.system.ShellRunnerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".function.text.MorseCodeActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />

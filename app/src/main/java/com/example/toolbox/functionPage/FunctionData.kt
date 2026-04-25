@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Android
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Draw
 import androidx.compose.material.icons.outlined.HideImage
 import androidx.compose.material.icons.outlined.Image
@@ -164,7 +165,8 @@ val functionData = listOf(
         icon = Icons.Default.Settings.asIcon,
         iconColorName = "gray",
         functions = listOf(
-            FunctionItem("设备信息", "com.example.toolbox.function.system.DeviceInfoActivity", Icons.Outlined.Info, "gray")
+            FunctionItem("设备信息", "com.example.toolbox.function.system.DeviceInfoActivity", Icons.Outlined.Info, "gray"),
+            FunctionItem("Shell运行器", "com.example.toolbox.function.system.ShellRunnerActivity", Icons.Outlined.Code, "green")
         )
     ),
     FunctionCategory(
