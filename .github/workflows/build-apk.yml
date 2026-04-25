@@ -63,16 +63,16 @@ jobs:
         id: build_message
         run: |
           cat > build-body.md <<EOF
-- **版本**: ${{ steps.commit.outputs.hash }}
-- **触发者**: ${{ github.actor }}
-- **构建时间**: ${{ steps.date.outputs.date }}
+          - **版本**: ${{ steps.commit.outputs.hash }}
+          - **触发者**: ${{ github.actor }}
+          - **构建时间**: ${{ steps.date.outputs.date }}
 
-### 最近提交
-${{ steps.commits.outputs.list }}
+          ### 最近提交
+          ${{ steps.commits.outputs.list }}
 
-### 下载地址
-https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-EOF
+          ### 下载地址
+          https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
 
       - name: Notify bot about build
         continue-on-error: true
@@ -142,7 +142,7 @@ EOF
                 recvType: $recvType,
                 contentType: "file",
                 content: {
-                  fileKey: $fileKey
+                  fileKey: $file_key
                 }
               }')
 
