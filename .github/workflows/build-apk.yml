@@ -25,24 +25,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Get commit hash
-        id: commit
+      - name: Get version and commit hash
+        id: version
         run: |
+          BASE_VERSION=$(grep -E '^\s*versionName\s*=\s*"' app/build.gradle.kts | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
           COMMIT_HASH=$(git rev-parse --short HEAD)
-          echo "hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
-          echo "full_hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          FINAL_VERSION="${BASE_VERSION}-${COMMIT_HASH}"
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "final_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
 
       - name: Build and Sign APK
         run: |
-          BASE_VERSION=$(grep -E '^\s*versionName\s*=\s*"' app/build.gradle.kts | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
-          if [ -z "$BASE_VERSION" ]; then
-            echo "❌ 无法从 app/build.gradle.kts 提取 versionName"
-            exit 1
-          fi
-          FINAL_VERSION="${BASE_VERSION}-${{ steps.commit.outputs.hash }}"
-          echo "Building version: $FINAL_VERSION"
-
-          # 动态生成初始化脚本（不修改任何仓库文件）
           cat > ci-version.gradle << 'EOF'
           allprojects { project ->
             project.afterEvaluate {
@@ -55,7 +49,7 @@ jobs:
 
           ./gradlew assembleRelease \
             -I ci-version.gradle \
-            -PcustomVersion="$FINAL_VERSION" \
+            -PcustomVersion="${{ steps.version.outputs.final_version }}" \
             -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
@@ -80,20 +74,42 @@ jobs:
             echo EOF
           } >> "$GITHUB_OUTPUT"
 
+      - name: Create Prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+          name: ${{ steps.version.outputs.final_version }}
+          tag_name: ${{ steps.version.outputs.final_version }}
+          body: |
+            ### 快照版本
+            - **版本**: ${{ steps.version.outputs.final_version }}
+            - **基础版本**: ${{ steps.version.outputs.base_version }}
+            - **Commit**: ${{ steps.version.outputs.commit_hash }}
+            - **触发者**: ${{ github.actor }}
+            - **构建时间**: ${{ steps.date.outputs.date }}
+            
+            ### 最近提交
+            ${{ steps.commits.outputs.list }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Prepare build message
-        id: build_message
         run: |
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.final_version }}"
           cat > build-body.md <<EOF
-          ### 快照版本构建通知
-          - **版本**: ${{ steps.commit.outputs.hash }}
-          - **触发者**: ${{ github.actor }}
-          - **构建时间**: ${{ steps.date.outputs.date }}
+          ### 快照版本构建完成
+
+          **版本**: ${{ steps.version.outputs.final_version }}
+          **触发者**: ${{ github.actor }}
+          **构建时间**: ${{ steps.date.outputs.date }}
 
           ### 最近提交
           ${{ steps.commits.outputs.list }}
 
-          ### 下载地址
-          https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ### 下载
+          [点击下载 APK](${RELEASE_URL})
           EOF
 
       - name: Notify bot about build

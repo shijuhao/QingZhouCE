@@ -44,6 +44,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import com.example.toolbox.utils.UpdateInfo
 import com.example.toolbox.utils.checkForUpdateWithDetails
+import com.example.toolbox.settings.UpdateDialog
+import com.example.toolbox.utils.getAppVersionInfo
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -136,9 +138,12 @@ fun MyApplicationApp() {
     LaunchedEffect(Unit) {
         val autoCheckEnabled = prefs.getBoolean("autoCheckUpdate", true)
         if (autoCheckEnabled) {
+            val updateChannel = prefs.getString("update_channel", "stable") ?: "stable"
+            val includePreRelease = updateChannel == "prerelease"
+            
             val info = checkForUpdateWithDetails(
                 context = context,
-                includePreRelease = true
+                includePreRelease = includePreRelease
             )
             if (info != null) {
                 autoUpdateInfo = info
@@ -234,25 +239,14 @@ fun MyApplicationApp() {
     }
     
     if (showAutoUpdateDialog && autoUpdateInfo != null) {
-        AlertDialog(
-            onDismissRequest = { showAutoUpdateDialog = false },
-            title = { Text("发现新版本 ${autoUpdateInfo?.version}") },
-            text = { Text("是否前往下载最新版本？") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, autoUpdateInfo?.releaseUrl?.toUri())
-                        context.startActivity(intent)
-                        showAutoUpdateDialog = false
-                    }
-                ) {
-                    Text("前往下载")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAutoUpdateDialog = false }) {
-                    Text("稍后")
-                }
+        UpdateDialog(
+            updateInfo = autoUpdateInfo!!,
+            currentVersion = context.getAppVersionInfo().versionName,
+            onDismiss = { showAutoUpdateDialog = false },
+            onConfirm = {
+                val intent = Intent(Intent.ACTION_VIEW, autoUpdateInfo?.releaseUrl?.toUri())
+                context.startActivity(intent)
+                showAutoUpdateDialog = false
             }
         )
     }

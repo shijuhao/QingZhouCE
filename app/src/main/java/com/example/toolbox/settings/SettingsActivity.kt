@@ -50,7 +50,8 @@ class SettingsActivity : ComponentActivity() {
 data class ActionData(
     var isOpenCancelTips: Boolean = false,
     var isDisabledNotice: Boolean = false,
-    var isEnabledAutoCheckUpdate: Boolean = true
+    var isEnabledAutoCheckUpdate: Boolean = true,
+    var updateChannel: String = "stable"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,6 +81,8 @@ fun SettingsScreen(
     var isDisabledNotice by remember { mutableStateOf(actionData.isDisabledNotice) }
     actionData.isEnabledAutoCheckUpdate = prefs.getBoolean("autoCheckUpdate", true)
     var isEnabledAutoCheckUpdate by remember { mutableStateOf(actionData.isEnabledAutoCheckUpdate) }
+    actionData.updateChannel = prefs.getString("update_channel", "stable") ?: "stable"
+    var updateChannel by remember { mutableStateOf(actionData.updateChannel) }
 
     LaunchedEffect(Unit) {
         lanzouAuthViewModel.refresh(context)
@@ -147,6 +150,23 @@ fun SettingsScreen(
                                     isEnabledAutoCheckUpdate = actionData.isEnabledAutoCheckUpdate
                                     prefs.edit().apply {
                                         putBoolean("autoCheckUpdate", isEnabledAutoCheckUpdate)
+                                        apply()
+                                    }
+                                }
+                            )
+                        },
+                        {
+                            SettingsDropdownItem(
+                                icon = Icons.Default.List,
+                                title = "更新频道",
+                                subtitle = if (updateChannel == "stable") "仅检查正式版本" else "检查预发布版本",
+                                options = listOf("stable" to "仅正式版", "prerelease" to "正式版 + 预发布版"),
+                                selectedValue = updateChannel,
+                                onOptionSelected = { selected ->
+                                    updateChannel = selected
+                                    actionData.updateChannel = selected
+                                    prefs.edit().apply {
+                                        putString("update_channel", selected)
                                         apply()
                                     }
                                 }
@@ -452,6 +472,82 @@ fun SettingsSwitchItem(
                             MaterialTheme.colorScheme.surfaceContainerHighest
                         }
                     )
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingsDropdownItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    options: List<Pair<String, String>>,  // Pair<值, 显示文本>
+    selectedValue: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    SettingsCustomItem(onClick = { expanded = true }) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "选择",
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false },
+        modifier = Modifier
+            .fillMaxWidth(0.9f)
+            .padding(horizontal = 16.dp)
+    ) {
+        options.forEach { (value, displayText) ->
+            DropdownMenuItem(
+                text = { Text(displayText) },
+                onClick = {
+                    onOptionSelected(value)
+                    expanded = false
+                },
+                trailingIcon = {
+                    if (selectedValue == value) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "已选中"
+                        )
+                    }
                 }
             )
         }
