@@ -9,12 +9,114 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Decode Keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+
+      - name: Build and Sign APK
+        run: |
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npx changelogithub
+
+      - name: Generate changelog and create release
+        run: npx changelogithub
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Upload APK to release
+        run: |
+          APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "APK file: $APK_FILE"
+          gh release upload ${{ github.ref_name }} "$APK_FILE"
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Prepare release announcement
+        id: build_message
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cat > build-body.md <<EOF
+          **🎉 正式版发布：${VERSION} (${GITHUB_REF_NAME})**
+
+          - **版本**: ${VERSION}
+          - **触发者**: ${{ github.actor }}
+          - **构建时间**: ${{ steps.date.outputs.date }}
+
+          ### 下载地址
+          https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+          EOF
+
+      - name: Notify bot about release
+        continue-on-error: true
+        env:
+          BOT_SEND_TOKEN_VAR: ${{ vars.YHCHAT_BOT_SEND_TOKEN }}
+          BOT_SEND_TOKEN_SECRET: ${{ secrets.YHCHAT_BOT_SEND_TOKEN }}
+          BOT_RECV_ID_VAR: ${{ vars.YHCHAT_BOT_RECV_ID }}
+          BOT_RECV_ID_SECRET: ${{ secrets.YHCHAT_BOT_RECV_ID }}
+          BOT_RECV_TYPE_VAR: ${{ vars.YHCHAT_BOT_RECV_TYPE }}
+          BOT_RECV_TYPE_SECRET: ${{ secrets.YHCHAT_BOT_RECV_TYPE }}
+        run: |
+          BOT_SEND_TOKEN="${BOT_SEND_TOKEN_VAR:-$BOT_SEND_TOKEN_SECRET}"
+          BOT_RECV_ID="${BOT_RECV_ID_VAR:-$BOT_RECV_ID_SECRET}"
+          BOT_RECV_TYPE="${BOT_RECV_TYPE_VAR:-$BOT_RECV_TYPE_SECRET}"
+
+          if [ -z "$BOT_SEND_TOKEN" ] || [ -z "$BOT_RECV_ID" ] || [ -z "$BOT_RECV_TYPE" ]; then
+            echo "Skip bot notify"
+            exit 0
+          fi
+
+          send_markdown() {
+            local text="$1"
+            local payload
+            payload=$(jq -n \
+              --arg recvId "$BOT_RECV_ID" \
+              --arg recvType "$BOT_RECV_TYPE" \
+              --arg text "$text" \
+              '{
+                recvId: $recvId,
+                recvType: $recvType,
+                contentType: "markdown",
+                content: {
+                  text: $text
+                }
+              }')
+
+            curl --fail-with-body \
+              -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$payload"
+          }
+
+          BUILD_MESSAGE="$(cat build-body.md)"
+
+          if ! send_markdown "$BUILD_MESSAGE"; then
+            echo "Release markdown notification failed"
+            exit 0
+          fi
+
+          echo "Release announcement sent successfully"
