@@ -437,36 +437,37 @@ class MessageDetailViewModel(
     }
 
     private fun addNewMessage(message: Message) {
-        val currentMessages = _uiState.value.messages.toMutableList()
-        if (currentMessages.none { it.id == message.id }) {
-            currentMessages.add(0, message)
-            _uiState.update { it.copy(messages = currentMessages) }
-        }
+        val currentMessages = _uiState.value.messages
+        if (currentMessages.any { it.id == message.id }) return
+
+        val newMessages = listOf(message) + currentMessages
+        _uiState.update { it.copy(messages = newMessages) }
     }
 
     private fun updateMessage(message: Message) {
-        val currentMessages = _uiState.value.messages.toMutableList()
+        val currentMessages = _uiState.value.messages
         val index = currentMessages.indexOfFirst { it.id == message.id }
-        if (index != -1) {
-            currentMessages[index] = message
-            _uiState.update { it.copy(messages = currentMessages) }
-        }
+        if (index == -1) return
+
+        val newMessages = currentMessages.toMutableList().apply { this[index] = message }
+        _uiState.update { it.copy(messages = newMessages) }
     }
 
     private fun removeMessage(messageId: Int) {
-        val currentMessages = _uiState.value.messages.toMutableList()
+        val currentMessages = _uiState.value.messages
         val index = currentMessages.indexOfFirst { it.id == messageId }
-        if (index != -1) {
-            val message = currentMessages[index]
-            val updatedMessage = message.copy(
-                isRecalled = true,
-                recallHint = "消息已撤回",
-                content = "",
-                images = emptyList()
-            )
-            currentMessages[index] = updatedMessage
-            _uiState.update { it.copy(messages = currentMessages) }
-        }
+        if (index == -1) return
+
+        val message = currentMessages[index]
+        val updatedMessage = message.copy(
+            isRecalled = true,
+            recallHint = "消息已撤回",
+            content = "",
+            images = emptyList()
+        )
+
+        val newMessages = currentMessages.toMutableList().apply { this[index] = updatedMessage }
+        _uiState.update { it.copy(messages = newMessages) }
     }
 
     override fun onCleared() {

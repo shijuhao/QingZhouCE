@@ -472,7 +472,7 @@ fun MessageDetailScreen(
                         }
                     }
 
-                    items(uiState.messages) { message ->
+                    items(uiState.messages, key = { it.id }) { message ->
                         MessageBubble(
                             message = message,
                             onRecall = { viewModel.showRecallDialog(message.id) },

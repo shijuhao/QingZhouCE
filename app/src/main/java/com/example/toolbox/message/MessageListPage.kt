@@ -126,7 +126,7 @@ fun MessageScreen(
                         state = listState,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(uiState.friends) { friend ->
+                        items(uiState.friends, key = { it.id }) { friend ->
                             FriendItem(friend = friend)
                         }
                         if (uiState.isLoadingMore) {
