@@ -310,6 +310,10 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".function.visual.QRCodeGeneratorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".settings.ThemeActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
