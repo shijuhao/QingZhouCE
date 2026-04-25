@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Snapshot APK
 
 on:
   workflow_dispatch:
@@ -25,9 +25,37 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Get commit hash
+        id: commit
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "full_hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build and Sign APK
         run: |
+          BASE_VERSION=$(grep -E '^\s*versionName\s*=\s*"' app/build.gradle.kts | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
+          if [ -z "$BASE_VERSION" ]; then
+            echo "❌ 无法从 app/build.gradle.kts 提取 versionName"
+            exit 1
+          fi
+          FINAL_VERSION="${BASE_VERSION}-${{ steps.commit.outputs.hash }}"
+          echo "Building version: $FINAL_VERSION"
+
+          # 动态生成初始化脚本（不修改任何仓库文件）
+          cat > ci-version.gradle << 'EOF'
+          allprojects { project ->
+            project.afterEvaluate {
+              if (project.hasProperty('android')) {
+                project.android.defaultConfig.versionName = project.findProperty('customVersion') ?: project.android.defaultConfig.versionName
+              }
+            }
+          }
+          EOF
+
           ./gradlew assembleRelease \
+            -I ci-version.gradle \
+            -PcustomVersion="$FINAL_VERSION" \
             -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
@@ -39,71 +67,130 @@ jobs:
           name: app-release-signed
           path: app/build/outputs/apk/release/*.apk
 
-      - name: Get commit hash
-        id: commit
-        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
 
-      - name: Send APK to bot
-        if: success()
+      - name: Get commit list
+        id: commits
+        run: |
+          {
+            echo 'list<<EOF'
+            git log -5 --format='- %s (%an)' --no-merges
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Prepare build message
+        id: build_message
+        run: |
+          cat > build-body.md <<EOF
+          ### 快照版本构建通知
+          - **版本**: ${{ steps.commit.outputs.hash }}
+          - **触发者**: ${{ github.actor }}
+          - **构建时间**: ${{ steps.date.outputs.date }}
+
+          ### 最近提交
+          ${{ steps.commits.outputs.list }}
+
+          ### 下载地址
+          https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
+
+      - name: Notify bot about build
         continue-on-error: true
         env:
-          BOT_SEND_TOKEN: ${{ secrets.YHCHAT_BOT_SEND_TOKEN }}
-          BOT_RECV_ID: ${{ secrets.YHCHAT_BOT_RECV_ID }}
-          BOT_RECV_TYPE: ${{ secrets.YHCHAT_BOT_RECV_TYPE }}
-          COMMIT_HASH: ${{ steps.commit.outputs.hash }}
-          ACTOR: ${{ github.actor }}
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
+          BOT_SEND_TOKEN_VAR: ${{ vars.YHCHAT_BOT_SEND_TOKEN }}
+          BOT_SEND_TOKEN_SECRET: ${{ secrets.YHCHAT_BOT_SEND_TOKEN }}
+          BOT_RECV_ID_VAR: ${{ vars.YHCHAT_BOT_RECV_ID }}
+          BOT_RECV_ID_SECRET: ${{ secrets.YHCHAT_BOT_RECV_ID }}
+          BOT_RECV_TYPE_VAR: ${{ vars.YHCHAT_BOT_RECV_TYPE }}
+          BOT_RECV_TYPE_SECRET: ${{ secrets.YHCHAT_BOT_RECV_TYPE }}
         run: |
-          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          BOT_SEND_TOKEN="${BOT_SEND_TOKEN_VAR:-$BOT_SEND_TOKEN_SECRET}"
+          BOT_RECV_ID="${BOT_RECV_ID_VAR:-$BOT_RECV_ID_SECRET}"
+          BOT_RECV_TYPE="${BOT_RECV_TYPE_VAR:-$BOT_RECV_TYPE_SECRET}"
 
-          if [ -z "$APK_PATH" ]; then
-            echo "No APK found"
+          if [ -z "$BOT_SEND_TOKEN" ] || [ -z "$BOT_RECV_ID" ] || [ -z "$BOT_RECV_TYPE" ]; then
+            echo "Skip bot notify"
             exit 0
           fi
 
-          APK_SIZE=$(stat -c%s "$APK_PATH")
-          APK_NAME=$(basename "$APK_PATH")
-
-          COMMIT_LIST=$(git log -5 --format='- %s (%an)' --no-merges | sed ':a;N;$!ba;s/\n/\\n/g')
-
-          cat > /tmp/message.md << EOF
-**项目**: 轻昼CE
-**版本**: ${COMMIT_HASH}
-**触发者**: ${ACTOR}
-**构建时间**: $(date '+%Y-%m-%d %H:%M:%S')
-
-**最近提交**:
-${COMMIT_LIST}
-
-**下载地址**: https://github.com/${REPO}/actions/runs/${RUN_ID}
-EOF
-
-          curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "$(jq -n \
+          send_markdown() {
+            local text="$1"
+            local payload
+            payload=$(jq -n \
               --arg recvId "$BOT_RECV_ID" \
               --arg recvType "$BOT_RECV_TYPE" \
-              --arg text "$(cat /tmp/message.md)" \
-              '{recvId: $recvId, recvType: $recvType, contentType: "markdown", content: { text: $text }}')"
+              --arg text "$text" \
+              '{
+                recvId: $recvId,
+                recvType: $recvType,
+                contentType: "markdown",
+                content: {
+                  text: $text
+                }
+              }')
 
-          if [ "$APK_SIZE" -lt 20971520 ]; then
-            UPLOAD_RESPONSE=$(curl -sS -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${BOT_SEND_TOKEN}" \
-              -F "file=@${APK_PATH};filename=${APK_NAME}")
+            curl --fail-with-body \
+              -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$payload"
+          }
 
-            FILE_KEY=$(echo "$UPLOAD_RESPONSE" | jq -r '.data.fileKey')
+          send_file() {
+            local file_path="$1"
+            local file_name
+            local upload_response
+            local file_key
+            local payload
 
-            if [ -n "$FILE_KEY" ] && [ "$FILE_KEY" != "null" ]; then
-              curl -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
-                -H "Content-Type: application/json" \
-                -d "$(jq -n \
-                  --arg recvId "$BOT_RECV_ID" \
-                  --arg recvType "$BOT_RECV_TYPE" \
-                  --arg fileKey "$FILE_KEY" \
-                  '{recvId: $recvId, recvType: $recvType, contentType: "file", content: { fileKey: $fileKey }}')"
-            else
-              echo "File upload failed, APK sent via link only"
+            file_name=$(basename "$file_path")
+            upload_response=$(curl --fail-with-body -sS \
+              -X POST "https://chat-go.jwzhd.com/open-apis/v1/file/upload?token=${BOT_SEND_TOKEN}" \
+              -F "file=@${file_path};filename=${file_name}") || return 1
+
+            file_key=$(printf '%s' "$upload_response" | jq -r '.data.fileKey // empty')
+            if [ -z "$file_key" ]; then
+              echo "Upload did not return fileKey for ${file_name}"
+              return 1
             fi
-          else
-            echo "APK size $(($APK_SIZE / 1048576))MB >= 20MB, sent link only"
+
+            payload=$(jq -n \
+              --arg recvId "$BOT_RECV_ID" \
+              --arg recvType "$BOT_RECV_TYPE" \
+              --arg fileKey "$file_key" \
+              '{
+                recvId: $recvId,
+                recvType: $recvType,
+                contentType: "file",
+                content: {
+                  fileKey: $fileKey
+                }
+              }')
+
+            curl --fail-with-body \
+              -X POST "https://chat-go.jwzhd.com/open-apis/v1/bot/send?token=${BOT_SEND_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$payload"
+          }
+
+          BUILD_MESSAGE="$(cat build-body.md)"
+
+          if ! send_markdown "$BUILD_MESSAGE"; then
+            echo "Markdown bot notification failed"
+            exit 0
+          fi
+
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+
+          if [ -n "$APK_PATH" ]; then
+            APK_SIZE=$(stat -c%s "$APK_PATH")
+
+            if [ "$APK_SIZE" -lt 20971520 ]; then
+              if ! send_file "$APK_PATH"; then
+                echo "Bot file send failed"
+              fi
+            else
+              echo "APK size $(($APK_SIZE / 1048576))MB >= 20MB, sent link only"
+            fi
           fi
