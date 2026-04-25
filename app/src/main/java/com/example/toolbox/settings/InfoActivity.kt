@@ -3,6 +3,7 @@
 package com.example.toolbox.settings
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -102,35 +103,14 @@ fun InfoScreen(modifier: Modifier = Modifier) {
     val userRules = stringResource(R.string.user_rules)
 
     if (showUpdateDialog && updateInfo != null) {
-        AlertDialog(
-            onDismissRequest = { showUpdateDialog = false },
-            title = {
-                Text(
-                    text = if (updateInfo?.isPreRelease == true) {
-                        "发现新预发布版 ${updateInfo?.version}"
-                    } else {
-                        "发现新版本 ${updateInfo?.version}"
-                    }
-                )
-            },
-            text = {
-                Text("是否前往下载最新版本？")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, updateInfo?.releaseUrl?.toUri())
-                        context.startActivity(intent)
-                        showUpdateDialog = false
-                    }
-                ) {
-                    Text("前往下载")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUpdateDialog = false }) {
-                    Text("稍后")
-                }
+        UpdateDialog(
+            updateInfo = updateInfo!!,
+            currentVersion = context.getAppVersionInfo().versionName,
+            onDismiss = { showUpdateDialog = false },
+            onConfirm = {
+                val intent = Intent(Intent.ACTION_VIEW, updateInfo?.releaseUrl?.toUri())
+                context.startActivity(intent)
+                showUpdateDialog = false
             }
         )
     }
@@ -276,9 +256,13 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                 subtitle = "检测是否有新版本",
                                 onClick = {
                                     lifecycleScope?.launch {
+                                        val prefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+                                        val updateChannel = prefs.getString("update_channel", "stable") ?: "stable"
+                                        val includePreRelease = updateChannel == "prerelease"
+                                        
                                         val info = checkForUpdateWithDetails(
                                             context = context,
-                                            includePreRelease = true
+                                            includePreRelease = includePreRelease
                                         )
                                         if (info != null) {
                                             updateInfo = info
@@ -439,4 +423,52 @@ fun InfoScreen(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+@Composable
+fun UpdateDialog(
+    updateInfo: UpdateInfo,
+    currentVersion: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val isPreRelease = updateInfo.isPreRelease
+    val versionType = if (isPreRelease) "预发布版" else "正式版"
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = if (isPreRelease) {
+                    "发现新预发布版"
+                } else {
+                    "发现新正式版"
+                }
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "$currentVersion  →  ${updateInfo.version}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "版本类型：$versionType",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("前往下载")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("稍后")
+            }
+        }
+    )
 }
