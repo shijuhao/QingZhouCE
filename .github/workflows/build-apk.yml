@@ -68,6 +68,7 @@ jobs:
         id: build_message
         run: |
           cat > build-body.md <<EOF
+          ### 快照版本构建通知
           - **版本**: ${{ steps.commit.outputs.hash }}
           - **触发者**: ${{ github.actor }}
           - **构建时间**: ${{ steps.date.outputs.date }}
