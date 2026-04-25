@@ -75,7 +75,7 @@ fun parseTerm(expr: String, pos: Int): Pair<Double, Int> {
 }
 
 fun parsePower(expr: String, pos: Int): Pair<Double, Int> {
-    val (base, currentPos) = parseNumber(expr, pos)
+    val (base, currentPos) = parseFactor(expr, pos)
     var position = currentPos
     
     if (position < expr.length && expr[position] == '^') {
@@ -85,6 +85,32 @@ fun parsePower(expr: String, pos: Int): Pair<Double, Int> {
     }
     
     return Pair(base, position)
+}
+
+fun parseFactor(expr: String, pos: Int): Pair<Double, Int> {
+    if (pos >= expr.length) return Pair(0.0, pos)
+    
+    // 处理括号表达式
+    if (expr[pos] == '(') {
+        val (result, newPos) = evaluateRecursive(expr, pos + 1)
+        // 跳过右括号
+        val finalPos = if (newPos < expr.length && expr[newPos] == ')') newPos + 1 else newPos
+        return Pair(result, finalPos)
+    }
+    
+    // 处理负号
+    if (expr[pos] == '-') {
+        val (result, newPos) = parseFactor(expr, pos + 1)
+        return Pair(-result, newPos)
+    }
+    
+    // 处理正号
+    if (expr[pos] == '+') {
+        return parseFactor(expr, pos + 1)
+    }
+    
+    // 处理数字
+    return parseNumber(expr, pos)
 }
 
 fun parseNumber(expr: String, pos: Int): Pair<Double, Int> {
