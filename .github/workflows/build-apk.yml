@@ -147,7 +147,7 @@ jobs:
                 recvType: $recvType,
                 contentType: "file",
                 content: {
-                  fileKey: $file_key
+                  fileKey: $fileKey
                 }
               }')
 
