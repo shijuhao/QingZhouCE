@@ -35,7 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.rememberAsyncImagePainter
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.TokenManager
 import com.example.toolbox.data.community.EditRecord
@@ -372,15 +371,14 @@ fun CommunityScreen(
     val messages = state.messages
 
     LaunchedEffect(currentCategoryId, refreshTrigger) {
-        if (refreshTrigger > 0 || messages.isEmpty()) {
-            viewModel.fetchMessages(
-                token = token,
-                page = 1,
-                isRefresh = true
-            )
-            if (refreshTrigger > 0) {
-                lazyListState.animateScrollToItem(0)
-            }
+        // 当分区改变或刷新触发时，重新获取消息
+        viewModel.fetchMessages(
+            token = token,
+            page = 1,
+            isRefresh = true
+        )
+        if (refreshTrigger > 0) {
+            lazyListState.animateScrollToItem(0)
         }
     }
 
@@ -737,18 +735,8 @@ fun CommunityScreen(
         }
     }
     viewerState?.let { (urls, initialPage) ->
-        val painters = remember(urls) {
-            urls.map { url ->
-                @Composable {
-                    rememberAsyncImagePainter(
-                        model = url
-                    )
-                }
-            }
-        }
-
         MultiImageViewer(
-            images = painters.map { it() },
+            images = urls,
             initialPage = initialPage,
             isVisible = true,
             onDismiss = { viewerState = null }

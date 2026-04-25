@@ -361,13 +361,8 @@ fun PostDetailScreen(
     }
 
     if (showImageViewer) {
-        val painters = imageViewerUrls.map { url ->
-            rememberAsyncImagePainter(
-                model = url
-            )
-        }
         MultiImageViewer(
-            images = painters,
+            images = imageViewerUrls,
             initialPage = imageViewerInitialPage,
             isVisible = showImageViewer,
             onDismiss = { showImageViewer = false }
