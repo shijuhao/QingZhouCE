@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,28 +26,22 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TextSnippet
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Update
-import androidx.compose.material.icons.filled.Web
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -67,11 +62,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.example.toolbox.R
-import com.example.toolbox.webview.WebViewActivity
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.example.toolbox.utils.AppIconViewer
 import com.example.toolbox.utils.MarkdownRenderer
@@ -101,46 +94,46 @@ fun InfoScreen(modifier: Modifier = Modifier) {
     var showUpdateDialog by remember { mutableStateOf(false) }
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
 
-    var showUpdateLogDialog by remember { mutableStateOf(false) }
     var showUserRulesDialog by remember { mutableStateOf(false) }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior =
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     val userRules = stringResource(R.string.user_rules)
 
     if (showUpdateDialog && updateInfo != null) {
-    AlertDialog(
-        onDismissRequest = { showUpdateDialog = false },
-        title = {
-            Text(
-                text = if (updateInfo?.isPreRelease == true) {
-                    "发现新预发布版 ${updateInfo?.version}"
-                } else {
-                    "发现新版本 ${updateInfo?.version}"
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = {
+                Text(
+                    text = if (updateInfo?.isPreRelease == true) {
+                        "发现新预发布版 ${updateInfo?.version}"
+                    } else {
+                        "发现新版本 ${updateInfo?.version}"
+                    }
+                )
+            },
+            text = {
+                Text("是否前往下载最新版本？")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, updateInfo?.releaseUrl?.toUri())
+                        context.startActivity(intent)
+                        showUpdateDialog = false
+                    }
+                ) {
+                    Text("前往下载")
                 }
-            )
-        },
-        text = {
-            Text("是否前往下载最新版本？")
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, updateInfo?.releaseUrl?.toUri())
-                    context.startActivity(intent)
-                    showUpdateDialog = false
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdateDialog = false }) {
+                    Text("稍后")
                 }
-            ) {
-                Text("前往下载")
             }
-        },
-        dismissButton = {
-            TextButton(onClick = { showUpdateDialog = false }) {
-                Text("稍后")
-            }
-        }
-    )
-}
+        )
+    }
 
     if (showUserRulesDialog) {
         AlertDialog(
@@ -148,7 +141,9 @@ fun InfoScreen(modifier: Modifier = Modifier) {
             title = { Text("隐私政策") },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                 ) {
                     MarkdownRenderer.Render(
                         modifier = Modifier.fillMaxWidth(),
@@ -197,8 +192,8 @@ fun InfoScreen(modifier: Modifier = Modifier) {
         ) {
             item {
                 SettingsGroup(
-                    items = listOf(
-                        {
+                    items = buildList {
+                        add {
                             SettingsCustomItem(onClick = null) {
                                 Column(
                                     modifier = Modifier
@@ -217,27 +212,64 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     )
                                 }
                             }
-                        },
-                        {
+                        }
+
+                        if (context.getAppVersionInfo().isSnapShotVersion) {
+                            add {
+                                SettingsCustomItem {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                MaterialTheme.colorScheme.secondaryContainer.copy(
+                                                    alpha = 0.3f
+                                                )
+                                            )
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = "提示",
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = "你正在使用快照版本，请随时关注更新频道",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        add {
                             SettingsItemCell(
                                 icon = Icons.Outlined.Info,
                                 title = "版本号",
                                 subtitle = context.getAppVersionInfo().versionName,
                                 onClick = {}
                             )
-                        },
-                        {
+                        }
+
+                        add {
                             SettingsItemCell(
                                 icon = Icons.Default.Code,
                                 title = "源代码仓库",
                                 subtitle = "https://github.com/shijuhao/QingZhouCE",
                                 onClick = {
-                                    val intent = Intent(Intent.ACTION_VIEW, "https://github.com/shijuhao/QingZhouCE".toUri())
+                                    val intent = Intent(
+                                        Intent.ACTION_VIEW,
+                                        "https://github.com/shijuhao/QingZhouCE".toUri()
+                                    )
                                     context.startActivity(intent)
                                 }
                             )
-                        },
-                        {
+                        }
+
+                        add {
                             SettingsItemCell(
                                 icon = Icons.Default.Update,
                                 title = "检查更新",
@@ -252,13 +284,17 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                             updateInfo = info
                                             showUpdateDialog = true
                                         } else {
-                                            Toast.makeText(context, "已是最新版本", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "已是最新版本",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     }
                                 }
                             )
                         }
-                    )
+                    }
                 )
             }
 
@@ -308,7 +344,11 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     try {
                                         context.startActivity(intent)
                                     } catch (_: Exception) {
-                                        Toast.makeText(context, "无法打开邮件应用", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "无法打开邮件应用",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                             )
@@ -322,7 +362,10 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     val intent = Intent(Intent.ACTION_SEND).apply {
                                         type = "text/plain"
                                         putExtra(Intent.EXTRA_SUBJECT, "推荐工具箱应用")
-                                        putExtra(Intent.EXTRA_TEXT, "我正在使用一款很实用的工具箱应用，推荐给你")
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            "我正在使用一款很实用的工具箱应用，推荐给你"
+                                        )
                                     }
                                     context.startActivity(Intent.createChooser(intent, "分享应用"))
                                 }

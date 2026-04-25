@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
@@ -223,7 +224,7 @@ fun SettingsScreen(
                         if (isLanzouLoggedIn) {
                             add {
                                 SettingsItemCell(
-                                    icon = Icons.Default.Logout,
+                                    icon = Icons.AutoMirrored.Filled.Logout,
                                     title = "退出蓝奏云账号",
                                     subtitle = "清除本地保存的蓝奏云登录状态",
                                     onClick = {
@@ -238,7 +239,6 @@ fun SettingsScreen(
                 )
             }
 
-            // 关于应用组
             item {
                 SettingsGroup(
                     title = "关于",

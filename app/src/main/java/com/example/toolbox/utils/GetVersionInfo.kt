@@ -6,7 +6,8 @@ import android.os.Build
 
 data class AppVersionInfo(
     val versionName: String,
-    val versionCode: Long
+    val versionCode: Long,
+    val isSnapShotVersion: Boolean
 )
 
 fun Context.getAppVersionInfo(): AppVersionInfo {
@@ -26,8 +27,8 @@ fun Context.getAppVersionInfo(): AppVersionInfo {
             @Suppress("DEPRECATION")
             packageInfo.versionCode.toLong()
         }
-        AppVersionInfo(versionName, versionCode)
+        AppVersionInfo(versionName, versionCode, versionName.contains("-"))
     } catch (_: PackageManager.NameNotFoundException) {
-        AppVersionInfo("未知", 0L)
+        AppVersionInfo("未知", 0L, false)
     }
 }

@@ -24,7 +24,6 @@ suspend fun checkForUpdateWithDetails(
 
         val client = OkHttpClient()
 
-        // 根据是否包含预发布版选择API
         val url = if (includePreRelease) {
             "https://api.github.com/repos/$owner/$repo/releases"
         } else {
@@ -41,17 +40,13 @@ suspend fun checkForUpdateWithDetails(
 
         val body = response.body.string()
 
-        // 解析JSON（手动解析，避免引入依赖）
         val (latestVersion, releaseNotes, releaseUrl, isPreRelease) = if (includePreRelease) {
-            // 解析数组，取第一个release
             val firstRelease = body.substringAfter("[")
             parseReleaseInfo(firstRelease)
         } else {
-            // 解析单个release
             parseReleaseInfo(body)
         }
 
-        // 如果是预发布版且不允许包含，则跳过
         if (isPreRelease && !includePreRelease) {
             return@withContext null
         }
@@ -63,8 +58,9 @@ suspend fun checkForUpdateWithDetails(
             isPreRelease = isPreRelease
         )
 
-        // 比较版本，有新版本才返回
-        if (compareVersion(updateInfo.version, currentVersion) > 0) {
+        val updateStatus = compareVersion(updateInfo.version, currentVersion)
+
+        if ( updateStatus > 0 || (context.getAppVersionInfo().isSnapShotVersion && updateStatus >= 0)) {
             updateInfo
         } else {
             null
@@ -99,7 +95,7 @@ private fun parseReleaseInfo(json: String): ReleaseData {
         val isPreRelease = json.contains("\"prerelease\":true")
 
         ReleaseData(version, notes, url, isPreRelease)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         ReleaseData("", "", "", false)
     }
 }
@@ -111,16 +107,15 @@ private data class ReleaseData(
     val isPreRelease: Boolean
 )
 
-/**
- * 比较版本号
- */
 private fun compareVersion(v1: String, v2: String): Int {
     val parts1 = v1.split(".").map { it.toIntOrNull() ?: 0 }
     val parts2 = v2.split(".").map { it.toIntOrNull() ?: 0 }
     for (i in 0 until maxOf(parts1.size, parts2.size)) {
         val num1 = parts1.getOrNull(i) ?: 0
         val num2 = parts2.getOrNull(i) ?: 0
-        if (num1 != num2) return num1 - num2
+        if (num1 != num2) {
+            return if (num1 > num2) 1 else -1
+        }
     }
     return 0
 }
