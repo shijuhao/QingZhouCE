@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.Terrain
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,32 +54,30 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.TokenManager
-import com.example.toolbox.data.community.LocalApiResponse
+import com.example.toolbox.data.community.LocalEditRecord
 import com.example.toolbox.data.community.MessageInfo
-import com.example.toolbox.data.community.ReferencedMessageInfo
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
-import java.io.IOException
-import kotlin.coroutines.resume
 import androidx.core.graphics.createBitmap
-import coil3.compose.rememberAsyncImagePainter
 import coil3.request.bitmapConfig
 import coil3.request.crossfade
-import com.example.toolbox.AppJson
 import com.example.toolbox.R
-import com.example.toolbox.data.community.LocalEditRecord
 import com.example.toolbox.utils.MarkdownRenderer
 import com.example.toolbox.utils.MultiImageViewer
 import java.io.File
 import androidx.compose.ui.viewinterop.AndroidView
 import coil3.request.allowHardware
+import com.example.toolbox.data.community.ReferencedMessageInfo
+import com.example.toolbox.data.community.ReplyMessage
+import com.example.toolbox.data.community.ReplyPagination
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.jsonArray
 
 object AppImageLoaders {
     private var _coil3Loader: coil3.ImageLoader? = null
@@ -158,21 +157,23 @@ fun PostDetailScreen(
 ) {
     val context = LocalContext.current
     val token = TokenManager.get(context)
-    var uiState by remember { mutableStateOf<MessageInfo?>(null) }
-    var errorState by remember { mutableStateOf<String?>(null) }
+    val viewModel: PostDetailViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return PostDetailViewModel(messageId, token) as T
+            }
+        }
+    )
+    
+    val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
-    val viewModel: CommunityViewModel = viewModel()
     var messageToDelete by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
     var showShareSheet by remember { mutableStateOf(false) }
 
     var replyText by remember { mutableStateOf("") }
-    var isLiked by remember { mutableStateOf(false) }
-    var likeCount by remember { mutableIntStateOf(0) }
-    var isLiking by remember { mutableStateOf(false) }
-    var isReplying by remember { mutableStateOf(false) }
-    val client = OkHttpClient()
 
     var pendingBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
@@ -201,74 +202,40 @@ fun PostDetailScreen(
     var imageViewerUrls by remember { mutableStateOf<List<String>>(emptyList()) }
     var imageViewerInitialPage by remember { mutableIntStateOf(0) }
 
-    fun load() {
-        val client = OkHttpClient()
-        val headers = token?.let {
-            Headers.Builder()
-                .add("Content-Type", "application/json")
-                .add("x-access-token", it)
-        }?.build()
-        val request = headers?.let {
-            Request.Builder()
-                .url("${ApiAddress}get_message_info")
-                .post(
-                    JSONObject().apply { put("message_id", messageId) }.toString()
-                        .toRequestBody("application/json".toMediaType())
-                )
-                .headers(it)
-        }?.build()
-
-        request?.let { client.newCall(it) }?.enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                errorState = "网络错误: ${e.message}"
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (!it.isSuccessful) {
-                        errorState = "服务器错误: ${it.code}"; return
-                    }
-                    val res = it.body.string()
-                        .let { string -> AppJson.json.decodeFromString<LocalApiResponse>(string) }
-                    if (res.success) {
-                        uiState = res.message_info
-                        res.message_info?.let { msg ->
-                            isLiked = msg.is_liked
-                            likeCount = msg.like_count
-                        }
-                    } else {
-                        errorState = res.message
-                    }
-                }
-            }
-        })
+    LaunchedEffect(refreshTrigger) {
+        if (refreshTrigger > 0) {
+            viewModel.refresh()
+        }
     }
 
-    LaunchedEffect(messageId, refreshTrigger) { load() }
+    // 监听回复错误
+    LaunchedEffect(uiState.replyError) {
+        uiState.replyError?.let { error ->
+            Toast.makeText(context, "回复失败: $error", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 监听回复成功
+    LaunchedEffect(uiState.replySuccess) {
+        if (uiState.replySuccess) {
+            Toast.makeText(context, "回复成功", Toast.LENGTH_SHORT).show()
+            replyText = ""
+            // 重置成功标志
+            viewModel.resetReplySuccess()
+        }
+    }
 
     fun handleLike() {
-        if (isLiking) return
         if (token == null) {
             Toast.makeText(context, "请先登录", Toast.LENGTH_SHORT).show()
             return
         }
 
         scope.launch {
-            isLiking = true
             try {
-                val (newIsLiked, newLikeCount) = toggleLike(
-                    client = client,
-                    token = token,
-                    messageId = messageId,
-                    wasLiked = isLiked,
-                    currentLikeCount = likeCount
-                )
-                isLiked = newIsLiked
-                likeCount = newLikeCount
+                viewModel.toggleLike()
             } catch (e: Exception) {
                 Toast.makeText(context, "点赞失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            } finally {
-                isLiking = false
             }
         }
     }
@@ -284,35 +251,21 @@ fun PostDetailScreen(
         }
 
         scope.launch {
-            isReplying = true
-            try {
-                postReply(
-                    client = client,
-                    token = token,
-                    content = replyText,
-                    categoryId = uiState?.category?.id ?: 0,
-                    refId = messageId,
-                    isPrivate = false,
-                    targetUserId = 0
-                )
-                Toast.makeText(context, "回复成功", Toast.LENGTH_SHORT).show()
-                replyText = ""
-                load()
-            } catch (e: Exception) {
-                Toast.makeText(context, "回复失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            } finally {
-                isReplying = false
-            }
+            viewModel.postReply(
+                content = replyText,
+                categoryId = uiState.messageInfo?.category?.id ?: 0,
+                refId = messageId
+            )
         }
     }
 
     fun editMessage() {
         val intent = Intent(context, PostArticleActivity::class.java).apply {
-            uiState?.let {
+            uiState.messageInfo?.let {
                 putExtra("edit_message_id", it.message_id)
                 putExtra("userId", TokenManager.getUserID(context))
                 putExtra("old_title", it.content.title)
-                putExtra("old_content", it.content.text ?: it.content.content ?: "")
+                putExtra("old_content", it.content.content ?: it.content.text ?: "")
                 putStringArrayListExtra("old_images", ArrayList(it.content.images ?: emptyList()))
                 putIntegerArrayListExtra("old_private", ArrayList(it.visible_to ?: emptyList()))
                 putExtra("old_is_markdown", it.is_markdown)
@@ -331,22 +284,37 @@ fun PostDetailScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     onClick = {
                         token?.let { tk ->
-                            uiState?.let { info ->
-                                viewModel.deleteMessage(
-                                    token = tk,
-                                    messageId = info.message_id,
-                                    userStatus = TokenManager.getTagStatus(context),
-                                    onError = { err ->
-                                        Toast.makeText(
-                                            context,
-                                            "删除失败: $err",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    })
+                            uiState.messageInfo?.let { info ->
+                                // 直接使用 OkHttpClient 删除
+                                val client = OkHttpClient()
+                                val headers = okhttp3.Headers.Builder()
+                                    .add("Content-Type", "application/json")
+                                    .add("x-access-token", tk)
+                                    .build()
+                                val jsonBody = org.json.JSONObject().apply {
+                                    put("message_id", info.message_id)
+                                }
+                                val request = okhttp3.Request.Builder()
+                                    .url("${ApiAddress}delete_message")
+                                    .post(jsonBody.toString().toRequestBody("application/json".toMediaType()))
+                                    .headers(headers)
+                                    .build()
+                                                
+                                client.newCall(request).enqueue(object : okhttp3.Callback {
+                                    override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
+                                        (context as? Activity)?.runOnUiThread {
+                                            Toast.makeText(context, "删除失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                                        (context as? Activity)?.runOnUiThread {
+                                            Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                                            context.finish()
+                                        }
+                                    }
+                                })
                             }
                         }
-                        Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
-                        (context as Activity).finish()
                     }) { Text("确定删除") }
             },
             dismissButton = { TextButton(onClick = { messageToDelete = false }) { Text("取消") } }
@@ -373,13 +341,15 @@ fun PostDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (uiState?.is_private == true) "私密帖子详情" else "帖子详情")
+                    Text(if (uiState.messageInfo?.is_private == true) "私密帖子详情" else "帖子详情")
                 },
                 subtitle = {
-                    if (uiState != null) Text(
-                        text = "ID: ${uiState?.message_id}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    uiState.messageInfo?.let {
+                        Text(
+                            text = "ID: ${it.message_id}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onBack) {
@@ -398,19 +368,17 @@ fun PostDetailScreen(
                         )
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        uiState?.let { it1 ->
+                        uiState.messageInfo?.let { it1 ->
                             if (it1.content.type != "image") {
                                 DropdownMenuItem(
                                     text = { Text("复制文本") },
                                     onClick = {
-                                        uiState?.let {
-                                            clipboard.nativeClipboard.setPrimaryClip(
-                                                ClipData.newPlainText(
-                                                    "text",
-                                                    it.content.content ?: it.content.text ?: ""
-                                                )
+                                        clipboard.nativeClipboard.setPrimaryClip(
+                                            ClipData.newPlainText(
+                                                "text",
+                                                it1.content.content ?: it1.content.text ?: ""
                                             )
-                                        }
+                                        )
                                         showMenu = false
                                         Toast.makeText(context, "复制成功", Toast.LENGTH_SHORT)
                                             .show()
@@ -488,20 +456,20 @@ fun PostDetailScreen(
                     ) {
                         IconButton(
                             onClick = { handleLike() },
-                            enabled = !isLiking,
+                            enabled = !uiState.isLiking,
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
-                                imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                imageVector = if (uiState.isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                 contentDescription = "点赞",
-                                tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                tint = if (uiState.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
 
-                        if (likeCount > 0) {
+                        if (uiState.likeCount > 0) {
                             Text(
-                                text = likeCount.toString(),
+                                text = uiState.likeCount.toString(),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -530,10 +498,10 @@ fun PostDetailScreen(
 
                     IconButton(
                         onClick = { handleReply() },
-                        enabled = replyText.isNotBlank() && !isReplying,
+                        enabled = replyText.isNotBlank() && !uiState.isReplying,
                         modifier = Modifier.size(40.dp)
                     ) {
-                        if (isReplying) {
+                        if (uiState.isReplying) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
@@ -559,7 +527,7 @@ fun PostDetailScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            if (errorState != null) {
+            if (uiState.error != null) {
                 Column(
                     Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -570,13 +538,18 @@ fun PostDetailScreen(
                         tint = Color.Gray,
                         modifier = Modifier.size(48.dp)
                     )
-                    Text(errorState!!, style = MaterialTheme.typography.bodyLarge)
+                    Text(uiState.error!!, style = MaterialTheme.typography.bodyLarge)
                 }
-            } else if (uiState == null) {
+            } else if (uiState.messageInfo == null) {
                 ContainedLoadingIndicator(Modifier.align(Alignment.Center))
             } else {
                 MessageMainLayout(
-                    msg = uiState!!,
+                    msg = uiState.messageInfo!!,
+                    replies = uiState.replies,
+                    replyPagination = uiState.replyPagination,
+                    isLoadingReplies = uiState.isLoadingReplies,
+                    replyError = uiState.replyError,
+                    onLoadMore = { viewModel.loadReplies(page = (uiState.replyPagination?.current_page ?: 0) + 1, append = true) },
                     onShowEditRecords = { records ->
                         editRecords = records
                         showEditDialog = true
@@ -591,7 +564,7 @@ fun PostDetailScreen(
         }
 
         if (showShareSheet) {
-            uiState?.let { messageInfo ->
+            uiState.messageInfo?.let { messageInfo ->
                 ShareBottomSheet(
                     messageInfo = messageInfo,
                     onDismiss = { showShareSheet = false },
@@ -1028,7 +1001,7 @@ fun ShareBottomSheet(
                                 withContext(Dispatchers.Main) {
                                     suspendCancellableCoroutine { continuation ->
                                         view.post {
-                                            continuation.resume(Unit)
+                                            continuation.resume(Unit) {}
                                         }
                                     }
 
@@ -1072,14 +1045,109 @@ fun ShareActionCard(icon: ImageVector, label: String, onClick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MessageMainLayout(
     msg: MessageInfo,
+    replies: List<ReplyMessage>,
+    replyPagination: ReplyPagination?,
+    isLoadingReplies: Boolean,
+    replyError: String?,
+    onLoadMore: () -> Unit,
     onShowEditRecords: (List<LocalEditRecord>) -> Unit,
     onImageClick: (List<String>, Int) -> Unit
 ) {
     Column(Modifier.verticalScroll(rememberScrollState())) {
         MessageContent(msg, onShowEditRecords, onImageClick)
+
+        Spacer(Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.ChatBubbleOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "回复列表",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.weight(1f))
+                    replyPagination?.let {
+                        Text(
+                            text = "共 ${it.total} 条",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (replyError != null) {
+                    Text(
+                        text = replyError,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                } else if (replies.isEmpty() && !isLoadingReplies) {
+                    Text(
+                        text = "暂无回复",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                } else {
+                    replies.forEach { reply ->
+                        ReplyItem(
+                            reply = reply,
+                            onImageClick = onImageClick
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            thickness = DividerDefaults.Thickness,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                        )
+                    }
+
+                    if (isLoadingReplies) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ContainedLoadingIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    } else if (replyPagination != null && replyPagination.current_page < replyPagination.pages) {
+                        Button(
+                            onClick = onLoadMore,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Text("加载更多")
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -1143,6 +1211,100 @@ fun ReferencedMessageCard(ref: ReferencedMessageInfo, imageLoader: coil3.ImageLo
             ref.referenced_message?.let {
                 Box(Modifier.padding(top = 8.dp)) { ReferencedMessageCard(it, imageLoader) }
             }
+        }
+    }
+}
+
+@Composable
+fun ReplyItem(
+    reply: ReplyMessage,
+    onImageClick: (List<String>, Int) -> Unit
+) {
+    val context = LocalContext.current
+    val softwareImageLoader = remember { AppImageLoaders.getCoil3Loader(context) }
+
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable {
+                context.startActivity(
+                    Intent(context, UserInfoActivity::class.java).apply {
+                        putExtra("userId", reply.sender_info.id)
+                    }
+                )
+            }
+        ) {
+            AsyncImage(
+                model = reply.sender_info.avatar_url,
+                imageLoader = softwareImageLoader,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+                error = painterResource(id = R.drawable.user)
+            )
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(
+                    reply.sender_info.username,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                reply.timestamp_user?.let {
+                    Text(
+                        it,
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        val displayContent = reply.content_display
+        if (displayContent != null) {
+            when (displayContent) {
+                is kotlinx.serialization.json.JsonPrimitive -> {
+                    MarkdownText(displayContent.content)
+                }
+                is kotlinx.serialization.json.JsonObject -> {
+                    val text = displayContent["text"]?.jsonPrimitive?.content
+                    val images = displayContent["images"]?.jsonArray?.mapNotNull { it.jsonPrimitive.content }
+
+                    if (text != null) {
+                        MarkdownText(text)
+                    }
+                    images?.forEachIndexed { index, img ->
+                        Spacer(Modifier.height(8.dp))
+                        AsyncImage(
+                            model = img,
+                            imageLoader = softwareImageLoader,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onImageClick(images, index) },
+                            contentScale = ContentScale.Fit,
+                            error = painterResource(id = R.drawable.resource)
+                        )
+                    }
+                }
+                else -> {
+                }
+            }
+        } else {
+            MarkdownText(reply.content)
+        }
+
+        if (reply.is_edited == 1) {
+            Text(
+                text = "已编辑",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }
