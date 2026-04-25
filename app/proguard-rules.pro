@@ -1,12 +1,14 @@
 -keep class org.luaj.vm2.** { *; }
 -keep class org.luaj.vm2.lib.** { *; }
 -keep class org.luaj.vm2.script.** { *; }
+-keep class com.google.zxing.** { *; }
 
 -keepclassmembers enum * {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
 
+-dontwarn com.google.zxing.**
 -dontwarn okhttp3.**
 -dontwarn retrofit2.**
 -dontwarn okio.**
