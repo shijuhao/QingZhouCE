@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AssignmentTurnedIn
 import androidx.compose.material.icons.outlined.Leaderboard
@@ -295,6 +296,41 @@ fun ProfileScreen(
                     }
                 },
                 actions = {
+                    if (userToken != "null" && !isDisabledNotice) {
+                        if (userInfo.notice == 1) {
+                            FilledTonalButton(
+                                onClick = {
+                                    val intent = Intent(context, NoticeActivity::class.java)
+                                    context.startActivity(intent)
+                                },
+                                modifier = Modifier.padding(end = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.NotificationsActive,
+                                    contentDescription = "通知",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "新通知",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    val intent = Intent(context, NoticeActivity::class.java)
+                                    context.startActivity(intent)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Notifications,
+                                    contentDescription = "通知"
+                                )
+                            }
+                        }
+                    }
+                    
                     IconButton(
                         onClick = {
                             val intent = Intent(context, SettingsActivity::class.java)
@@ -465,33 +501,6 @@ fun ProfileScreen(
                                                 isShowSignInDialog = true
                                             }
                                     )
-                                }
-
-                                if (!isDisabledNotice) {
-                                    add {
-                                        ListItem(
-                                            headlineContent = {
-                                                Text(text = if (userInfo.notice == 1) "有新通知" else "通知")
-                                            },
-                                            leadingContent = {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Notifications,
-                                                    contentDescription = "通知",
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            },
-                                            colors = ListItemDefaults.colors(
-                                                containerColor = if (userInfo.notice == 1) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-                                            ),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    val intent =
-                                                        Intent(context, NoticeActivity::class.java)
-                                                    context.startActivity(intent)
-                                                }
-                                        )
-                                    }
                                 }
                             }
                         }
