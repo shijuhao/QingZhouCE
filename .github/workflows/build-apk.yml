@@ -35,15 +35,31 @@ jobs:
       - name: Build and Sign APK
         run: |
           BASE_VERSION=$(grep -E '^\s*versionName\s*=\s*"' app/build.gradle.kts | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
-          [ -z "$BASE_VERSION" ] && BASE_VERSION="0.2.0"
+          if [ -z "$BASE_VERSION" ]; then
+            echo "❌ 无法从 app/build.gradle.kts 提取 versionName"
+            exit 1
+          fi
           FINAL_VERSION="${BASE_VERSION}-${{ steps.commit.outputs.hash }}"
           echo "Building version: $FINAL_VERSION"
+
+          # 动态生成初始化脚本（不修改任何仓库文件）
+          cat > ci-version.gradle << 'EOF'
+          allprojects { project ->
+            project.afterEvaluate {
+              if (project.hasProperty('android')) {
+                project.android.defaultConfig.versionName = project.findProperty('customVersion') ?: project.android.defaultConfig.versionName
+              }
+            }
+          }
+          EOF
+
           ./gradlew assembleRelease \
+            -I ci-version.gradle \
+            -PcustomVersion="$FINAL_VERSION" \
             -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
-            -Pandroid.injected.versionName="$FINAL_VERSION"
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Upload Signed APK
         uses: actions/upload-artifact@v4
