@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Snapshot APK
 
 on:
   workflow_dispatch:
@@ -25,26 +25,31 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build and Sign APK
-        run: |
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
-
-      - name: Upload Signed APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-signed
-          path: app/build/outputs/apk/release/*.apk
-
       - name: Get commit hash
         id: commit
         run: |
           COMMIT_HASH=$(git rev-parse --short HEAD)
           echo "hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
           echo "full_hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build and Sign APK
+        run: |
+          BASE_VERSION=$(grep -E '^\s*versionName\s*=\s*"' app/build.gradle.kts | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
+          [ -z "$BASE_VERSION" ] && BASE_VERSION="0.2.0"
+          FINAL_VERSION="${BASE_VERSION}-${{ steps.commit.outputs.hash }}"
+          echo "Building version: $FINAL_VERSION"
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
+            -Pandroid.injected.versionName="$FINAL_VERSION"
+
+      - name: Upload Signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-signed
+          path: app/build/outputs/apk/release/*.apk
 
       - name: Get current date
         id: date
