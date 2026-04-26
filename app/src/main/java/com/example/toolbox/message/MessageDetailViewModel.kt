@@ -103,6 +103,7 @@ class MessageDetailViewModel(
                             hasMore = result.pagination.currentPage.let { it < result.pagination.pages },
                             isRefreshing = false,
                             isLoadingMore = false,
+                            isChatExpired = result.isChatExpired,
                             error = null
                         )
                     }
