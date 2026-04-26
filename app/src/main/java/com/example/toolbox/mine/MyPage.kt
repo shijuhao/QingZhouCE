@@ -309,13 +309,10 @@ fun ProfileScreen(
                                 Icon(
                                     imageVector = Icons.Filled.NotificationsActive,
                                     contentDescription = "通知",
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "新通知",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
+                                Text("新通知")
                             }
                         } else {
                             IconButton(
