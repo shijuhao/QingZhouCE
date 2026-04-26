@@ -233,7 +233,7 @@ fun PostDetailScreen(
 
         scope.launch {
             try {
-                viewModel.toggleLike()
+                viewModel.toggleLikeRequest()
             } catch (e: Exception) {
                 Toast.makeText(context, "点赞失败: ${e.message}", Toast.LENGTH_SHORT).show()
             }
