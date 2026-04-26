@@ -55,6 +55,7 @@ data class MessagePagination(
 data class GetMessagesResponse(
     val success: Boolean,
     val messages: List<Message>,
+    @SerialName("temp_chat_expired") val isChatExpired: Boolean,
     @SerialName("other_user") val otherUser: OtherUser,
     val relationship: String = "friend",
     val pagination: MessagePagination
@@ -122,7 +123,8 @@ data class MessageDetailUiState(
     val selectedImages: List<String> = emptyList(),
     val isMarkdown: Boolean = false,
     val editingMessage: Message? = null,
-    val dailyMessagesLeft: Int = 0
+    val dailyMessagesLeft: Int = 0,
+    val isChatExpired: Boolean = false
 )
 
 // 撤回确认弹窗状态
