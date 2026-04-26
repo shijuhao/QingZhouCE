@@ -32,8 +32,8 @@ fun UserAvatar(
         contentDescription = "用户头像",
         contentScale = ContentScale.Crop,
         modifier = modifier
-            .size(36.dp)
             .padding(end = 8.dp)
+            .size(36.dp)
             .clip(CircleShape)
             .clickable {
                 if (token != null) {
