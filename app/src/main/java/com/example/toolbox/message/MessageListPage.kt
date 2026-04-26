@@ -21,13 +21,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Badge
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -36,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -53,10 +52,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.rememberAsyncImagePainter
+import com.example.toolbox.MainViewModel
 import com.example.toolbox.TokenManager
 import com.example.toolbox.data.Friend
 import com.example.toolbox.mine.notice.FriendRequestActivity
 import com.example.toolbox.mine.notice.snapshotFlow
+import com.example.toolbox.utils.UserAvatar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -65,6 +66,7 @@ import java.util.Locale
 @Composable
 fun MessageScreen(
     onMenuClick: () -> Unit = {},
+    mainViewModel: MainViewModel? = null
 ) {
     val token = TokenManager.get(LocalContext.current) ?: "null"
     val viewModel: MessageViewModel = viewModel(
@@ -96,7 +98,7 @@ fun MessageScreen(
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = { Text("私信") },
                 navigationIcon = {
                     IconButton(onClick = { onMenuClick() }) {
@@ -111,6 +113,16 @@ fun MessageScreen(
                             context.startActivity(intent)
                         }) {
                             Icon(Icons.Default.PersonAdd, contentDescription = "请求列表")
+                        }
+                    }
+                    
+                    if (mainViewModel != null) {
+                        val userInfo by mainViewModel.userInfo.collectAsState()
+                        if (userInfo.isLoaded) {
+                            UserAvatar(
+                                avatarUrl = userInfo.avatar,
+                                userId = userInfo.id
+                            )
                         }
                     }
                 }
