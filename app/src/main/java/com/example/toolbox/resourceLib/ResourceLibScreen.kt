@@ -51,6 +51,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,13 +68,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.example.toolbox.MainViewModel
 import com.example.toolbox.data.community.ResourceItem
+import com.example.toolbox.utils.UserAvatar
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ResourceLibScreen(
     onMenuClick: () -> Unit = {},
-    viewModel: ResourceViewModel = viewModel()
+    viewModel: ResourceViewModel = viewModel(),
+    mainViewModel: MainViewModel? = null
 ) {
     val context = LocalContext.current
 
@@ -244,6 +248,16 @@ fun ResourceLibScreen(
                         actions = {
                             IconButton(onClick = { isSearchActive = true }) {
                                 Icon(Icons.Default.Search, contentDescription = "搜索")
+                            }
+                            
+                            if (mainViewModel != null) {
+                                val userInfo by mainViewModel.userInfo.collectAsState()
+                                if (userInfo.isLoaded) {
+                                    UserAvatar(
+                                        avatarUrl = userInfo.avatar,
+                                        userId = userInfo.id
+                                    )
+                                }
                             }
                         },
                         navigationIcon = {
