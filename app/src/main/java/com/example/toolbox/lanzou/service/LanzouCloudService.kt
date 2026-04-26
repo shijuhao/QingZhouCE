@@ -2,6 +2,7 @@ package com.example.toolbox.lanzou.service
 
 import java.io.File
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -38,9 +39,13 @@ data class LanzouShareInfo(
 )
 
 class LanzouCloudService(
-    private val client: OkHttpClient = OkHttpClient()
+    private val client: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .build()
 ) {
-    suspend fun uploadApkAndGetShareInfo(
+    fun uploadApkAndGetShareInfo(
         cookie: String,
         apkFile: File,
         onProgress: (LanzouUploadProgress) -> Unit
