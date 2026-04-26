@@ -225,9 +225,8 @@ class PostDetailViewModel(
                         isLiking = false
                     )
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update { it.copy(isLiking = false) }
-                throw e
             }
         }
     }
