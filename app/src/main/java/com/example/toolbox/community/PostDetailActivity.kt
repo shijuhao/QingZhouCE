@@ -1196,12 +1196,19 @@ fun ContentRenderer(
 
 @Composable
 fun ReferencedMessageCard(ref: ReferencedMessageInfo, imageLoader: coil3.ImageLoader) {
+    val context = LocalContext.current
+    
     Card(
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp)
             .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(0.5f), RoundedCornerShape(12.dp))
+            .clickable {
+                val intent = Intent(context, PostDetailActivity::class.java)
+                intent.putExtra("msgid", ref.message_id)
+                context.startActivity(intent)
+            }
     ) {
         Column(Modifier.padding(12.dp)) {
             val authorName = ref.sender_info?.username ?: ref.username ?: "未知"
