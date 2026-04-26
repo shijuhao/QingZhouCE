@@ -163,7 +163,7 @@ fun ResourceLibScreen(
                                 viewModel.fetchResources(categoryId)
                             }
                         },
-                        placeholder = { Text("搜索该区资源") },
+                        placeholder = { Text("搜索全区资源") },
                         leadingIcon = {
                             IconButton(onClick = { isSearchActive = false }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
