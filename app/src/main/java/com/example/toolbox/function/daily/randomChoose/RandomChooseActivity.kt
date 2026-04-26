@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -131,6 +132,9 @@ class RandomChooseViewModel : ViewModel() {
     var newItemWeight by mutableStateOf("1")
         private set
 
+    var editingItem by mutableStateOf<RandomItem?>(null)
+        private set
+
     var selectedResult by mutableStateOf("")
         private set
 
@@ -176,6 +180,48 @@ class RandomChooseViewModel : ViewModel() {
 
     fun updateNewItemWeight(weight: String) {
         newItemWeight = weight
+    }
+
+    fun startEditItem(item: RandomItem) {
+        editingItem = item
+        newItemName = item.name
+        newItemWeight = item.weight.toString()
+        errorMessage = ""
+    }
+
+    fun cancelEdit() {
+        editingItem = null
+        newItemName = ""
+        newItemWeight = "1"
+        errorMessage = ""
+    }
+
+    fun saveEditItem() {
+        val editItem = editingItem ?: return
+        errorMessage = ""
+        try {
+            val name = newItemName.trim()
+            val weightText = newItemWeight.trim()
+
+            if (name.isEmpty()) {
+                errorMessage = "请输入项目名称"
+                return
+            }
+            val weight = weightText.toIntOrNull()
+            if (weight == null || weight <= 0) {
+                errorMessage = "权重值必须是大于0的整数"
+                return
+            }
+
+            items = items.map { 
+                if (it.id == editItem.id) it.copy(name = name, weight = weight) else it 
+            }
+            editingItem = null
+            newItemName = ""
+            newItemWeight = "1"
+        } catch (e: Exception) {
+            errorMessage = "保存失败: ${e.message}"
+        }
     }
 
     fun addItem() {
@@ -325,17 +371,31 @@ class RandomChooseViewModel : ViewModel() {
         val configs = savedConfigs.toMutableList()
         val timestamp = System.currentTimeMillis()
         val finalName = configName.ifEmpty { "配置 ${configs.size + 1}" }
-        val newConfig = SavedConfig(
-            id = timestamp,
-            name = finalName,
-            items = items.map { it.copy() },
-            timestamp = timestamp
-        )
-        configs.add(newConfig)
+        
+        // 检查是否有同名配置，有则覆盖
+        val existingIndex = configs.indexOfFirst { it.name == finalName }
+        if (existingIndex != -1) {
+            // 覆盖已有配置
+            configs[existingIndex] = configs[existingIndex].copy(
+                items = items.map { it.copy() },
+                timestamp = timestamp
+            )
+            Toast.makeText(context, "已更新: $finalName", Toast.LENGTH_SHORT).show()
+        } else {
+            // 新建配置
+            val newConfig = SavedConfig(
+                id = timestamp,
+                name = finalName,
+                items = items.map { it.copy() },
+                timestamp = timestamp
+            )
+            configs.add(newConfig)
+            Toast.makeText(context, "已保存: $finalName", Toast.LENGTH_SHORT).show()
+        }
+        
         getPrefs(context).edit { putString("saved_configs", json.encodeToString(configs)) }
         savedConfigs = configs
         errorMessage = ""
-        Toast.makeText(context, "已保存: $finalName", Toast.LENGTH_SHORT).show()
     }
 
     fun loadConfig(context: Context, config: SavedConfig) {
@@ -357,20 +417,7 @@ class RandomChooseViewModel : ViewModel() {
         Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
     }
 
-    fun overwriteConfig(context: Context, id: Long) {
-        val index = savedConfigs.indexOfFirst { it.id == id }
-        if (index == -1) return
-        val configs = savedConfigs.toMutableList()
-        val newName = configName.ifEmpty { configs[index].name }
-        configs[index] = configs[index].copy(
-            name = newName,
-            items = items.map { it.copy() },
-            timestamp = System.currentTimeMillis()
-        )
-        getPrefs(context).edit { putString("saved_configs", json.encodeToString(configs)) }
-        savedConfigs = configs
-        Toast.makeText(context, "已覆盖: $newName", Toast.LENGTH_SHORT).show()
-    }
+
 }
 
 class RandomChooseActivity : ComponentActivity() {
@@ -443,12 +490,6 @@ fun RandomChooseScreen(
                                         }) {
                                             Icon(Icons.Default.PlayArrow, "加载")
                                         }
-                                        IconButton(
-                                            onClick = { viewModel.overwriteConfig(context, config.id) },
-                                            enabled = viewModel.items.isNotEmpty()
-                                        ) {
-                                            Icon(Icons.Default.Save, "覆盖")
-                                        }
                                         IconButton(onClick = { viewModel.deleteConfig(context, config.id) }) {
                                             Icon(Icons.Default.Delete, "删除")
                                         }
@@ -467,8 +508,11 @@ fun RandomChooseScreen(
 
     if (showAddItemDialog.value) {
         AlertDialog(
-            onDismissRequest = { showAddItemDialog.value = false },
-            title = { Text("添加项目") },
+            onDismissRequest = { 
+                if (viewModel.editingItem != null) viewModel.cancelEdit()
+                showAddItemDialog.value = false 
+            },
+            title = { Text(if (viewModel.editingItem != null) "编辑项目" else "添加项目") },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -477,14 +521,16 @@ fun RandomChooseScreen(
                         value = viewModel.newItemName,
                         onValueChange = viewModel::updateNewItemName,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("项目名称") },
+                        label = { Text("项目名称") },
+                        placeholder = { Text("输入项目名称") },
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = viewModel.newItemWeight,
                         onValueChange = viewModel::updateNewItemWeight,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("权重") },
+                        label = { Text("权重") },
+                        placeholder = { Text("输入权重值") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
                     if (viewModel.errorMessage.isNotEmpty()) {
@@ -498,14 +544,19 @@ fun RandomChooseScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.addItem()
+                    if (viewModel.editingItem != null) {
+                        viewModel.saveEditItem()
+                    } else {
+                        viewModel.addItem()
+                    }
                     if (viewModel.errorMessage.isEmpty()) {
                         showAddItemDialog.value = false
                     }
-                }) { Text("添加") }
+                }) { Text(if (viewModel.editingItem != null) "保存" else "添加") }
             },
             dismissButton = {
                 TextButton(onClick = {
+                    if (viewModel.editingItem != null) viewModel.cancelEdit()
                     showAddItemDialog.value = false
                     viewModel.updateNewItemName("")
                     viewModel.updateNewItemWeight("1")
@@ -668,7 +719,11 @@ fun RandomChooseScreen(
                             totalWeight = viewModel.totalWeight,
                             onRemove = viewModel::removeItem,
                             onClearAll = viewModel::clearAllItems,
-                            isSpinning = viewModel.isSpinning
+                            isSpinning = viewModel.isSpinning,
+                            onEdit = { item ->
+                                viewModel.startEditItem(item)
+                                showAddItemDialog.value = true
+                            }
                         )
                     }
                 }
@@ -790,10 +845,32 @@ fun Wheel(
     rotationAngle: Float,
     targetIndex: Int
 ) {
+    val presetColors = listOf(
+        Color(0xFFFF6B6B), // 珊瑚红
+        Color(0xFF4ECDC4), // 青绿色
+        Color(0xFF45B7D1), // 天蓝色
+        Color(0xFFFFA07A), // 浅橙色
+        Color(0xFF98D8C8), // 薄荷绿
+        Color(0xFFF7DC6F), // 柠檬黄
+        Color(0xFFBB8FCE), // 淡紫色
+        Color(0xFF85C1E2), // 浅蓝色
+        Color(0xFFF8B739), // 金黄色
+        Color(0xFF6C5CE7), // 紫罗兰
+        Color(0xFFA29BFE), // 淡紫蓝
+        Color(0xFFFF7675), // 粉红色
+        Color(0xFF74B9FF), // 湖蓝色
+        Color(0xFF55EFC4), // 翠绿色
+        Color(0xFFFFEAA7), // 奶油黄
+        Color(0xFFDFE6E9), // 浅灰色
+        Color(0xFFFD79A8), // 玫瑰粉
+        Color(0xFFFDCB6E), // 琥珀色
+        Color(0xFF6C5CE7), // 深紫色
+        Color(0xFF00CEC9)  // 青蓝色
+    )
+    
     val itemColors = remember(items.map { it.id }) {
-        items.associate { item ->
-            val hue = (item.id * 137.5f) % 360f
-            item.id to Color.hsv(hue, 0.7f, 0.9f)
+        items.withIndex().associate { (index, item) ->
+            item.id to presetColors[index % presetColors.size]
         }
     }
 
@@ -992,7 +1069,8 @@ fun ItemsListCard(
     totalWeight: Int,
     onRemove: (Int) -> Unit,
     onClearAll: () -> Unit,
-    isSpinning: Boolean
+    isSpinning: Boolean,
+    onEdit: (RandomItem) -> Unit
 ) {
     Card(elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1040,16 +1118,30 @@ fun ItemsListCard(
                                 )
                             }
 
-                            IconButton(
-                                onClick = { onRemove(item.id) },
-                                enabled = !isSpinning
-                            ) {
-                                Icon(
-                                    Icons.Filled.Delete,
-                                    null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                            Row {
+                                IconButton(
+                                    onClick = { onEdit(item) },
+                                    enabled = !isSpinning
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Edit,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { onRemove(item.id) },
+                                    enabled = !isSpinning
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
