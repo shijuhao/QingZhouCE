@@ -3,6 +3,7 @@
 package com.example.toolbox.functionPage
 
 import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
@@ -26,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.painter.Painter
@@ -38,12 +40,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.toolbox.MainViewModel
 import com.example.toolbox.R
 import com.example.toolbox.YiYanViewModel
 import com.example.toolbox.data.function.FunctionCategory
 import com.example.toolbox.data.function.FunctionItem
 import com.example.toolbox.data.function.IconSource
 import com.example.toolbox.data.function.SearchFunctionModel
+import com.example.toolbox.utils.UserAvatar
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.core.content.edit
@@ -68,7 +72,8 @@ object ExpandedStatePrefs {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onMenuClick: () -> Unit = {}
+    onMenuClick: () -> Unit = {},
+    mainViewModel: MainViewModel? = null
 ) {
     val context = LocalContext.current
     var isSearching by remember { mutableStateOf(false) }
@@ -148,6 +153,16 @@ fun HomeScreen(
                         actions = {
                             IconButton(onClick = { isSearching = true }) {
                                 Icon(Icons.Default.Search, contentDescription = "搜索")
+                            }
+                            
+                            if (mainViewModel != null) {
+                                val userInfo by mainViewModel.userInfo.collectAsState()
+                                if (userInfo.isLoaded) {
+                                    UserAvatar(
+                                        avatarUrl = userInfo.avatar,
+                                        userId = userInfo.id
+                                    )
+                                }
                             }
                         },
                         scrollBehavior = scrollBehavior

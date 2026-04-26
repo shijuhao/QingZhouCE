@@ -450,20 +450,27 @@ fun MainContentNavHost(
         popExitTransition = { fadeOut(animationSpec = tween(300)) }
     ) {
         composable(AppDestinations.HOME.route) {
-            HomeScreen {
-                scope.launch { drawerState.open() }
-            }
+            HomeScreen(
+                onMenuClick = {
+                    scope.launch { drawerState.open() }
+                },
+                mainViewModel = mainViewModel
+            )
         }
         composable(AppDestinations.CHAT.route) {
-            MessageScreen {
-                scope.launch { drawerState.open() }
-            }
+            MessageScreen(
+                onMenuClick = {
+                    scope.launch { drawerState.open() }
+                },
+                mainViewModel = mainViewModel
+            )
         }
         composable(AppDestinations.RESOURCE.route) {
             ResourceLibScreen(
-                {
+                onMenuClick = {
                     scope.launch { drawerState.open() }
-                }
+                },
+                mainViewModel = mainViewModel
             )
         }
         composable(AppDestinations.PROFILE.route) {

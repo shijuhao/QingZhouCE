@@ -141,10 +141,7 @@ fun UserCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(58.dp)
-                        .clip(CircleShape),
-                    colorFilter = if (userInfo.avatar != "null") null else ColorFilter.tint(
-                        MaterialTheme.colorScheme.primary
-                    )
+                        .clip(CircleShape)
                 )
                 Column(
                     modifier = Modifier.padding(start = 15.dp),
