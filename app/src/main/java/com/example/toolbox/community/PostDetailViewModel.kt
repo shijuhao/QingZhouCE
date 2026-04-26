@@ -200,7 +200,7 @@ class PostDetailViewModel(
         }
     }
 
-    fun toggleLike() {
+    fun toggleLikeRequest() {
         val currentState = _uiState.value
         if (currentState.isLiking || token == null) return
 
@@ -209,7 +209,7 @@ class PostDetailViewModel(
             
             try {
                 val (newIsLiked, newLikeCount) = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    toggleLikeRequest(
+                    toggleLike(
                         client = client,
                         token = token,
                         messageId = messageId,
@@ -253,44 +253,6 @@ class PostDetailViewModel(
                 loadMessageInfo()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isReplying = false, replyError = e.message) }
-            }
-        }
-    }
-
-    private suspend fun toggleLikeRequest(
-        client: OkHttpClient,
-        token: String,
-        messageId: Int,
-        wasLiked: Boolean,
-        currentLikeCount: Int
-    ): Pair<Boolean, Int> {
-        val headers = Headers.Builder()
-            .add("Content-Type", "application/json")
-            .add("x-access-token", token)
-            .build()
-
-        val action = if (wasLiked) "unlike" else "like"
-        val jsonBody = JSONObject().apply {
-            put("message_id", messageId)
-            put("action", action)
-        }
-
-        val request = Request.Builder()
-            .url("${ApiAddress}toggle_like")
-            .post(jsonBody.toString().toRequestBody("application/json".toMediaType()))
-            .headers(headers)
-            .build()
-
-        return withContext(kotlinx.coroutines.Dispatchers.IO) {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw IOException("点赞失败: ${response.code}")
-                }
-                
-                val newIsLiked = !wasLiked
-                val newLikeCount = if (newIsLiked) currentLikeCount + 1 else currentLikeCount - 1
-                
-                Pair(newIsLiked, newLikeCount)
             }
         }
     }
