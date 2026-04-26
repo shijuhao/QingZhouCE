@@ -91,9 +91,21 @@ fun ResourceLibScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
+    var isSearching by remember { mutableStateOf(false) }
+    var hasSearched by remember { mutableStateOf(false) } // 标记是否已执行过搜索
 
-    val filteredList = remember(searchQuery, viewModel.resourceList) {
-        viewModel.resourceList.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    // 只有执行过搜索后才显示搜索结果
+    val displayList = if (isSearchActive && hasSearched) {
+        viewModel.searchResultList
+    } else {
+        emptyList()
+    }
+
+    // 监听加载状态，加载完成后重置 isSearching
+    LaunchedEffect(viewModel.isLoading) {
+        if (!viewModel.isLoading && isSearching) {
+            isSearching = false
+        }
     }
 
     LaunchedEffect(selectedTabIndex) {
@@ -119,17 +131,32 @@ fun ResourceLibScreen(
                     }.using(SizeTransform(clip = false))
                 },
                 label = "topBarTransition"
-            ) { isSearching ->
-                if (isSearching) {
+            ) { targetIsSearching ->
+                if (targetIsSearching) {
                     SearchBar(
                         modifier = Modifier.fillMaxWidth(),
                         query = searchQuery,
                         onQueryChange = { searchQuery = it },
-                        onSearch = { /* 保持搜索栏打开，不做额外操作 */ },
-                        active = true, // 一出现就是展开状态
+                        onSearch = { 
+                            if (searchQuery.isNotBlank()) {
+                                isSearching = true
+                                hasSearched = true
+                                viewModel.searchResources(searchQuery, categoryId = null)
+                            }
+                        },
+                        active = true,
                         onActiveChange = { active ->
                             if (!active) {
                                 isSearchActive = false
+                                isSearching = false
+                                hasSearched = false
+                                searchQuery = ""
+                                val categoryId = when (selectedTabIndex) {
+                                    0 -> 2
+                                    8 -> 1
+                                    else -> selectedTabIndex + 2
+                                }
+                                viewModel.fetchResources(categoryId)
                             }
                         },
                         placeholder = { Text("搜索该区资源") },
@@ -139,10 +166,14 @@ fun ResourceLibScreen(
                             }
                         },
                         trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Close, "清除")
+                            IconButton(onClick = {
+                                if (searchQuery.isNotBlank()) {
+                                    isSearching = true
+                                    hasSearched = true
+                                    viewModel.searchResources(searchQuery, categoryId = null)
                                 }
+                            }) {
+                                Icon(Icons.Default.Search, "搜索")
                             }
                         }
                     ) {
@@ -151,7 +182,16 @@ fun ResourceLibScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 thickness = 0.5.dp
                             )
-                            if (filteredList.isEmpty() && searchQuery.isNotEmpty()) {
+                            if (isSearching && viewModel.isLoading) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(top = 32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    ContainedLoadingIndicator()
+                                }
+                            } else if (hasSearched && displayList.isEmpty()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -163,9 +203,21 @@ fun ResourceLibScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                            } else if (!hasSearched) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(top = 32.dp),
+                                    contentAlignment = Alignment.TopCenter
+                                ) {
+                                    Text(
+                                        "输入关键词搜索资源",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             } else {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    items(filteredList) { item ->
+                                    items(displayList) { item ->
                                         ResourceCard(item) {
                                             val intent =
                                                 Intent(context, ResourceDetailActivity::class.java).apply {
