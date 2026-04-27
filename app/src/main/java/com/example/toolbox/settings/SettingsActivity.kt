@@ -47,13 +47,6 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
-data class ActionData(
-    var isOpenCancelTips: Boolean = false,
-    var isDisabledNotice: Boolean = false,
-    var isEnabledAutoCheckUpdate: Boolean = true,
-    var updateChannel: String = "stable"
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -74,15 +67,22 @@ fun SettingsScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     val prefs = context.getSharedPreferences("app_preferences", MODE_PRIVATE)
-    val actionData = ActionData()
-    actionData.isOpenCancelTips = prefs.getBoolean("exit_confirmation", false)
-    var isOpenCancelTips by remember { mutableStateOf(actionData.isOpenCancelTips) }
-    actionData.isDisabledNotice = prefs.getBoolean("disabled_community_notices", false)
-    var isDisabledNotice by remember { mutableStateOf(actionData.isDisabledNotice) }
-    actionData.isEnabledAutoCheckUpdate = prefs.getBoolean("autoCheckUpdate", true)
-    var isEnabledAutoCheckUpdate by remember { mutableStateOf(actionData.isEnabledAutoCheckUpdate) }
-    actionData.updateChannel = prefs.getString("update_channel", "stable") ?: "stable"
-    var updateChannel by remember { mutableStateOf(actionData.updateChannel) }
+    
+    var isOpenCancelTips by remember { 
+        mutableStateOf(prefs.getBoolean("exit_confirmation", false)) 
+    }
+    
+    var isDisabledNotice by remember { 
+        mutableStateOf(prefs.getBoolean("disabled_community_notices", false)) 
+    }
+    
+    var isEnabledAutoCheckUpdate by remember { 
+        mutableStateOf(prefs.getBoolean("autoCheckUpdate", true)) 
+    }
+    
+    var updateChannel by remember { 
+        mutableStateOf(prefs.getString("update_channel", "stable") ?: "stable") 
+    }
 
     LaunchedEffect(Unit) {
         lanzouAuthViewModel.refresh(context)
@@ -129,9 +129,8 @@ fun SettingsScreen(
                                 title = "返回二次确认",
                                 subtitle = "在主页面按返回键退出时二次确认",
                                 checked = isOpenCancelTips,
-                                onCheckedChange = {
-                                    actionData.isOpenCancelTips = !actionData.isOpenCancelTips
-                                    isOpenCancelTips = actionData.isOpenCancelTips
+                                onCheckedChange = { checked ->
+                                    isOpenCancelTips = checked
                                     prefs.edit().apply {
                                         putBoolean("exit_confirmation", isOpenCancelTips)
                                         apply()
@@ -141,13 +140,54 @@ fun SettingsScreen(
                         },
                         {
                             SettingsSwitchItem(
+                                icon = Icons.Default.Notifications,
+                                title = "禁用社区通知",
+                                subtitle = "不再显示通知按钮",
+                                checked = isDisabledNotice,
+                                onCheckedChange = { checked ->
+                                    isDisabledNotice = checked
+                                    prefs.edit().apply {
+                                        putBoolean("disabled_community_notices", isDisabledNotice)
+                                        apply()
+                                    }
+                                }
+                            )
+                        }
+                    )
+                )
+            }
+
+            item {
+                SettingsGroup(
+                    title = "外观",
+                    items = listOf(
+                        {
+                            SettingsItemCell(
+                                icon = Icons.Default.Draw,
+                                title = "外观设置",
+                                subtitle = "设置应用外观",
+                                onClick = {
+                                    val intent = Intent(context, ThemeActivity::class.java)
+                                    context.startActivity(intent)
+                                }
+                            )
+                        }
+                    )
+                )
+            }
+            
+            item {
+                SettingsGroup(
+                    title = "更新",
+                    items = listOf(
+                        {
+                            SettingsSwitchItem(
                                 icon = Icons.Default.Update,
                                 title = "自动检查更新",
                                 subtitle = "在应用启动时自动检查更新",
                                 checked = isEnabledAutoCheckUpdate,
-                                onCheckedChange = {
-                                    actionData.isEnabledAutoCheckUpdate = !actionData.isEnabledAutoCheckUpdate
-                                    isEnabledAutoCheckUpdate = actionData.isEnabledAutoCheckUpdate
+                                onCheckedChange = { checked ->
+                                    isEnabledAutoCheckUpdate = checked
                                     prefs.edit().apply {
                                         putBoolean("autoCheckUpdate", isEnabledAutoCheckUpdate)
                                         apply()
@@ -164,7 +204,6 @@ fun SettingsScreen(
                                 selectedValue = updateChannel,
                                 onOptionSelected = { selected ->
                                     updateChannel = selected
-                                    actionData.updateChannel = selected
                                     prefs.edit().apply {
                                         putString("update_channel", selected)
                                         apply()
@@ -172,42 +211,6 @@ fun SettingsScreen(
                                 }
                             )
                         },
-                        {
-                            SettingsSwitchItem(
-                                icon = Icons.Default.Notifications,
-                                title = "禁用社区通知",
-                                subtitle = "不再显示通知按钮",
-                                checked = isDisabledNotice,
-                                onCheckedChange = {
-                                    actionData.isDisabledNotice = !actionData.isDisabledNotice
-                                    isDisabledNotice = actionData.isDisabledNotice
-                                    prefs.edit().apply {
-                                        putBoolean("disabled_community_notices", isDisabledNotice)
-                                        apply()
-                                    }
-                                }
-                            )
-                        }
-                    )
-                )
-            }
-
-            // 外观设置组
-            item {
-                SettingsGroup(
-                    title = "外观",
-                    items = listOf(
-                        {
-                            SettingsItemCell(
-                                icon = Icons.Default.Draw,
-                                title = "主题设置",
-                                subtitle = "设置应用主题",
-                                onClick = {
-                                    val intent = Intent(context, ThemeActivity::class.java)
-                                    context.startActivity(intent)
-                                }
-                            )
-                        }
                     )
                 )
             }
