@@ -32,18 +32,16 @@ fun UserAvatar(
         contentDescription = "用户头像",
         contentScale = ContentScale.Crop,
         modifier = modifier
-            .padding(end = 8.dp)
+            .padding(start = 4.dp, end = 8.dp)
             .size(36.dp)
             .clip(CircleShape)
             .clickable {
                 if (token != null) {
-                    // 已登录，跳转到用户详情页
                     val intent = Intent(context, UserInfoActivity::class.java).apply {
                         putExtra("userId", userId)
                     }
                     context.startActivity(intent)
                 } else {
-                    // 未登录，跳转到登录页
                     val intent = Intent(context, LoginActivity::class.java)
                     context.startActivity(intent)
                 }
