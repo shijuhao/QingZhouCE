@@ -55,7 +55,6 @@ import com.example.toolbox.AppJson
 import com.example.toolbox.webview.WebViewActivity
 import com.example.toolbox.community.UserInfoActivity
 import com.example.toolbox.data.community.ResourceItem
-import com.example.toolbox.settings.ActionData
 import com.example.toolbox.ui.theme.ToolBoxTheme
 
 class ResourceDetailActivity : ComponentActivity() {
@@ -100,10 +99,6 @@ fun Greeting(item: ResourceItem) {
     val context = LocalContext.current
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-    val prefs = context.getSharedPreferences("app_preferences", MODE_PRIVATE)
-    val actionData = ActionData()
-    actionData.isOpenCancelTips = prefs.getBoolean("exit_confirmation", false)
 
     Scaffold(
         modifier = Modifier
