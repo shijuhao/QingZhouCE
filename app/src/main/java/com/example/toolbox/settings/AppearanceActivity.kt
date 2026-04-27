@@ -130,7 +130,7 @@ class ThemeActivity : ComponentActivity() {
                     topBar = {
                         LargeTopAppBar(
                             title = {
-                                Text("主题设置")
+                                Text("外观设置")
                             },
                             navigationIcon = {
                                 FilledTonalIconButton(onClick = { finish() }) {
