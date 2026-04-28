@@ -157,12 +157,10 @@ fun HomeScreen(
                             
                             if (mainViewModel != null) {
                                 val userInfo by mainViewModel.userInfo.collectAsState()
-                                if (userInfo.isLoaded) {
-                                    UserAvatar(
-                                        avatarUrl = userInfo.avatar,
-                                        userId = userInfo.id
-                                    )
-                                }
+                                UserAvatar(
+                                    avatarUrl = userInfo.avatar,
+                                    userId = userInfo.id
+                                )
                             }
                         },
                         scrollBehavior = scrollBehavior
