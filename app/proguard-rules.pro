@@ -1,7 +1,6 @@
 -keep class org.luaj.vm2.** { *; }
 -keep class org.luaj.vm2.lib.** { *; }
 -keep class org.luaj.vm2.script.** { *; }
--keep class com.google.zxing.** { *; }
 
 -keepclassmembers enum * {
     public static **[] values();
