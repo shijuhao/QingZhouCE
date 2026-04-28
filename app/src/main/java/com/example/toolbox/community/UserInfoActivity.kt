@@ -373,8 +373,49 @@ fun UserInfoScreen(userId: Int) {
                     .fillMaxSize()
             ) {
                 if (isLoading && !isRefreshing) {
+                    var showText by remember { mutableStateOf(false) }
+                    
+                    LaunchedEffect(Unit) {
+                        delay(5000)
+                        showText = true
+                    }
+                    
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        ContainedLoadingIndicator()
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            ContainedLoadingIndicator()
+                            
+                            if (showText) {
+                                val tipText by remember { mutableStateOf(
+                                    listOf(
+                                        "马上就好！",
+                                        "正在拼命加载中...",
+                                        "客官请稍候~",
+                                        "马上马上！",
+                                        "再等一下下~",
+                                        "快了快了！"
+                                    )
+                                ) }
+                                var currentTipIndex by remember { mutableStateOf(0) }
+                                
+                                LaunchedEffect(showImpatientText) {
+                                    if (showImpatientText) {
+                                        while (true) {
+                                            delay(3000)
+                                            currentTipIndex = (currentTipIndex + 1) % tipText.size
+                                        }
+                                    }
+                                }
+                                
+                                Text(
+                                    text = tipText[currentTipIndex],
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 } else {
                     LazyColumn(
