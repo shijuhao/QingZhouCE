@@ -113,6 +113,7 @@ import com.example.toolbox.settings.UserSettingsActivity
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.example.toolbox.utils.MarkdownRenderer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -400,8 +401,8 @@ fun UserInfoScreen(userId: Int) {
                                 ) }
                                 var currentTipIndex by remember { mutableStateOf(0) }
                                 
-                                LaunchedEffect(showImpatientText) {
-                                    if (showImpatientText) {
+                                LaunchedEffect(showText) {
+                                    if (showText) {
                                         while (true) {
                                             delay(3000)
                                             currentTipIndex = (currentTipIndex + 1) % tipText.size
