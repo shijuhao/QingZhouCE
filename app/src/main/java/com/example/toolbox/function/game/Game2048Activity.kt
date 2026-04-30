@@ -7,21 +7,27 @@ import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.*
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -137,7 +143,6 @@ class Game2048Logic {
                     origins[j] = Pair(r, c)
                 }
 
-                // 压缩并合并
                 val packed = mutableListOf<Int>()
                 val packedOrig = mutableListOf<Pair<Int, Int>>()
                 for (j in 0 until SIZE) {
@@ -206,11 +211,6 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
     private val _pendingMerges = mutableStateOf<Set<Pair<Int, Int>>>(emptySet())
     val pendingMerges: State<Set<Pair<Int, Int>>> = _pendingMerges
 
-    private val _spawningTiles = mutableStateOf<Set<Pair<Int, Int>>>(emptySet())
-    val spawningTiles: State<Set<Pair<Int, Int>>> = _spawningTiles
-
-    private val _animatedGrid = mutableStateOf<Array<IntArray>?>(null)
-    val animatedGrid: State<Array<IntArray>?> = _animatedGrid
 
     private var undoSave: GameSnapshot? = null
     private var isAnimating = false
@@ -308,23 +308,16 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
         _pendingMoves.value = moves
         _pendingMerges.value = moves.filter { it.merged }.map { Pair(it.toRow, it.toCol) }.toSet()
 
-        _animatedGrid.value = current.grid
-
-        delay(180)
+        delay(120)
 
         _pendingMoves.value = emptyList()
         _pendingMerges.value = emptySet()
-        _animatedGrid.value = null
 
         val spawnPos = Game2048Logic.spawnTile(gridAfterMove)
         val gameOver = !Game2048Logic.hasMovesLeft(gridAfterMove)
 
         if (spawnPos != null && undoSave != null) {
             undoSave = undoSave!!.copy(spawnPos = spawnPos)
-        }
-
-        if (spawnPos != null) {
-            _spawningTiles.value = setOf(spawnPos)
         }
 
         _gameState.value = GameState(
@@ -334,11 +327,6 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
             gameOver = gameOver,
             gameWon = won
         )
-
-        if (spawnPos != null) {
-            delay(150)
-            _spawningTiles.value = emptySet()
-        }
 
         isAnimating = false
         saveGameState()
@@ -513,7 +501,7 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     AnimatedScoreCard("分数", gameState.score, scoreGain, Modifier.weight(1f))
                     ScoreCard("最佳", gameState.bestScore, Modifier.weight(1f))
@@ -558,22 +546,25 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .pointerInput(Unit) {
+                            var lastMoveTime = 0L
                             detectDragGestures(
                                 onDragStart = {},
                                 onDragEnd = {},
                                 onDragCancel = {}
                             ) { change, dragAmount ->
                                 change.consume()
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastMoveTime < 200) return@detectDragGestures
+                                
                                 val (dx, dy) = dragAmount
                                 val direction = when {
-                                    abs(dx) > abs(dy) && abs(dx) > 20f -> if (dx > 0) Direction.RIGHT else Direction.LEFT
-                                    abs(dy) > abs(dx) && abs(dy) > 20f -> if (dy > 0) Direction.DOWN else Direction.UP
+                                    abs(dx) > abs(dy) && abs(dx) > 30f -> if (dx > 0) Direction.RIGHT else Direction.LEFT
+                                    abs(dy) > abs(dx) && abs(dy) > 30f -> if (dy > 0) Direction.DOWN else Direction.UP
                                     else -> null
                                 }
                                 direction?.let {
+                                    lastMoveTime = currentTime
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                     scope.launch { viewModel.move(it) }
                                 }
@@ -582,10 +573,8 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                 ) {
                     GameGrid(
                         grid = gameState.grid,
-                        animatedGrid = viewModel.animatedGrid.value,
                         pendingMoves = pendingMoves,
                         pendingMerges = viewModel.pendingMerges.value,
-                        spawningTiles = viewModel.spawningTiles.value,
                         modifier = Modifier.fillMaxSize(),
                         isGameOver = gameState.gameOver,
                         gameOverAnimToken = gameOverAnimToken
@@ -698,9 +687,12 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
 
 @Composable
 fun ScoreCard(title: String, score: Int, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp)
+    
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = shape
     ) {
         Column(
             modifier = Modifier
@@ -722,9 +714,12 @@ fun ScoreCard(title: String, score: Int, modifier: Modifier = Modifier) {
 
 @Composable
 fun AnimatedScoreCard(title: String, score: Int, gain: Int, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp, topEnd = 4.dp, bottomEnd = 4.dp)
+
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = shape
     ) {
         Column(
             modifier = Modifier
@@ -741,7 +736,6 @@ fun AnimatedScoreCard(title: String, score: Int, gain: Int, modifier: Modifier =
                     maxLines = 1
                 )
                 if (gain > 0) {
-                    @Suppress("RemoveRedundantQualifierName")
                     androidx.compose.animation.AnimatedVisibility(
                         visible = true,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }) + scaleIn(),
@@ -764,10 +758,8 @@ fun AnimatedScoreCard(title: String, score: Int, gain: Int, modifier: Modifier =
 @Composable
 fun GameGrid(
     grid: Array<IntArray>,
-    animatedGrid: Array<IntArray>?,
     pendingMoves: List<MoveInfo>,
     pendingMerges: Set<Pair<Int, Int>>,
-    spawningTiles: Set<Pair<Int, Int>>,
     modifier: Modifier = Modifier,
     isGameOver: Boolean = false,
     gameOverAnimToken: Int = 0
@@ -777,6 +769,20 @@ fun GameGrid(
 
     val moveAnimations = remember { mutableStateMapOf<String, Animatable<Offset, AnimationVector2D>>() }
     val mergeAnimations = remember { mutableStateMapOf<String, Animatable<Float, AnimationVector1D>>() }
+    val grayedAlphas = remember { mutableStateMapOf<String, Animatable<Float, AnimationVector1D>>() }
+
+    val moveMap = remember(pendingMoves) {
+        pendingMoves.associateBy { move -> Pair(move.fromRow, move.fromCol) }
+    }
+
+    val mergedTargets = remember(pendingMoves) {
+        pendingMoves.filter { it.merged }.map { Pair(it.toRow, it.toCol) }.toSet()
+    }
+
+    // ======= 修复1：找出所有"正在被移入"的格子 =======
+    val receivingCells = remember(pendingMoves) {
+        pendingMoves.map { Pair(it.toRow, it.toCol) }.toSet()
+    }
 
     val grayedAlphas = remember { mutableStateMapOf<String, Animatable<Float, AnimationVector1D>>() }
     
@@ -825,10 +831,10 @@ fun GameGrid(
             grayedAlphas.clear()
             return@LaunchedEffect
         }
-        
+
         for (row in 0 until 4) {
             val rowDelay = 300 + row * 150L
-            
+
             for (col in 0 until 4) {
                 val key = "$row,$col"
                 scope.launch {
@@ -841,72 +847,68 @@ fun GameGrid(
         }
     }
 
-    val displayGrid = animatedGrid ?: grid
+    Box(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        )
 
-    Box(
-        modifier = modifier
-            .onGloballyPositioned { coordinates ->
-                cellSizePx = coordinates.size.width.toFloat() / 4f
-            }
-            .padding(8.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            for (row in 0 until 4) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    for (col in 0 until 4) {
-                        val isSource = pendingMoves.any { it.fromRow == row && it.fromCol == col }
-                        val isTarget = pendingMoves.any { it.toRow == row && it.toCol == col }
-                        val mergeTarget = pendingMerges.contains(Pair(row, col))
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(8.dp)
+                .onGloballyPositioned { coordinates ->
+                    cellSizePx = coordinates.size.width.toFloat() / 4f
+                }
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                for (row in 0 until 4) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        for (col in 0 until 4) {
+                            val moveInfo = moveMap[Pair(row, col)]
+                            val mergeTarget = pendingMerges.contains(Pair(row, col))
 
-                        val moveOffset = moveAnimations["$row,$col"]?.value
+                            val moveOffset = if (moveInfo != null) {
+                                moveAnimations["$row,$col"]?.value
+                            } else null
 
-                        val mergeScale = if (mergeTarget) {
-                            mergeAnimations["$row,$col"]?.value ?: 1f
-                        } else 1f
+                            val mergeScale = if (mergeTarget) {
+                                mergeAnimations["$row,$col"]?.value ?: 1f
+                            } else 1f
 
-                        var displayValue = displayGrid[row][col]
+                            val displayValue = if (moveInfo != null) {
+                                grid[moveInfo.fromRow][moveInfo.fromCol]
+                            } else {
+                                grid[row][col]
+                            }
 
-                        if (isSource && moveOffset != null) {
-                            displayValue = displayGrid[row][col]
-                        }
+                            val isMergedTarget = mergedTargets.contains(Pair(row, col))
+                            val isReceiving = receivingCells.contains(Pair(row, col))
+                            val showValue = if (isReceiving) 0 else displayValue
 
-                        val isMergedTarget = pendingMoves.any { it.toRow == row && it.toCol == col && it.merged }
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                        ) {
-                            if (!isTarget || moveOffset == null) {
+                            key(row, col) {
                                 Tile(
-                                    value = displayValue,
-                                    modifier = Modifier.fillMaxSize(),
+                                    value = showValue,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
                                     moveOffset = moveOffset,
                                     mergeScale = mergeScale,
-                                    isSpawning = spawningTiles.contains(Pair(row, col)),
+                                    isMoving = moveInfo != null,
                                     isMerged = isMergedTarget,
                                     grayAlpha = grayedAlphas["$row,$col"]?.value ?: 1f,
                                     isGrayed = isGameOver && grayedAlphas.containsKey("$row,$col")
                                 )
                             }
-
-                            if (isSource && moveOffset != null && displayValue != 0) {
-                                Tile(
-                                    value = displayValue,
-                                    modifier = Modifier.fillMaxSize(),
-                                    moveOffset = moveOffset,
-                                    mergeScale = 1f,
-                                    isSpawning = false,
-                                    isMoving = true
-                                )
-                            }
                         }
                     }
+                    if (row < 3) Spacer(modifier = Modifier.height(8.dp))
                 }
-                if (row < 3) Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
@@ -918,7 +920,6 @@ fun Tile(
     modifier: Modifier = Modifier,
     moveOffset: Offset? = null,
     mergeScale: Float = 1f,
-    isSpawning: Boolean = false,
     isMoving: Boolean = false,
     isMerged: Boolean = false,
     grayAlpha: Float = 1f,
@@ -928,59 +929,38 @@ fun Tile(
     val textColor = tileTextColor(value)
     val textSize = tileTextSize(value)
 
-    val spawnScale = remember { Animatable(1f) }
-    LaunchedEffect(isSpawning) {
-        if (isSpawning) {
-            spawnScale.snapTo(0f)
-            spawnScale.animateTo(
-                1f,
-                animationSpec = tween(180, easing = FastOutSlowInEasing)
-            )
-        } else {
-            spawnScale.snapTo(1f)
-        }
-    }
-    val finalSpawnScale = spawnScale.value
-
     val mergedFlash by animateColorAsState(
         targetValue = if (isMerged) Color(0xFFFFD700) else backgroundColor,
         animationSpec = tween(140),
         label = "mergedFlash"
     )
 
-    val finalColor = if (isMerged) mergedFlash else backgroundColor
-
-    val displayColor = if (isGrayed) MaterialTheme.colorScheme.surfaceVariant else finalColor
+    val displayColor = if (isGrayed) MaterialTheme.colorScheme.surfaceVariant else (if (isMerged) mergedFlash else backgroundColor)
     val displayTextColor = if (isGrayed) MaterialTheme.colorScheme.onSurfaceVariant else textColor
-
-    Card(
+        
+    val tileAlpha = grayAlpha * (if (isMoving) 0.9f else 1f)
+    
+    Box(
         modifier = modifier
             .graphicsLayer {
                 translationX = moveOffset?.x ?: 0f
                 translationY = moveOffset?.y ?: 0f
-                scaleX = finalSpawnScale * mergeScale
-                scaleY = finalSpawnScale * mergeScale
-                alpha = grayAlpha * (if (isMoving) 0.9f else 1f)
-            },
-        colors = CardDefaults.cardColors(containerColor = displayColor),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isMoving) 6.dp else 2.dp
-        )
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            if (value != 0) {
-                Text(
-                    text = value.toString(),
-                    fontSize = textSize.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = displayTextColor,
-                    textAlign = TextAlign.Center
-                )
+                scaleX = mergeScale
+                scaleY = mergeScale
+                alpha = tileAlpha
             }
+            .clip(RoundedCornerShape(12.dp))
+            .background(displayColor),
+        contentAlignment = Alignment.Center
+    ) {
+        if (value != 0) {
+            Text(
+                text = value.toString(),
+                fontSize = textSize.sp,
+                fontWeight = FontWeight.Bold,
+                color = displayTextColor,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
