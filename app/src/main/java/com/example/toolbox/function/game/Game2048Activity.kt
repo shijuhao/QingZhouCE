@@ -338,7 +338,7 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
 
     fun canUndo(): Boolean = undoSave != null
 
-    suspend fun undo() {
+    fun undo() {
         if (isAnimating) return
         val snapshot = undoSave ?: return
         
@@ -784,8 +784,6 @@ fun GameGrid(
         pendingMoves.map { Pair(it.toRow, it.toCol) }.toSet()
     }
 
-    val grayedAlphas = remember { mutableStateMapOf<String, Animatable<Float, AnimationVector1D>>() }
-    
     LaunchedEffect(pendingMoves) {
         if (pendingMoves.isEmpty()) return@LaunchedEffect
 
