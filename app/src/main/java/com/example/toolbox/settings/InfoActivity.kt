@@ -216,7 +216,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Text(
-                                            text = "你正在使用快照版本，请随时关注更新频道",
+                                            text = "你正在使用预发布版本，请随时关注更新频道",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )

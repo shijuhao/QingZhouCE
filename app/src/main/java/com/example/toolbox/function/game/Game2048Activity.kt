@@ -137,6 +137,7 @@ class Game2048Logic {
                     origins[j] = Pair(r, c)
                 }
 
+                // 压缩并合并
                 val packed = mutableListOf<Int>()
                 val packedOrig = mutableListOf<Pair<Int, Int>>()
                 for (j in 0 until SIZE) {
@@ -196,22 +197,24 @@ enum class Direction {
 
 
 class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
-    data class AnimationState(
-        val moves: List<MoveInfo> = emptyList(),
-        val merges: Set<Pair<Int, Int>> = emptySet(),
-        val spawning: Set<Pair<Int, Int>> = emptySet(),
-        val animatedGrid: Array<IntArray>? = null,
-        val isAnimating: Boolean = false
-    )
-    
     private val _gameState = mutableStateOf(loadGameState())
     val gameState: State<GameState> = _gameState
-    
-    private val _animationState = mutableStateOf(AnimationState())
-    val animationState: State<AnimationState> = _animationState
-    
+
+    private val _pendingMoves = mutableStateOf<List<MoveInfo>>(emptyList())
+    val pendingMoves: State<List<MoveInfo>> = _pendingMoves
+
+    private val _pendingMerges = mutableStateOf<Set<Pair<Int, Int>>>(emptySet())
+    val pendingMerges: State<Set<Pair<Int, Int>>> = _pendingMerges
+
+    private val _spawningTiles = mutableStateOf<Set<Pair<Int, Int>>>(emptySet())
+    val spawningTiles: State<Set<Pair<Int, Int>>> = _spawningTiles
+
+    private val _animatedGrid = mutableStateOf<Array<IntArray>?>(null)
+    val animatedGrid: State<Array<IntArray>?> = _animatedGrid
+
     private var undoSave: GameSnapshot? = null
-    
+    private var isAnimating = false
+
     init {
         if (_gameState.value.grid.contentDeepEquals(Array(4) { IntArray(4) })) {
             startNewGame()
@@ -254,12 +257,10 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
     }
 
     fun startNewGame() {
-        if (_animationState.value.isAnimating) return
-        
+        if (isAnimating) return
         val newGrid = Game2048Logic.newGrid()
         Game2048Logic.spawnTile(newGrid)
         Game2048Logic.spawnTile(newGrid)
-        
         _gameState.value = GameState(
             grid = newGrid,
             score = 0,
@@ -272,7 +273,7 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
     }
 
     suspend fun move(direction: Direction) {
-        if (_animationState.value.isAnimating || _gameState.value.gameOver) return
+        if (isAnimating || _gameState.value.gameOver) return
 
         val current = _gameState.value
         val gridAfterMove = Game2048Logic.copyGrid(current.grid)
@@ -299,21 +300,21 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
                         break
                     }
                 }
-                if (won) break
             }
         }
 
-        val mergeSet = moves.filter { it.merged }.map { Pair(it.toRow, it.toCol) }.toSet()
+        isAnimating = true
 
-        _animationState.value = AnimationState(
-            moves = moves,
-            merges = mergeSet,
-            spawning = emptySet(),
-            animatedGrid = current.grid,
-            isAnimating = true
-        )
+        _pendingMoves.value = moves
+        _pendingMerges.value = moves.filter { it.merged }.map { Pair(it.toRow, it.toCol) }.toSet()
+
+        _animatedGrid.value = current.grid
 
         delay(180)
+
+        _pendingMoves.value = emptyList()
+        _pendingMerges.value = emptySet()
+        _animatedGrid.value = null
 
         val spawnPos = Game2048Logic.spawnTile(gridAfterMove)
         val gameOver = !Game2048Logic.hasMovesLeft(gridAfterMove)
@@ -322,13 +323,9 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
             undoSave = undoSave!!.copy(spawnPos = spawnPos)
         }
 
-        _animationState.value = AnimationState(
-            moves = emptyList(),
-            merges = emptySet(),
-            spawning = if (spawnPos != null) setOf(spawnPos) else emptySet(),
-            animatedGrid = null,
-            isAnimating = true
-        )
+        if (spawnPos != null) {
+            _spawningTiles.value = setOf(spawnPos)
+        }
 
         _gameState.value = GameState(
             grid = gridAfterMove,
@@ -340,16 +337,10 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
 
         if (spawnPos != null) {
             delay(150)
+            _spawningTiles.value = emptySet()
         }
 
-        _animationState.value = AnimationState(
-            moves = emptyList(),
-            merges = emptySet(),
-            spawning = emptySet(),
-            animatedGrid = null,
-            isAnimating = false
-        )
-
+        isAnimating = false
         saveGameState()
 
         if (newBest > current.bestScore) {
@@ -360,24 +351,22 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
     fun canUndo(): Boolean = undoSave != null
 
     suspend fun undo() {
-        if (_animationState.value.isAnimating) return
+        if (isAnimating) return
         val snapshot = undoSave ?: return
         
-        _animationState.value = AnimationState(isAnimating = true)
-        
-        val restoredGrid = snapshot.grid.map { it.toIntArray() }.toTypedArray()
+        isAnimating = true
         
         _gameState.value = GameState(
-            grid = restoredGrid,
+            grid = snapshot.grid.map { it.toIntArray() }.toTypedArray(),
             score = snapshot.score,
             bestScore = _gameState.value.bestScore,
             gameOver = false,
-            gameWon = checkHas2048(restoredGrid)
+            gameWon = checkHas2048(snapshot.grid.map { it.toIntArray() }.toTypedArray())
         )
         undoSave = null
         saveGameState()
         
-        _animationState.value = AnimationState(isAnimating = false)
+        isAnimating = false
     }
 
     private fun checkHas2048(grid: Array<IntArray>): Boolean {
@@ -455,9 +444,8 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
     val context = LocalContext.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
-    
     val gameState by viewModel.gameState
-    val animState by viewModel.animationState
+    val pendingMoves by viewModel.pendingMoves
 
     var lastScore by remember { mutableIntStateOf(gameState.score) }
     var scoreGain by remember { mutableIntStateOf(0) }
@@ -594,10 +582,10 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                 ) {
                     GameGrid(
                         grid = gameState.grid,
-                        animatedGrid = animState.animatedGrid,
-                        pendingMoves = animState.moves,
-                        pendingMerges = animState.merges,
-                        spawningTiles = animState.spawning,
+                        animatedGrid = viewModel.animatedGrid.value,
+                        pendingMoves = pendingMoves,
+                        pendingMerges = viewModel.pendingMerges.value,
+                        spawningTiles = viewModel.spawningTiles.value,
                         modifier = Modifier.fillMaxSize(),
                         isGameOver = gameState.gameOver,
                         gameOverAnimToken = gameOverAnimToken
