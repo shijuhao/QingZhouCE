@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -43,8 +44,6 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.random.Random
 import androidx.core.content.edit
-
-// ==================== 数据模型 ====================
 
 data class GameState(
     val grid: Array<IntArray> = Array(4) { IntArray(4) },
@@ -84,10 +83,10 @@ data class MoveInfo(
 
 data class GameSnapshot(
     val grid: List<List<Int>>,
-    val score: Int
+    val score: Int,
+    val moves: List<MoveInfo> = emptyList(),
+    val spawnPos: Pair<Int, Int>? = null
 )
-
-// ==================== 游戏逻辑 ====================
 
 class Game2048Logic {
     companion object {
@@ -196,7 +195,6 @@ enum class Direction {
     }
 }
 
-// ==================== ViewModel ====================
 
 class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
     private val _gameState = mutableStateOf(loadGameState())
@@ -283,16 +281,16 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
 
         if (!changed) return
 
-        // 保存撤销快照
         undoSave = GameSnapshot(
             grid = current.grid.map { it.toList() },
-            score = current.score
+            score = current.score,
+            moves = moves,
+            spawnPos = null
         )
 
         val newScore = current.score + gain
         val newBest = max(newScore, current.bestScore)
 
-        // 检查胜利
         var won = current.gameWon
         if (!won) {
             for (r in 0 until 4) {
@@ -321,6 +319,10 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
         val spawnPos = Game2048Logic.spawnTile(gridAfterMove)
         val gameOver = !Game2048Logic.hasMovesLeft(gridAfterMove)
 
+        if (spawnPos != null && undoSave != null) {
+            undoSave = undoSave!!.copy(spawnPos = spawnPos)
+        }
+
         if (spawnPos != null) {
             _spawningTiles.value = setOf(spawnPos)
         }
@@ -348,9 +350,12 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
 
     fun canUndo(): Boolean = undoSave != null
 
-    fun undo() {
+    suspend fun undo() {
         if (isAnimating) return
         val snapshot = undoSave ?: return
+        
+        isAnimating = true
+        
         _gameState.value = GameState(
             grid = snapshot.grid.map { it.toIntArray() }.toTypedArray(),
             score = snapshot.score,
@@ -360,6 +365,8 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
         )
         undoSave = null
         saveGameState()
+        
+        isAnimating = false
     }
 
     private fun checkHas2048(grid: Array<IntArray>): Boolean {
@@ -372,26 +379,50 @@ class GameViewModel(private val prefs: SharedPreferences) : ViewModel() {
     }
 }
 
-// ==================== UI 样式 ====================
+@Composable
+fun getTileColors(): Map<Int, Color> {
+    val colorScheme = MaterialTheme.colorScheme
+    val primaryColor = colorScheme.primary
+    val errorColor = colorScheme.error
 
-val TileColors = mapOf(
-    0 to Color(0x1AFFFFFF),
-    2 to Color(0xFFEEE4DA),
-    4 to Color(0xFFEDE0C8),
-    8 to Color(0xFFF2B179),
-    16 to Color(0xFFF59563),
-    32 to Color(0xFFF67C5F),
-    64 to Color(0xFFF65E3B),
-    128 to Color(0xFFEDCF72),
-    256 to Color(0xFFEDCC61),
-    512 to Color(0xFFEDC850),
-    1024 to Color(0xFFEDC53F),
-    2048 to Color(0xFFEDC22E)
-)
+    val blendedColor = Color(
+        androidx.core.graphics.ColorUtils.blendARGB(
+            primaryColor.value.toInt(),
+            errorColor.value.toInt(),
+            0.4f
+        )
+    )
+    
+    return mapOf(
+        0 to colorScheme.onSurface.copy(alpha = 0.06f),
+        2 to colorScheme.surfaceVariant,
+        4 to colorScheme.secondaryContainer,
+        8 to colorScheme.primaryContainer,
+        16 to colorScheme.inversePrimary,
+        32 to colorScheme.tertiaryContainer,
+        64 to colorScheme.errorContainer,
+        128 to colorScheme.tertiary,
+        256 to colorScheme.secondary,
+        512 to colorScheme.primary,
+        1024 to blendedColor,
+        2048 to colorScheme.error
+    )
+}
 
-fun tileColor(value: Int) = TileColors[value] ?: Color(0xFF3C3A32)
-fun tileTextColor(value: Int) = if (value in listOf(2, 4)) Color(0xFF776E65) else Color.White
+@Composable
+fun tileColor(value: Int): Color {
+    val colors = getTileColors()
+    val colorScheme = MaterialTheme.colorScheme
+    return colors[value] ?: colorScheme.outline
+}
 
+@Composable
+fun tileTextColor(value: Int): Color {
+    val colorScheme = MaterialTheme.colorScheme
+    return if (value in listOf(2, 4)) colorScheme.onSurfaceVariant else Color.White
+}
+
+@Composable
 fun tileTextSize(value: Int): Float = when {
     value < 100 -> 42f
     value < 1000 -> 36f
@@ -399,7 +430,13 @@ fun tileTextSize(value: Int): Float = when {
     else -> 24f
 }
 
-// ==================== Composable 屏幕 ====================
+@Composable
+fun labelTextSp(value: Int): TextUnit = when {
+    value < 1000 -> 18.sp
+    value < 10000 -> 17.sp
+    else -> 16.sp
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -410,11 +447,9 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
     val gameState by viewModel.gameState
     val pendingMoves by viewModel.pendingMoves
 
-    // 用于显示得分增加动画
     var lastScore by remember { mutableIntStateOf(gameState.score) }
     var scoreGain by remember { mutableIntStateOf(0) }
 
-    // 当分数增加时记录增量并触发动画
     LaunchedEffect(gameState.score) {
         if (gameState.score > lastScore) {
             scoreGain = gameState.score - lastScore
@@ -424,19 +459,23 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
         lastScore = gameState.score
     }
 
-    // 游戏胜利/结束的弹窗显示
-    var showWinDialog by remember { mutableStateOf(false) }
-    var showGameOverDialog by remember { mutableStateOf(false) }
+    var showWinOverlay by remember { mutableStateOf(false) }
+    var showGameOverOverlay by remember { mutableStateOf(false) }
+    var gameOverAnimToken by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(gameState.gameWon) {
-        if (gameState.gameWon && !showWinDialog) {
-            showWinDialog = true
+        if (gameState.gameWon && !showWinOverlay) {
+            showWinOverlay = true
             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            delay(1700)
+            showWinOverlay = false
         }
     }
+    
     LaunchedEffect(gameState.gameOver) {
-        if (gameState.gameOver && !showGameOverDialog && gameState.score > 0) {
-            showGameOverDialog = true
+        if (gameState.gameOver && !showGameOverOverlay && gameState.score > 0) {
+            gameOverAnimToken++
+            showGameOverOverlay = true
             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         }
     }
@@ -482,7 +521,6 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 控制按钮
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -490,7 +528,9 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = { viewModel.undo() },
+                        onClick = { 
+                            scope.launch { viewModel.undo() }
+                        },
                         enabled = viewModel.canUndo() && !gameState.gameOver,
                         modifier = Modifier
                             .weight(1f)
@@ -499,7 +539,11 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                         Text("撤回")
                     }
                     Button(
-                        onClick = { viewModel.startNewGame() },
+                        onClick = { 
+                            showGameOverOverlay = false
+                            showWinOverlay = false
+                            viewModel.startNewGame()
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
@@ -510,7 +554,6 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 棋盘 - 使用动态计算的最大尺寸
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -543,13 +586,85 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                         pendingMoves = pendingMoves,
                         pendingMerges = viewModel.pendingMerges.value,
                         spawningTiles = viewModel.spawningTiles.value,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        isGameOver = gameState.gameOver,
+                        gameOverAnimToken = gameOverAnimToken
                     )
+
+                    if (showGameOverOverlay) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.67f))
+                                .pointerInput(Unit) { /* 阻止点击穿透 */ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    text = "游戏结束",
+                                    fontSize = 34.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primaryFixed,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "得分：${gameState.score}",
+                                    fontSize = 20.sp,
+                                    color = MaterialTheme.colorScheme.primaryFixedDim,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "点击「新游戏」再来一局",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.secondaryFixedDim,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    if (showWinOverlay) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.67f))
+                                .pointerInput(Unit) { /* 阻止点击穿透 */ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "2048",
+                                    fontSize = 68.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primaryFixedDim,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "游戏胜利",
+                                    fontSize = 26.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primaryFixed,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "你仍可以继续游戏",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.secondaryFixedDim,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 游戏说明 - 小屏幕时自动滚动可见
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -577,20 +692,7 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
             }
         }
 
-        // 弹窗
-        if (showWinDialog) {
-            WinDialog(onDismiss = { showWinDialog = false })
-        }
-        if (showGameOverDialog) {
-            GameOverDialog(
-                score = gameState.score,
-                onNewGame = {
-                    viewModel.startNewGame()
-                    showGameOverDialog = false
-                },
-                onDismiss = { showGameOverDialog = false }
-            )
-        }
+
     }
 }
 
@@ -606,10 +708,10 @@ fun ScoreCard(title: String, score: Int, modifier: Modifier = Modifier) {
                 .padding(vertical = 8.dp, horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 score.toString(),
-                fontSize = 20.sp,
+                fontSize = labelTextSp(score),
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -630,11 +732,11 @@ fun AnimatedScoreCard(title: String, score: Int, gain: Int, modifier: Modifier =
                 .padding(vertical = 8.dp, horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Box {
                 Text(
                     score.toString(),
-                    fontSize = 20.sp,
+                    fontSize = labelTextSp(score),
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
@@ -666,7 +768,9 @@ fun GameGrid(
     pendingMoves: List<MoveInfo>,
     pendingMerges: Set<Pair<Int, Int>>,
     spawningTiles: Set<Pair<Int, Int>>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isGameOver: Boolean = false,
+    gameOverAnimToken: Int = 0
 ) {
     var cellSizePx by remember { mutableFloatStateOf(0f) }
     val scope = rememberCoroutineScope()
@@ -674,12 +778,16 @@ fun GameGrid(
     val moveAnimations = remember { mutableStateMapOf<String, Animatable<Offset, AnimationVector2D>>() }
     val mergeAnimations = remember { mutableStateMapOf<String, Animatable<Float, AnimationVector1D>>() }
 
+    val grayedAlphas = remember { mutableStateMapOf<String, Animatable<Float, AnimationVector1D>>() }
+    
     LaunchedEffect(pendingMoves) {
         if (pendingMoves.isEmpty()) return@LaunchedEffect
 
         while (cellSizePx == 0f) {
             delay(10)
         }
+
+        val decelerateEasing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
 
         pendingMoves.forEach { move ->
             val fromKey = "${move.fromRow},${move.fromCol}"
@@ -691,7 +799,7 @@ fun GameGrid(
             scope.launch {
                 animatable.animateTo(
                     Offset(deltaX, deltaY),
-                    animationSpec = tween(150, easing = FastOutSlowInEasing)
+                    animationSpec = tween(120, easing = decelerateEasing)
                 )
                 moveAnimations.remove(fromKey)
             }
@@ -705,10 +813,30 @@ fun GameGrid(
                 Animatable(1f, Float.VectorConverter)
             }
             scope.launch {
-                animatable.animateTo(1.25f, animationSpec = tween(80))
-                animatable.animateTo(1f, animationSpec = tween(100))
-                delay(50)
+                animatable.animateTo(1.15f, animationSpec = tween(70))
+                animatable.animateTo(1f, animationSpec = tween(70))
                 mergeAnimations.remove(key)
+            }
+        }
+    }
+
+    LaunchedEffect(isGameOver, gameOverAnimToken) {
+        if (!isGameOver) {
+            grayedAlphas.clear()
+            return@LaunchedEffect
+        }
+        
+        for (row in 0 until 4) {
+            val rowDelay = 300 + row * 150L
+            
+            for (col in 0 until 4) {
+                val key = "$row,$col"
+                scope.launch {
+                    delay(rowDelay)
+                    val animatable = Animatable(1f, Float.VectorConverter)
+                    grayedAlphas[key] = animatable
+                    animatable.animateTo(0.30f, animationSpec = tween(300, easing = FastOutSlowInEasing))
+                }
             }
         }
     }
@@ -759,7 +887,9 @@ fun GameGrid(
                                     moveOffset = moveOffset,
                                     mergeScale = mergeScale,
                                     isSpawning = spawningTiles.contains(Pair(row, col)),
-                                    isMerged = isMergedTarget
+                                    isMerged = isMergedTarget,
+                                    grayAlpha = grayedAlphas["$row,$col"]?.value ?: 1f,
+                                    isGrayed = isGameOver && grayedAlphas.containsKey("$row,$col")
                                 )
                             }
 
@@ -790,36 +920,38 @@ fun Tile(
     mergeScale: Float = 1f,
     isSpawning: Boolean = false,
     isMoving: Boolean = false,
-    isMerged: Boolean = false
+    isMerged: Boolean = false,
+    grayAlpha: Float = 1f,
+    isGrayed: Boolean = false
 ) {
     val backgroundColor = tileColor(value)
     val textColor = tileTextColor(value)
     val textSize = tileTextSize(value)
 
-    // 生成动画
-    val spawnScale = remember { Animatable(0f) }
+    val spawnScale = remember { Animatable(1f) }
     LaunchedEffect(isSpawning) {
         if (isSpawning) {
             spawnScale.snapTo(0f)
             spawnScale.animateTo(
                 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
+                animationSpec = tween(180, easing = FastOutSlowInEasing)
             )
+        } else {
+            spawnScale.snapTo(1f)
         }
     }
-    val finalSpawnScale = if (isSpawning) spawnScale.value else 1f
+    val finalSpawnScale = spawnScale.value
 
-    // 合并时的闪烁效果
     val mergedFlash by animateColorAsState(
         targetValue = if (isMerged) Color(0xFFFFD700) else backgroundColor,
-        animationSpec = tween(150),
+        animationSpec = tween(140),
         label = "mergedFlash"
     )
 
     val finalColor = if (isMerged) mergedFlash else backgroundColor
+
+    val displayColor = if (isGrayed) MaterialTheme.colorScheme.surfaceVariant else finalColor
+    val displayTextColor = if (isGrayed) MaterialTheme.colorScheme.onSurfaceVariant else textColor
 
     Card(
         modifier = modifier
@@ -828,10 +960,9 @@ fun Tile(
                 translationY = moveOffset?.y ?: 0f
                 scaleX = finalSpawnScale * mergeScale
                 scaleY = finalSpawnScale * mergeScale
-                // 移动中的瓦片增加透明度
-                alpha = if (isMoving) 0.9f else 1f
+                alpha = grayAlpha * (if (isMoving) 0.9f else 1f)
             },
-        colors = CardDefaults.cardColors(containerColor = finalColor),
+        colors = CardDefaults.cardColors(containerColor = displayColor),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (isMoving) 6.dp else 2.dp
@@ -846,7 +977,7 @@ fun Tile(
                     text = value.toString(),
                     fontSize = textSize.sp,
                     fontWeight = FontWeight.Bold,
-                    color = textColor,
+                    color = displayTextColor,
                     textAlign = TextAlign.Center
                 )
             }
@@ -854,40 +985,6 @@ fun Tile(
     }
 }
 
-@Composable
-fun GameOverDialog(score: Int, onNewGame: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("游戏结束") },
-        text = { Text("您的得分：$score") },
-        confirmButton = {
-            Button(onClick = onNewGame) {
-                Text("新游戏")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("关闭")
-            }
-        }
-    )
-}
-
-@Composable
-fun WinDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("🎉 胜利！") },
-        text = { Text("您达到了 2048！\n可以继续游戏挑战更高分数。") },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("继续")
-            }
-        }
-    )
-}
-
-// ==================== Activity ====================
 
 class Game2048Activity : ComponentActivity() {
     private lateinit var prefs: SharedPreferences
