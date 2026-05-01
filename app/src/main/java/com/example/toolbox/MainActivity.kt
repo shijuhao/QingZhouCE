@@ -406,30 +406,29 @@ fun MyApplicationApp() {
     }
     
     BackHandler(enabled = !showDialog && !drawerState.isOpen) {
-        val startDestination = getStartDestination(context)
-        val defaultStartRoute = startDestination
+        val currentRoute = currentDestination?.route ?: return@BackHandler
+        val defaultStartRoute = getStartDestination(context)
+    
+        val isSecondary = currentRoute == AppDestinations.CHAT.route ||
+                          currentRoute == AppDestinations.RESOURCE.route ||
+                          currentRoute == AppDestinations.PROFILE.route
+    
+        if (isSecondary) {
+            navController.navigate(AppDestinations.HOME.route) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+            return@BackHandler
+        }
     
         val isTopLevel = currentRoute == AppDestinations.HOME.route ||
                          currentRoute == TopLevelDestinations.LFCommunity.route ||
                          currentRoute == TopLevelDestinations.YHBotMaker.route
-    
-        if (!isTopLevel && currentRoute != null) {
-            navController.popBackStack()
-        } else {
-            if (currentRoute == defaultStartRoute) {
-                val exitConfirmationEnabled = prefs.getBoolean("exit_confirmation", false)
-                if (!exitConfirmationEnabled) {
-                    (context as? Activity)?.finish()
-                } else {
-                    val now = System.currentTimeMillis()
-                    if (now - lastBackPressedTime < 2000) {
-                        (context as? Activity)?.finish()
-                    } else {
-                        lastBackPressedTime = now
-                        Toast.makeText(context, "再按一次退出应用", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
+        if (!isTopLevel) {
+            if (!navController.popBackStack()) {
                 navController.navigate(defaultStartRoute) {
                     popUpTo(navController.graph.findStartDestination().id) {
                         saveState = true
@@ -437,6 +436,30 @@ fun MyApplicationApp() {
                     launchSingleTop = true
                     restoreState = true
                 }
+            }
+            return@BackHandler
+        }
+    
+        if (currentRoute == defaultStartRoute) {
+            val exitConfirmationEnabled = prefs.getBoolean("exit_confirmation", false)
+            if (!exitConfirmationEnabled) {
+                (context as? Activity)?.finish()
+            } else {
+                val now = System.currentTimeMillis()
+                if (now - lastBackPressedTime < 2000) {
+                    (context as? Activity)?.finish()
+                } else {
+                    lastBackPressedTime = now
+                    Toast.makeText(context, "再按一次退出应用", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            navController.navigate(defaultStartRoute) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
             }
         }
     }
