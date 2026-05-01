@@ -17,16 +17,16 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><img src=".github/images/1.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>主界面</b></td>
-      <td align="center"><img src=".github/images/2.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>会话页面</b></td>
+      <td align="center"><img src=".github/images/1.webp" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>主界面</b></td>
+      <td align="center"><img src=".github/images/2.webp" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>会话页面</b></td>
     </tr>
     <tr>
-      <td align="center"><img src=".github/images/3.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>资源库页面</b></td>
-      <td align="center"><img src=".github/images/4.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>我的页面</b></td>
+      <td align="center"><img src=".github/images/3.webp" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>资源库页面</b></td>
+      <td align="center"><img src=".github/images/4.webp" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>我的页面</b></td>
     </tr>
     <tr>
-      <td align="center"><img src=".github/images/5.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>帖子列表页面</b></td>
-      <td align="center"><img src=".github/images/6.jpg" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>设置页面</b></td>
+      <td align="center"><img src=".github/images/5.webp" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>帖子列表页面</b></td>
+      <td align="center"><img src=".github/images/6.webp" width="200" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/> <br/><b>设置页面</b></td>
     </tr>
    </table>
 </div>
