@@ -584,6 +584,7 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .clip(RoundedCornerShape(16.dp))  // 与棋盘相同的圆角
                                 .background(Color.Black.copy(alpha = 0.67f))
                                 .pointerInput(Unit) { /* 阻止点击穿透 */ },
                             contentAlignment = Alignment.Center
@@ -619,6 +620,7 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .clip(RoundedCornerShape(16.dp))  // 与棋盘相同的圆角
                                 .background(Color.Black.copy(alpha = 0.67f))
                                 .pointerInput(Unit) { /* 阻止点击穿透 */ },
                             contentAlignment = Alignment.Center
@@ -779,7 +781,6 @@ fun GameGrid(
         pendingMoves.filter { it.merged }.map { Pair(it.toRow, it.toCol) }.toSet()
     }
 
-    // ======= 修复1：找出所有"正在被移入"的格子 =======
     val receivingCells = remember(pendingMoves) {
         pendingMoves.map { Pair(it.toRow, it.toCol) }.toSet()
     }
