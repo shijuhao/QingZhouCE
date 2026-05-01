@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Bundle
-import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TextSnippet
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SettingsSuggest
@@ -61,19 +62,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.toolbox.LoginActivity
 import com.example.toolbox.MainActivity
 import com.example.toolbox.R
 import com.example.toolbox.TokenManager
 import com.example.toolbox.mine.OnResumeScreen
+import com.example.toolbox.settings.DefaultStartPageScreen
 import com.example.toolbox.settings.ThemeSwitchScreen
 import com.example.toolbox.settings.ThemeViewModel
 import com.example.toolbox.ui.theme.ToolBoxTheme
@@ -101,7 +101,7 @@ fun Greeting() {
 
     val page by remember { derivedStateOf { guideData.page } }
 
-    val targetProgress = page / 5f
+    val targetProgress = page / 6f
     val animatedProgress by animateFloatAsState(
         targetValue = targetProgress,
         animationSpec = tween(durationMillis = 500),
@@ -116,8 +116,9 @@ fun Greeting() {
                 imageVector = when (page) {
                     1 -> Icons.Default.Build
                     2 -> Icons.Default.Palette
-                    3 -> Icons.AutoMirrored.Filled.TextSnippet
-                    4 -> Icons.Default.Person
+                    3 -> Icons.Default.Home
+                    4 -> Icons.AutoMirrored.Filled.TextSnippet
+                    5 -> Icons.Default.Person
                     else -> Icons.Default.SettingsSuggest
                 },
                 contentDescription = null,
@@ -189,7 +190,7 @@ fun Greeting() {
                         FilledIconButton(
                             modifier = Modifier.size(60.dp),
                             onClick = {
-                                if (page < 5) {
+                                if (page < 6) {
                                     viewModel.updatePage(page + 1)
                                 } else {
                                     val prefs =
@@ -208,7 +209,7 @@ fun Greeting() {
                             }
                         ) {
                             Icon(
-                                imageVector = if (page != 5) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Check,
+                                imageVector = if (page != 6) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Check,
                                 contentDescription = "Next"
                             )
                         }
@@ -230,17 +231,22 @@ fun Greeting() {
 @Composable
 fun GuidePageContent(page: Int) {
     val context = LocalContext.current
-    val viewModel: ThemeViewModel = viewModel()
+    val themeViewModel: ThemeViewModel = viewModel()
 
     val userRules = stringResource(R.string.user_rules)
 
-    viewModel.loadSavedTheme(context)
+    themeViewModel.loadSavedTheme(context)
 
-    val currentTheme by viewModel.currentTheme.collectAsState()
-    val monetEnabled by viewModel.monetEnabled.collectAsState()
-    val iconColorEnabled by viewModel.iconColorEnabled.collectAsState()
-    val colorTheme by viewModel.colorTheme.collectAsState()
+    val currentTheme by themeViewModel.currentTheme.collectAsState()
+    val monetEnabled by themeViewModel.monetEnabled.collectAsState()
+    val iconColorEnabled by themeViewModel.iconColorEnabled.collectAsState()
+    val colorTheme by themeViewModel.colorTheme.collectAsState()
     var isLogin by remember { mutableStateOf(false) }
+
+    val prefs = context.getSharedPreferences("app_preferences", MODE_PRIVATE)
+    var currentStartRoute by remember {
+        mutableStateOf(prefs.getString("default_start_page", "主页") ?: "主页")
+    }
 
     isLogin = (TokenManager.get(context) ?: "null") != "null"
 
@@ -295,14 +301,14 @@ fun GuidePageContent(page: Int) {
 
                         Column {
                             Text(
-                                text = "设置主题",
+                                text = "外观设置",
                                 style = MaterialTheme.typography.headlineSmall,
                                 modifier = Modifier.padding(bottom = 5.dp),
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "确保初次使用时显示为您最喜爱的主题",
+                                text = "确保初次使用时显示为您最喜爱的外观",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -314,14 +320,50 @@ fun GuidePageContent(page: Int) {
                         iconColorEnabled = iconColorEnabled,
                         colorTheme = colorTheme,
                         innerPadding = PaddingValues(0.dp),
-                        onThemeChange = { theme -> viewModel.changeTheme(theme, context) },
-                        onMonetToggle = { viewModel.toggleMonetEnabled(context) },
-                        onColorThemeChange = { theme -> viewModel.changeColorTheme(theme, context) },
-                        onIconColorToggle = { viewModel.toggleIconColorEnabled(context) }
+                        onThemeChange = { theme -> themeViewModel.changeTheme(theme, context) },
+                        onMonetToggle = { themeViewModel.toggleMonetEnabled(context) },
+                        onColorThemeChange = { theme -> themeViewModel.changeColorTheme(theme, context) },
+                        onIconColorToggle = { themeViewModel.toggleIconColorEnabled(context) }
                     )
                 }
             }
             3 -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "设置默认启动页",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "您可以自定义应用启动时显示的页面",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                    DefaultStartPageScreen(
+                        currentStartRoute = currentStartRoute,
+                        onStartRouteChange = { _, pageName ->
+                            currentStartRoute = pageName
+                            prefs.edit().apply {
+                                putString("default_start_page", pageName)
+                                apply()
+                            }
+                        }
+                    )
+                }
+            }
+            4 -> {
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -364,7 +406,7 @@ fun GuidePageContent(page: Int) {
                     }
                 }
             }
-            4 -> {
+            5 -> {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
@@ -395,7 +437,7 @@ fun GuidePageContent(page: Int) {
                     }
                 }
             }
-            5 -> {
+            6 -> {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,

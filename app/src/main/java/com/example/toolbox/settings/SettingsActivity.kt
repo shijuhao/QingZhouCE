@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -124,6 +125,17 @@ fun SettingsScreen(
                     title = "行为",
                     items = listOf(
                         {
+                            SettingsItemCell(
+                                icon = Icons.Default.Home,
+                                title = "默认启动页",
+                                subtitle = "设置应用启动时默认显示的页面",
+                                onClick = {
+                                    val intent = Intent(context, DefaultStartPageActivity::class.java)
+                                    context.startActivity(intent)
+                                }
+                            )
+                        },
+                        {
                             SettingsSwitchItem(
                                 icon = Icons.AutoMirrored.Filled.ArrowBack,
                                 title = "返回二次确认",
@@ -197,7 +209,7 @@ fun SettingsScreen(
                         },
                         {
                             SettingsDropdownItem(
-                                icon = Icons.Default.List,
+                                icon = Icons.AutoMirrored.Filled.List,
                                 title = "更新频道",
                                 subtitle = if (updateChannel == "stable") "仅检查正式版本" else "检查预发布版本",
                                 options = listOf("stable" to "仅正式版", "prerelease" to "正式版 + 预发布版"),

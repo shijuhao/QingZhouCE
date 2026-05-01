@@ -40,8 +40,6 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import com.example.toolbox.utils.UpdateInfo
 import com.example.toolbox.utils.checkForUpdateWithDetails
 import com.example.toolbox.settings.UpdateDialog
@@ -442,7 +440,7 @@ fun MainContentNavHost(
 
     NavHost(
         navController = navController,
-        startDestination = AppDestinations.HOME.route,
+        startDestination = getStartDestination(context),
         modifier = modifier,
         enterTransition = { fadeIn(animationSpec = tween(300)) },
         exitTransition = { fadeOut(animationSpec = tween(300)) },
@@ -503,25 +501,40 @@ interface NavDestination {
     val route: String
     val label: String
     val icon: ImageVector
+    val description: String
 }
 
 enum class TopLevelDestinations(
     override val route: String,
     override val label: String,
-    override val icon: ImageVector
+    override val icon: ImageVector,
+    override val description: String
 ) : NavDestination {
-    LFCommunity("lfcommunity", "立方论坛", Icons.Default.ChatBubbleOutline),
-    YHBotMaker("yhbotmaker", "YHBotMaker", Icons.Default.Android)
+    LFCommunity("lfcommunity", "立方论坛", Icons.Default.ChatBubbleOutline, "主要作为立方论坛客户端"),
+    YHBotMaker("yhbotmaker", "YHBotMaker", Icons.Default.Android, "主要作为云湖机器人制作器")
 }
 
 enum class AppDestinations(
     override val route: String,
     override val label: String,
     override val icon: ImageVector,
-    val iconOutlined: ImageVector
+    val iconOutlined: ImageVector,
+    override val description: String
 ) : NavDestination {
-    HOME("home", "主页", Icons.Filled.Home, Icons.Outlined.Home),
-    CHAT("chat", "会话", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline),
-    RESOURCE("resource", "资源库", Icons.Filled.Inbox, Icons.Outlined.Inbox),
-    PROFILE("profile", "我", Icons.Filled.Person, Icons.Outlined.Person);
+    HOME("home", "主页", Icons.Filled.Home, Icons.Outlined.Home, "主要使用轻昼实用功能"),
+    CHAT("chat", "对话", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline, ""),
+    RESOURCE("resource", "资源库", Icons.Filled.Inbox, Icons.Outlined.Inbox, ""),
+    PROFILE("profile", "我", Icons.Filled.Person, Icons.Outlined.Person, "");
+}
+
+fun getStartDestination(context: Context): String {
+    val prefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+    val defaultStartPageName = prefs.getString("default_start_page", "主页") ?: "主页"
+    
+    return when (defaultStartPageName) {
+        "主页" -> AppDestinations.HOME.route
+        "立方论坛" -> TopLevelDestinations.LFCommunity.route
+        "YHBotMaker" -> TopLevelDestinations.YHBotMaker.route
+        else -> AppDestinations.HOME.route
+    }
 }

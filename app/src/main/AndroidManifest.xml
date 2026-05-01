@@ -318,6 +318,10 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".settings.DefaultStartPageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".function.daily.StopWatchActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />

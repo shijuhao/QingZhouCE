@@ -99,7 +99,7 @@ fun MessageScreen(
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text("私信") },
+                title = { Text("对话") },
                 navigationIcon = {
                     IconButton(onClick = { onMenuClick() }) {
                         Icon(Icons.Default.Menu, contentDescription = "菜单")
