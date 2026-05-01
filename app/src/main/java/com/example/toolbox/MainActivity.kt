@@ -400,23 +400,42 @@ fun MyApplicationApp() {
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
     }
+    
     BackHandler(enabled = showDialog) {
         mainViewModel.changeUserDialogStatus(false)
     }
+    
     BackHandler(enabled = !showDialog && !drawerState.isOpen) {
-        if (currentRoute != AppDestinations.HOME.route && currentRoute != null) {
+        val startDestination = getStartDestination(context)
+        val defaultStartRoute = startDestination
+    
+        val isTopLevel = currentRoute == AppDestinations.HOME.route ||
+                         currentRoute == TopLevelDestinations.LFCommunity.route ||
+                         currentRoute == TopLevelDestinations.YHBotMaker.route
+    
+        if (!isTopLevel && currentRoute != null) {
             navController.popBackStack()
         } else {
-            val exitConfirmationEnabled = prefs.getBoolean("exit_confirmation", false)
-            if (!exitConfirmationEnabled) {
-                (context as? Activity)?.finish()
-            } else {
-                val now = System.currentTimeMillis()
-                if (now - lastBackPressedTime < 2000) {
+            if (currentRoute == defaultStartRoute) {
+                val exitConfirmationEnabled = prefs.getBoolean("exit_confirmation", false)
+                if (!exitConfirmationEnabled) {
                     (context as? Activity)?.finish()
                 } else {
-                    lastBackPressedTime = now
-                    Toast.makeText(context, "再按一次退出应用", Toast.LENGTH_SHORT).show()
+                    val now = System.currentTimeMillis()
+                    if (now - lastBackPressedTime < 2000) {
+                        (context as? Activity)?.finish()
+                    } else {
+                        lastBackPressedTime = now
+                        Toast.makeText(context, "再按一次退出应用", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                navController.navigate(defaultStartRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
                 }
             }
         }
