@@ -293,7 +293,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                     .padding(16.dp)
                             ) {
                                 Text(
-                                    text = "${stringResource(id = R.string.app_name)}是一款集成了多种实用工具的工具箱，使用Material You风格，旨在为用户提供便捷的日常工具服务。",
+                                    text = "${stringResource(id = R.string.app_name)} 是一款集成了多种实用工具的工具箱，使用 Material You 风格，旨在为用户提供便捷的日常工具服务。",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
