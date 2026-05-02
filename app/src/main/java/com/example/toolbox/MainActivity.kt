@@ -564,7 +564,7 @@ enum class AppDestinations(
     override val description: String
 ) : NavDestination {
     HOME("home", "主页", Icons.Filled.Home, Icons.Outlined.Home, "主要使用轻昼实用功能"),
-    CHAT("chat", "对话", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline, ""),
+    CHAT("chat", "会话", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline, ""),
     RESOURCE("resource", "资源库", Icons.Filled.Inbox, Icons.Outlined.Inbox, ""),
     PROFILE("profile", "我", Icons.Filled.Person, Icons.Outlined.Person, "");
 }

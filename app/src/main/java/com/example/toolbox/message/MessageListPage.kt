@@ -99,7 +99,7 @@ fun MessageScreen(
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text("对话") },
+                title = { Text("会话") },
                 navigationIcon = {
                     IconButton(onClick = { onMenuClick() }) {
                         Icon(Icons.Default.Menu, contentDescription = "菜单")
@@ -187,12 +187,12 @@ fun FriendItem(friend: Friend) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
             .clickable {
                 val intent = Intent(context, MessageDetailActivity::class.java)
                 intent.putExtra("user_id", friend.id)
                 context.startActivity(intent)
-            },
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box {
@@ -217,7 +217,6 @@ fun FriendItem(friend: Friend) {
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // 右侧内容
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
