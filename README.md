@@ -58,13 +58,16 @@
 
 ## 📦 下载
 
-<p align="center">
+<div align="center">
+
   <a href="https://github.com/shijuhao/QingZhouCE/releases">
     <img src="https://img.shields.io/badge/下载-最新版-28a745?style=for-the-badge&logo=github" alt="下载"/>
   </a>
-</p>
 
-> 前往 [Releases 页面](https://github.com/shijuhao/QingZhouCE/releases) 下载最新 APK
+  [![Latest Release](https://img.shields.io/github/v/release/shijuhao/QingZhouCE?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC&color=brightgreen)](https://github.com/shijuhao/QingZhouCE/releases/latest)
+  [![Downloads](https://img.shields.io/github/downloads/shijuhao/QingZhouCE/total?label=%E7%B4%AF%E8%AE%A1%E4%B8%8B%E8%BD%BD&color=blue)](https://github.com/shijuhao/QingZhouCE/releases)
+
+</div>
 
 ---
 
