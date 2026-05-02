@@ -719,7 +719,7 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
                             .aspectRatio(2f),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        elevation = CardDefaults.cardElevation(0.dp),
                         onClick = { appendNumber("0") }
                     ) {
                         Box(
