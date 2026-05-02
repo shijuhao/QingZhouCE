@@ -106,8 +106,6 @@ fun Base64Screen(modifier: Modifier = Modifier) {
         }
     }
 
-
-    // 复制文本到剪贴板
     fun copyToClipboard() {
         if (inputText.isEmpty() && outputText == "编码/解码结果将显示在这里") {
             Toast.makeText(context,"请输入文本",Toast.LENGTH_SHORT).show()
@@ -133,7 +131,6 @@ fun Base64Screen(modifier: Modifier = Modifier) {
             }
         )
 
-        // 使用垂直滚动容器包裹内容
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -141,9 +138,8 @@ fun Base64Screen(modifier: Modifier = Modifier) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 输入区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -166,10 +162,9 @@ fun Base64Screen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 错误信息显示
             if (errorMessage.isNotEmpty()) {
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Text(
@@ -182,9 +177,8 @@ fun Base64Screen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 操作按钮
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(
@@ -235,9 +229,8 @@ fun Base64Screen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 输出区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -289,7 +282,6 @@ fun Base64Screen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 添加底部间距，确保内容滚动到底部时有足够空间
             Spacer(modifier = Modifier.height(10.dp))
         }
     }

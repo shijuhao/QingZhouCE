@@ -72,14 +72,12 @@ fun MarkBoardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 计时器区域
             TimerDisplay(
                 displayTime = state.displayTime,
                 timerRunning = state.timerRunning,
                 lapTimes = state.lapTimes
             )
 
-            // 计分板区域
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -102,7 +100,6 @@ fun MarkBoardScreen(
                 )
             }
 
-            // 计时器控制按钮
             TimerControls(
                 timerRunning = state.timerRunning,
                 onStart = { viewModel.startTimer() },
@@ -110,7 +107,6 @@ fun MarkBoardScreen(
                 onRecordLap = { viewModel.recordLap() }
             )
 
-            // 重置按钮
             ResetControls(
                 onResetScores = { viewModel.resetScores() },
                 onResetTimer = { viewModel.resetTimer() }
@@ -130,7 +126,7 @@ fun TimerDisplay(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -138,7 +134,6 @@ fun TimerDisplay(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 优化字体大小：使用稍小的字体，与卡片协调
             Text(
                 text = if (timerRunning || displayTime > 0) MarkBoardViewModel.formatTime(displayTime) else "等待开始",
                 style = MaterialTheme.typography.headlineLarge,
@@ -185,7 +180,7 @@ fun ScoreCard(
 ) {
     Card(
         modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -247,7 +242,7 @@ fun TimerControls(
 ) {
     Card(
         modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Row(
@@ -291,7 +286,7 @@ fun ResetControls(
 ) {
     Card(
         modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
     ) {
         Column(

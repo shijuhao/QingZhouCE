@@ -48,7 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.toolbox.ui.theme.ToolBoxTheme
@@ -176,7 +175,7 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -215,9 +214,8 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 密钥和操作区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(
@@ -230,7 +228,6 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 解密按钮
                         Button(
                             onClick = { decryptText() },
                             modifier = Modifier.weight(1f)
@@ -250,7 +247,6 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
 
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        // 加密按钮
                         Button(
                             onClick = { encryptText() },
                             modifier = Modifier.weight(1f)
@@ -271,9 +267,8 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 输出区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -323,13 +318,5 @@ fun Rc4CryptoScreen(modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(10.dp))
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun Rc4CryptoScreenPreview() {
-    ToolBoxTheme {
-        Rc4CryptoScreen()
     }
 }

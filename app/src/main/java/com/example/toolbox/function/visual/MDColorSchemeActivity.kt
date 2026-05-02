@@ -157,7 +157,7 @@ fun MDColorSchemeScreen(modifier: Modifier = Modifier) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(

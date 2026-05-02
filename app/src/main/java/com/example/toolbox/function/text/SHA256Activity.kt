@@ -92,7 +92,7 @@ fun SHA256Screen() {
             if (hashResult.isNotEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(4.dp)
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Row(
                         modifier = Modifier

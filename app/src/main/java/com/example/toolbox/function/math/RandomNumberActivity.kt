@@ -48,7 +48,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.toolbox.ui.theme.ToolBoxTheme
@@ -106,7 +105,6 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
             val random = Random.nextInt(min, max + 1)
             randomNumber = random.toString()
 
-            // 添加到历史记录
             history = listOf(random) + history.take(9) // 只保留最近10个
 
         } catch (_: NumberFormatException) {
@@ -145,7 +143,6 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
             }
         )
 
-        // 使用垂直滚动容器包裹内容
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -153,9 +150,8 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 输入区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -201,10 +197,9 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 错误信息显示
             if (errorMessage.isNotEmpty()) {
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Text(
@@ -217,9 +212,8 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 生成按钮
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(
@@ -248,9 +242,8 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 结果显示区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -330,10 +323,9 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 历史记录区域
             if (history.isNotEmpty()) {
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -412,16 +404,7 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 添加底部间距，确保内容滚动到底部时有足够空间
             Spacer(modifier = Modifier.height(10.dp))
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RandomNumberScreenPreview() {
-    ToolBoxTheme {
-        RandomNumberScreen()
     }
 }

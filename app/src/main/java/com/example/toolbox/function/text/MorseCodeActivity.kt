@@ -49,7 +49,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.toolbox.ui.theme.ToolBoxTheme
@@ -68,7 +67,6 @@ class MorseCodeActivity : ComponentActivity() {
     }
 }
 
-// 摩斯密码映射表
 private val morseCodeMap = mapOf(
     'A' to ".-", 'B' to "-...", 'C' to "-.-.", 'D' to "-..", 'E' to ".", 'F' to "..-.",
     'G' to "--.", 'H' to "....", 'I' to "..", 'J' to ".---", 'K' to "-.-", 'L' to ".-..",
@@ -83,7 +81,6 @@ private val morseCodeMap = mapOf(
     '"' to ".-..-.", '$' to "...-..-", '@' to ".--.-.", ' ' to "/"
 )
 
-// 反向映射表
 private val reverseMorseCodeMap = morseCodeMap.entries.associate { (key, value) -> value to key }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,7 +101,6 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
         }
 
         val result = StringBuilder()
-        // 逐字符处理
         for (char in inputText.uppercase()) {
             when {
                 char == ' ' -> result.append("/ ") // 空格转为分隔符
@@ -154,7 +150,6 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    // 复制文本到剪贴板
     fun copyToClipboard() {
         if (outputText == "摩斯密码编码/解码结果将显示在这里") {
             Toast.makeText(context, "请先进行编码或解码", Toast.LENGTH_SHORT).show()
@@ -167,7 +162,6 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
         Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
     }
 
-    // 清空输入输出
     fun clearAll() {
         inputText = ""
         outputText = "摩斯密码编码/解码结果将显示在这里"
@@ -187,7 +181,6 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
             }
         )
 
-        // 使用垂直滚动容器包裹内容
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -195,9 +188,8 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 输入区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -219,10 +211,9 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 错误信息显示
             if (errorMessage.isNotEmpty()) {
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Text(
@@ -235,9 +226,8 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 操作按钮
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(
@@ -297,9 +287,8 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 输出区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -363,39 +352,7 @@ fun MorseCodeScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 摩斯密码规则提示
-            Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "摩斯密码规则",
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        text = "• 字符之间用空格分隔\n• 单词之间用 / 分隔\n• 编码时会自动转为大写\n• 支持字母、数字和常见标点符号",
-                        style = MaterialTheme.typography.bodySmall,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
-
-            // 添加底部间距，确保内容滚动到底部时有足够空间
             Spacer(modifier = Modifier.height(10.dp))
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun MorseCodeScreenPreview() {
-    ToolBoxTheme {
-        MorseCodeScreen()
     }
 }

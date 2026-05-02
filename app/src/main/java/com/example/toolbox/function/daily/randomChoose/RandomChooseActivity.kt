@@ -665,7 +665,7 @@ fun RandomChooseScreen(
                 if (viewModel.items.isNotEmpty()) {
                     item {
                         Card(
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            elevation = CardDefaults.cardElevation(0.dp),
                             shape = RoundedCornerShape(24.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -743,7 +743,7 @@ fun WheelCard(
     onSpin: () -> Unit
 ) {
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp)
     ) {
@@ -988,7 +988,7 @@ fun ResultCard(
     onReselect: () -> Unit
 ) {
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -1072,7 +1072,7 @@ fun ItemsListCard(
     isSpinning: Boolean,
     onEdit: (RandomItem) -> Unit
 ) {
-    Card(elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
+    Card(elevation = CardDefaults.cardElevation(0.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

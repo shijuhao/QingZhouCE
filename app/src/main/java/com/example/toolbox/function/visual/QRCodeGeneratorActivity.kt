@@ -169,7 +169,7 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -194,7 +194,7 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
 
             if (errorMessage.isNotEmpty()) {
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Text(
@@ -208,7 +208,7 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
             }
 
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(
@@ -237,7 +237,7 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
 
             if (qrCodeBitmap != null) {
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(
                         modifier = Modifier

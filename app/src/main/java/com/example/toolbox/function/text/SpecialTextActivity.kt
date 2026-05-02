@@ -79,7 +79,6 @@ class SpecialTextActivity : ComponentActivity() {
 fun SpecialTextScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
-    // 特殊文本样式数据
     val textStyles = listOf(
         "a'ゞ文本",
         "ζั͡文本ۣۖิ ั͡✾",
@@ -96,14 +95,11 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
         "ۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖ 文本 ۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۣۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖۖ"
     )
 
-    // 状态变量
     var inputText by remember { mutableStateOf("") }
     var selectedStyle by remember { mutableStateOf(textStyles[0]) }
     var generatedText by remember { mutableStateOf("生成后的文字将会显示在此处") }
     var isExpanded by remember { mutableStateOf(false) }
 
-
-    // 实现 Lua 代码中的 change 函数逻辑 - 遍历每个字符
     fun generateByTemplate(template: String, input: String): String {
         var result = ""
         var a = 0
@@ -122,14 +118,12 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
 
     fun generateSpecialText() {
         if (inputText.isEmpty()) {
-            // 可以添加 Toast 提示
             return
         }
 
         val template = selectedStyle
         var result = ""
 
-        // 根据 Lua 代码中的逻辑实现
         when (template) {
             "文本ۣۖิ" -> {
                 result = generateByTemplate("文本ۣۖิ", inputText)
@@ -174,7 +168,6 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
                 result = generateByTemplate("文本⃢", inputText)
             }
             else -> {
-                // 默认简单替换
                 result = template.replace("文本", inputText)
             }
         }
@@ -182,7 +175,6 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
         generatedText = result
     }
 
-    // 复制文本到剪贴板
     fun copyToClipboard() {
         if (inputText.isEmpty() && generatedText == "生成后的文字将会显示在此处") {
             Toast.makeText(context,"请输入文本",Toast.LENGTH_SHORT).show()
@@ -199,7 +191,6 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
         Toast.makeText(context,"已复制",Toast.LENGTH_SHORT).show()
     }
 
-    // 分享文本
     fun shareText() {
         if (inputText.isNotEmpty() && generatedText == "生成后的文字将会显示在此处") {
             generateSpecialText()
@@ -229,7 +220,6 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
             }
         )
 
-        // 使用垂直滚动容器包裹内容
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -237,9 +227,8 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 输入区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -262,9 +251,8 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 样式选择区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -277,7 +265,6 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
-                    // 下拉选择框
                     ExposedDropdownMenuBox(
                         expanded = isExpanded,
                         onExpandedChange = { isExpanded = !isExpanded }
@@ -330,7 +317,6 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 操作按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -372,9 +358,8 @@ fun SpecialTextScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 输出区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier

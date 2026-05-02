@@ -60,7 +60,6 @@ data class NetworkInfo(
     val type: String, val ipAddress: String, val wifiSsid: String, val macAddress: String
 )
 
-// --- 主 Activity ---
 class DeviceInfoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,7 +86,6 @@ class DeviceInfoActivity : ComponentActivity() {
     }
 }
 
-// --- 分页 UI 主屏幕 ---
 @Composable
 fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -96,7 +94,6 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
     val tabs = listOf("概览", "硬件", "系统", "网络/电池", "传感器")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
 
-    // 数据采集
     val deviceInfo = remember { collectDeviceInfo(context) }
     val batteryInfo = rememberBatteryInfo(context)
     val networkInfo = remember { collectNetworkInfo(context) }
@@ -187,7 +184,11 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
                     4 -> { // 传感器
                         item { Text("检测到 ${sensors.size} 个传感器", style = MaterialTheme.typography.labelLarge) }
                         items(sensors) { sensor ->
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                elevation = CardDefaults.cardElevation(0.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                            ) {
                                 ListItem(
                                     headlineContent = { Text(sensor.name) },
                                     supportingContent = { Text(sensor.vendor) },
@@ -201,8 +202,6 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
         }
     }
 }
-
-// --- 增强的数据采集逻辑 ---
 
 @Composable
 fun rememberBatteryInfo(context: Context): BatteryInfo {
@@ -266,11 +265,6 @@ private fun collectNetworkInfo(context: Context): NetworkInfo {
     return NetworkInfo(type, ip, "需位置权限", "已隐藏")
 }
 
-// --- 复用之前的辅助函数 (getCpuName, checkRoot 等) ---
-// [此处保留您原代码中的 getCpuName, getRefreshRate, safeGetSerial, checkRoot, checkEmulator 和 collectDeviceInfo 函数]
-// 注意：collectDeviceInfo 内部逻辑保持不变，仅作为基础数据源。
-
-// 1. 数据模型定义
 data class DeviceInfo(
     val brand: String,
     val model: String,
@@ -302,8 +296,8 @@ data class DeviceInfo(
 @Composable
 fun InfoSection(title: String, icon: ImageVector, color: Color, content: @Composable () -> Unit) {
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        elevation = CardDefaults.cardElevation(0.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -342,7 +336,6 @@ fun InfoRow(title: String, value: String) {
     }
 }
 
-// 5. 数据采集核心逻辑
 @SuppressLint("HardwareIds")
 private fun collectDeviceInfo(context: Context): DeviceInfo {
     val metrics = context.resources.displayMetrics

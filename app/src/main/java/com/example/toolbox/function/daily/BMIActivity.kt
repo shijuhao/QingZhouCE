@@ -94,7 +94,6 @@ fun BMICalculatorScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 结果显示卡片
             if (bmiResult != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -108,7 +107,7 @@ fun BMICalculatorScreen(
                             else -> MaterialTheme.colorScheme.surfaceVariant
                         }
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -148,10 +147,9 @@ fun BMICalculatorScreen(
                 }
             }
 
-            // 输入卡片
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -163,7 +161,6 @@ fun BMICalculatorScreen(
                         fontWeight = FontWeight.Bold
                     )
 
-                    // 身高输入
                     OutlinedTextField(
                         value = height,
                         onValueChange = { newValue ->
@@ -178,7 +175,6 @@ fun BMICalculatorScreen(
                         suffix = { Text("cm") }
                     )
 
-                    // 体重输入
                     OutlinedTextField(
                         value = weight,
                         onValueChange = { newValue ->
@@ -193,20 +189,16 @@ fun BMICalculatorScreen(
                         suffix = { Text("kg") }
                     )
 
-                    // 计算按钮
                     Button(
                         onClick = {
                             val h = height.toDoubleOrNull()
                             val w = weight.toDoubleOrNull()
 
                             if (h != null && w != null && h > 0 && w > 0) {
-                                // 转换身高为米
                                 val heightInMeters = h / 100
-                                // 计算BMI
                                 val bmi = w / (heightInMeters * heightInMeters)
                                 bmiResult = String.format("%.2f", bmi).toDouble()
 
-                                // 判断BMI分类
                                 bmiCategory = when {
                                     bmi < 18.5 -> "体重过轻"
                                     bmi < 24 -> "正常范围"
@@ -227,10 +219,9 @@ fun BMICalculatorScreen(
                 }
             }
 
-            // BMI分类标准卡片
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),

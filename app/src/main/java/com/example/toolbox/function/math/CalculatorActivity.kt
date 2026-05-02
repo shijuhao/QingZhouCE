@@ -104,12 +104,10 @@ fun parseFactor(expr: String, pos: Int): Pair<Double, Int> {
         return Pair(-result, newPos)
     }
     
-    // 处理正号
     if (expr[pos] == '+') {
         return parseFactor(expr, pos + 1)
     }
-    
-    // 处理数字
+   
     return parseNumber(expr, pos)
 }
 
@@ -446,7 +444,7 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -770,13 +768,15 @@ fun CalculatorButton(
     textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onClick: () -> Unit
 ) {
+    require(text != null || icon != null) { "Must provide text or icon" }
+    
     val haptic = LocalHapticFeedback.current
-
+    
     Card(
         modifier = modifier.aspectRatio(1f),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = color),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             onClick()
@@ -786,74 +786,20 @@ fun CalculatorButton(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            if (text != null) {
-                Text(
+            when {
+                text != null -> Text(
                     text = text,
                     fontSize = 24.sp,
                     color = textColor,
                     fontWeight = FontWeight.Medium
                 )
-            } else if (icon != null) {
-                Icon(
+                icon != null -> Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = textColor,
                     modifier = Modifier.size(28.dp)
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun CalculatorButton(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.surfaceVariant,
-    textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    onClick: () -> Unit
-) {
-    CalculatorButton(
-        text = text,
-        icon = null,
-        modifier = modifier,
-        color = color,
-        textColor = textColor,
-        onClick = onClick
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CalculatorScreenPreview() {
-    ToolBoxTheme {
-        CalculatorScreen()
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CalculatorButtonPreview() {
-    ToolBoxTheme {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            CalculatorButton(
-                text = "7",
-                onClick = {}
-            )
-            CalculatorButton(
-                text = "+",
-                color = MaterialTheme.colorScheme.primaryContainer,
-                onClick = {}
-            )
-            CalculatorButton(
-                text = "=",
-                color = MaterialTheme.colorScheme.primary,
-                textColor = MaterialTheme.colorScheme.onPrimary,
-                onClick = {}
-            )
         }
     }
 }

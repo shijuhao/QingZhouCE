@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,12 +97,11 @@ fun RandomColorScreen() {
 
 @Composable
 fun ColorCard(color: Color, onClick: () -> Unit) {
-    // 根据颜色的亮度决定文字颜色（深色背景用白字，浅色背景用黑字）
     val textColor = if (color.luminance() > 0.5f) Color.Black else Color.White
     val hexString = colorToHexString(color)
 
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -121,8 +119,7 @@ fun ColorCard(color: Color, onClick: () -> Unit) {
                     text = hexString,
                     color = textColor,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = "点击复制",

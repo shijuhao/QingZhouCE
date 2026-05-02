@@ -53,7 +53,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.toolbox.ui.theme.ToolBoxTheme
@@ -78,14 +77,13 @@ class AESActivity : ComponentActivity() {
         }
     }
 }
-// 更准确的 OpenSSL 兼容 AES 实现
+
 object OpenSslCompatibleAes {
     private const val ALGORITHM = "AES"
     private const val TRANSFORMATION = "AES/CBC/PKCS5Padding"
     private const val SALT_PREFIX = "Salted__"
     private const val SALT_LENGTH = 8
 
-    // OpenSSL 兼容的 EVP_BytesToKey 实现
     private fun evpBytesToKey(password: String, salt: ByteArray, keySize: Int, ivSize: Int): Pair<ByteArray, ByteArray> {
         var data = ByteArray(0)
         val keyAndIv = ByteArray(keySize + ivSize)
@@ -111,25 +109,20 @@ object OpenSslCompatibleAes {
         return Pair(key, iv)
     }
 
-    // 加密
     fun encrypt(text: String, password: String): String {
         if (password.isEmpty()) throw IllegalArgumentException("密码不能为空")
 
-        // 生成随机盐
         val salt = ByteArray(SALT_LENGTH)
         java.security.SecureRandom().nextBytes(salt)
 
-        // 使用 EVP_BytesToKey 生成密钥和 IV (AES-256: 32字节密钥, 16字节IV)
         val (key, iv) = evpBytesToKey(password, salt, 32, 16)
         val secretKey = SecretKeySpec(key, ALGORITHM)
         val ivSpec: AlgorithmParameterSpec = IvParameterSpec(iv)
 
-        // 加密
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec)
         val encryptedBytes = cipher.doFinal(text.toByteArray(Charsets.UTF_8))
 
-        // 组合结果：Salted__ + salt + encryptedBytes
         val result = ByteArray(SALT_PREFIX.length + salt.size + encryptedBytes.size)
         System.arraycopy(SALT_PREFIX.toByteArray(), 0, result, 0, SALT_PREFIX.length)
         System.arraycopy(salt, 0, result, SALT_PREFIX.length, salt.size)
@@ -138,18 +131,14 @@ object OpenSslCompatibleAes {
         return Base64.encodeToString(result, Base64.NO_WRAP)
     }
 
-    // 解密 - 尝试多种可能的配置
     fun decrypt(encryptedText: String, password: String): String {
         if (password.isEmpty()) throw IllegalArgumentException("密码不能为空")
 
         try {
-            // 清理输入，移除换行和空格
             val cleanInput = encryptedText.replace("\n", "").replace(" ", "")
 
-            // Base64 解码
             val encryptedData = Base64.decode(cleanInput, Base64.NO_WRAP)
 
-            // 检查是否是 OpenSSL 格式
             if (encryptedData.size < SALT_PREFIX.length + SALT_LENGTH) {
                 throw IllegalArgumentException("无效的 OpenSSL 格式密文")
             }
@@ -159,13 +148,11 @@ object OpenSslCompatibleAes {
                 throw IllegalArgumentException("不是 OpenSSL 格式的密文")
             }
 
-            // 提取盐和加密数据
             val salt = encryptedData.copyOfRange(SALT_PREFIX.length, SALT_PREFIX.length + SALT_LENGTH)
             val encryptedBytes = encryptedData.copyOfRange(SALT_PREFIX.length + SALT_LENGTH, encryptedData.size)
 
-            // 尝试不同的密钥长度
-            val keyLengths = listOf(32, 24, 16) // AES-256, AES-192, AES-128
-            val ivLength = 16 // AES 总是使用 16 字节 IV
+            val keyLengths = listOf(32, 24, 16)
+            val ivLength = 16
 
             for (keyLength in keyLengths) {
                 try {
@@ -179,7 +166,6 @@ object OpenSslCompatibleAes {
 
                     return String(decryptedBytes, Charsets.UTF_8)
                 } catch (_: Exception) {
-                    // 尝试下一个密钥长度
                     continue
                 }
             }
@@ -190,7 +176,6 @@ object OpenSslCompatibleAes {
         }
     }
 
-    // 简单 AES/ECB 加密（非 OpenSSL 兼容）
     object SimpleAes {
         private const val SIMPLE_TRANSFORMATION = "AES/ECB/PKCS5Padding"
 
@@ -246,7 +231,6 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("AES结果", resultText)
         clipboard.setPrimaryClip(clip)
-        // 可以添加 Toast 提示复制成功
     }
 
     fun encryptText() {
@@ -265,7 +249,6 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    // 检查是否为有效的Base64字符串
     fun isValidBase64(text: String): Boolean {
         return try {
             Base64.decode(text, Base64.NO_WRAP)
@@ -312,7 +295,6 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
             }
         )
 
-        // 使用垂直滚动容器包裹内容
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -320,9 +302,8 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 输入区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -361,7 +342,6 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 加密格式选择
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -396,9 +376,8 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 密钥和操作区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(
@@ -411,7 +390,6 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 解密按钮
                         Button(
                             onClick = { decryptText() },
                             modifier = Modifier.weight(1f)
@@ -431,7 +409,6 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
 
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        // 加密按钮
                         Button(
                             onClick = { encryptText() },
                             modifier = Modifier.weight(1f)
@@ -452,9 +429,8 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 输出区域
             Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -502,7 +478,6 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 使用说明
             Card(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
@@ -530,13 +505,5 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(10.dp))
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AesCryptoScreenPreview() {
-    ToolBoxTheme {
-        AesCryptoScreen()
     }
 }
