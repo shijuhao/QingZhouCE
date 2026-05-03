@@ -56,7 +56,7 @@ class MessageViewModel(
                         .build()
 
                     val request = Request.Builder()
-                        .url("${ApiAddress}friends/list")
+                        .url("${ApiAddress}chat/list")
                         .post(requestBody)
                         .header("x-access-token", token)
                         .build()
@@ -119,7 +119,7 @@ class MessageViewModel(
                         .build()
 
                     val request = Request.Builder()
-                        .url("${ApiAddress}friends/list")
+                        .url("${ApiAddress}chat/list")
                         .post(requestBody)
                         .header("x-access-token", token)
                         .build()

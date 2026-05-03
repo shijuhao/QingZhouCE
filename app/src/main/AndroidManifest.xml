@@ -95,6 +95,14 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".message.GroupInfoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".message.GroupMembersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".function.yunhu.yhbotmaker.runtime.RunBotActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />

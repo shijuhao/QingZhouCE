@@ -63,6 +63,19 @@ class WebSocketManager internal constructor() {
     }
 
     fun connect(token: String) {
+        // 如果已经连接且token相同，直接返回
+        if (socket?.connected() == true && currentToken == token) {
+            Log.d("WS", "已经连接，复用现有连接")
+            return
+        }
+        
+        // 如果token变了，需要重新连接
+        if (currentToken != token && socket != null) {
+            socket?.disconnect()
+            socket?.off()
+            socket = null
+        }
+        
         this.currentToken = token
 
         try {
@@ -111,6 +124,24 @@ class WebSocketManager internal constructor() {
                         }
                     } catch (e: Exception) {
                         Log.e("WS", "解析私信消息失败", e)
+                    }
+                }
+            }
+
+            socket?.on("group_message") { args ->
+                scope.launch {
+                    try {
+                        val json = args[0] as JSONObject
+                        val type = json.optString("type")
+                        val data = json.optJSONObject("data")?.toString()
+                        if (data != null) {
+                            val message = AppJson.json.decodeFromString<Message>(data)
+                            mainHandler.post {
+                                observers.forEach { it(type, message) }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("WS", "解析群聊消息失败", e)
                     }
                 }
             }

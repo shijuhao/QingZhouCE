@@ -6,14 +6,16 @@ import kotlinx.serialization.SerialName
 @Serializable
 data class Friend(
     val id: Int,
-    val username: String,
+    val username: String = "",
+    val name: String = "", // Add name for group
     val avatar: String,
-    val title: String,
-    @SerialName("title_status") val titleStatus: Int,
+    val title: String = "",
+    @SerialName("title_status") val titleStatus: Int = 0,
     @SerialName("last_message") val lastMessage: String?,
     @SerialName("last_message_time") val lastMessageTime: String?,
     @SerialName("unread_count") val unreadCount: Int,
-    @SerialName("added_at") val addedAt: String = ""
+    @SerialName("added_at") val addedAt: String = "",
+    val type: String = "private" // "private" or "group"
 )
 
 @Serializable
@@ -21,7 +23,9 @@ data class Pagination(
     @SerialName("current_page") val currentPage: Int,
     @SerialName("per_page") val perPage: Int,
     val total: Int,
-    val pages: Int
+    val pages: Int,
+    @SerialName("has_next") val hasNext: Boolean = false,
+    @SerialName("has_prev") val hasPrev: Boolean = false
 )
 
 @Serializable
