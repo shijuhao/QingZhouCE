@@ -278,7 +278,7 @@ data class GroupInfoUiState(
     val members: List<GroupMember> = emptyList(),
     val isLoadingMembers: Boolean = false,
     val error: String? = null,
-    val isJoined: Boolean = false,
+    val isJoined: Boolean = true,
     val isJoining: Boolean = false,
     val myRole: Int = 0,  // 0: 普通成员, 1: 管理员, 2: 群主
     

@@ -107,6 +107,7 @@ import com.example.toolbox.data.Message
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.example.toolbox.utils.MultiImageViewer
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -298,6 +299,9 @@ fun MessageDetailScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.connectWebSocket()
+        viewModel.toastMessage.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -319,62 +323,33 @@ fun MessageDetailScreen(
     var imageViewerUrls by remember { mutableStateOf<List<String>>(emptyList()) }
     var imageViewerInitialPage by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(viewModel) {
-        viewModel.toastMessage.collect { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // 1. 初始加载完成后直接跳到底部（不用动画，不闪）
-    LaunchedEffect(uiState.isLoading) {
-        if (!uiState.isLoading && uiState.messages.isNotEmpty()) {
-            snapshotFlow { listState.layoutInfo.totalItemsCount }
-                .first { it > 0 }
-            val lastIndex = uiState.messages.size - 1
-            if (lastIndex >= 0) {
-                listState.scrollToItem(lastIndex)
-            }
-        }
-    }
-    
-    // 2. 新消息到达 → 只在底部时自动滑
-    LaunchedEffect(uiState.messages.size) {
-        val currentSize = uiState.messages.size
-        if (currentSize > previousMessages.size && previousMessages.isNotEmpty()) {
-            val isAtBottom = with(listState.layoutInfo) {
-                visibleItemsInfo.isNotEmpty() && visibleItemsInfo.last().index >= totalItemsCount - 1
-            }
-            if (isAtBottom) {
-                val lastIndex = currentSize - 1
-                if (lastIndex >= 0) {
-                    listState.animateScrollToItem(lastIndex)
-                }
-                unreadCount = 0
-            } else {
-                unreadCount += currentSize - previousMessages.size
-            }
-        }
-        previousMessages = uiState.messages
-    }
-    
-    // 3. 加载更多：滚到顶部附近触发
     LaunchedEffect(listState) {
         snapshotFlow {
-            val visibleItems = listState.layoutInfo.visibleItemsInfo
-            visibleItems.isNotEmpty() && visibleItems.first().index < 5
-                    && uiState.hasMore && !uiState.isLoadingMore
+            val layoutInfo = listState.layoutInfo
+            val visibleItems = layoutInfo.visibleItemsInfo
+            if (visibleItems.isNotEmpty()) {
+                val lastVisibleIndex = visibleItems.last().index
+                val totalItems = layoutInfo.totalItemsCount
+                lastVisibleIndex >= totalItems - 5 && uiState.hasMore && !uiState.isLoadingMore && !uiState.isRefreshing
+            } else {
+                false
+            }
         }
             .distinctUntilChanged()
             .filter { it }
             .collect { viewModel.loadMore() }
     }
     
-    // 4. 检测是否在底部（控制 FAB 显隐）
     LaunchedEffect(listState) {
         snapshotFlow {
-            val visibleItems = listState.layoutInfo.visibleItemsInfo
-            visibleItems.isNotEmpty()
-                    && visibleItems.last().index >= listState.layoutInfo.totalItemsCount - 1
+            val layoutInfo = listState.layoutInfo
+            val visibleItems = layoutInfo.visibleItemsInfo
+            if (visibleItems.isNotEmpty()) {
+                val firstVisibleIndex = visibleItems.first().index
+                firstVisibleIndex == 0
+            } else {
+                true
+            }
         }
             .distinctUntilChanged()
             .collect { atBottom ->
@@ -382,14 +357,58 @@ fun MessageDetailScreen(
                 if (atBottom) unreadCount = 0
             }
     }
-
+    
+    LaunchedEffect(uiState.messages) {
+        val newMessages = uiState.messages
+        val oldMessages = previousMessages
+    
+        if (newMessages.size == oldMessages.size) {
+            previousMessages = newMessages
+            return@LaunchedEffect
+        }
+    
+        val added = newMessages.filterNot { oldMessages.contains(it) }
+        if (added.isEmpty()) {
+            previousMessages = newMessages
+            return@LaunchedEffect
+        }
+    
+        val oldIndices = oldMessages.map { newMessages.indexOf(it) }
+        val allAtHead = added.all { newMessages.indexOf(it) < (oldIndices.minOrNull() ?: 0) }
+    
+        if (allAtHead) {
+            val layoutInfo = listState.layoutInfo
+            val visibleItems = layoutInfo.visibleItemsInfo
+            val isAtBottom = visibleItems.isNotEmpty() && visibleItems.first().index == 0
+    
+            if (isAtBottom) {
+                coroutineScope.launch {
+                    listState.animateScrollToItem(0)
+                }
+                unreadCount = 0
+            } else {
+                unreadCount += added.size
+                val topVisibleMsgId = visibleItems.firstOrNull()?.let { item ->
+                    newMessages.getOrNull(item.index)?.msgId
+                }
+                if (topVisibleMsgId != null) {
+                    coroutineScope.launch {
+                        delay(10)
+                        val newIndex = newMessages.indexOfFirst { it.msgId == topVisibleMsgId }
+                        if (newIndex != -1) {
+                            listState.scrollToItem(newIndex, 0)
+                        }
+                    }
+                }
+            }
+        }
+    
+        previousMessages = newMessages
+    }
+    
     val scrollToBottom: () -> Unit = {
         coroutineScope.launch {
-            // 滚动到最后一个item（最新消息）
-            val lastIndex = uiState.messages.size - 1
-            if (lastIndex >= 0) {
-                listState.animateScrollToItem(lastIndex)
-            }
+            listState.animateScrollToItem(0)
             unreadCount = 0
         }
     }
@@ -458,9 +477,19 @@ fun MessageDetailScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    reverseLayout = false,
+                    reverseLayout = true,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    items(uiState.messages, key = { "${it.msgId}_${it.sendTime}" }) { message ->
+                        MessageBubble(
+                            message = message,
+                            onRecall = { viewModel.showRecallDialog(message.msgId) },
+                            onEdit = { viewModel.showEditDialog(message) },
+                            clipboard = clipboard,
+                            context = context
+                        )
+                    }
+                    
                     if (uiState.isLoadingMore) {
                         item {
                             Box(
@@ -472,16 +501,6 @@ fun MessageDetailScreen(
                                 ContainedLoadingIndicator()
                             }
                         }
-                    }
-                    
-                    items(uiState.messages, key = { "${it.msgId}_${it.sendTime}" }) { message ->
-                        MessageBubble(
-                            message = message,
-                            onRecall = { viewModel.showRecallDialog(message.msgId) },
-                            onEdit = { viewModel.showEditDialog(message) },
-                            clipboard = clipboard,
-                            context = context
-                        )
                     }
                 }
             }

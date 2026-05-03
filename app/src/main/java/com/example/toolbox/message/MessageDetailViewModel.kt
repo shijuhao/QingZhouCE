@@ -498,8 +498,8 @@ class MessageDetailViewModel(
 
     private fun addNewMessage(message: Message) {
         _uiState.update { state ->
-            if (state.messages.any { it.msgId == message.msgId }) return@update state
-            state.copy(messages = state.messages + message)
+            if (state.messages.any { it.msgId == message.msgId }) state
+            else state.copy(messages = listOf(message) + state.messages)
         }
     }
 
