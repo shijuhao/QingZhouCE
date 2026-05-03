@@ -97,7 +97,8 @@ class MessageDetailViewModel(
                         val newMessages = if (isRefresh) {
                             result.messages.sortedByDescending { it.sendTime }
                         } else {
-                            current.messages + result.messages.sortedByDescending { it.sendTime }
+                            (current.messages + result.messages.sortedByDescending { it.sendTime })
+                                .distinctBy { it.msgId }
                         }
                         current.copy(
                             messages = newMessages,
