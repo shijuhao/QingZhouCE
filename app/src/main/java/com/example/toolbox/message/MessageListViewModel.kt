@@ -29,7 +29,7 @@ class MessageViewModel(
     private val client = OkHttpClient()
     private var isWebSocketUpdate = false
     
-    private val messageObserver: (type: String, message: Message) -> Unit = { type, _ ->
+    private val messageObserver: (type: String, chatId: String, chatType: Int, message: Message) -> Unit = { type, _, _, _ ->
         when (type) {
             "new", "edit", "recall" -> {
                 isWebSocketUpdate = true
