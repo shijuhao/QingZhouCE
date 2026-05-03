@@ -251,3 +251,111 @@ data class GroupUiState(
 
     val error: String? = null
 )
+
+// 群标签
+@Serializable
+data class GroupTag(
+    val id: Int,
+    val name: String,
+    val color: String = "#FF6B6B"
+)
+
+@Serializable
+data class GroupTagsResponse(
+    val success: Boolean = false,
+    val tags: List<GroupTag> = emptyList()
+)
+
+@Serializable
+data class CreateTagRequest(
+    @SerialName("group_id") val groupId: Int,
+    val name: String,
+    val color: String
+)
+
+@Serializable
+data class EditTagRequest(
+    @SerialName("tag_id") val tagId: Int,
+    val name: String,
+    val color: String
+)
+
+@Serializable
+data class DeleteTagRequest(
+    @SerialName("tag_id") val tagId: Int
+)
+
+@Serializable
+data class SetMemberTagRequest(
+    @SerialName("group_id") val groupId: Int,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("tag_id") val tagId: Int
+)
+
+@Serializable
+data class TagResponse(
+    val success: Boolean = false,
+    val tag: GroupTag? = null,
+    val message: String? = null
+)
+
+// 群加入申请
+@Serializable
+data class GroupJoinRequest(
+    @SerialName("user_id") val userId: Int,
+    val username: String,
+    @SerialName("avatar_url") val avatarUrl: String = "",
+    @SerialName("apply_time") val applyTime: String = ""
+)
+
+@Serializable
+data class GroupJoinRequestsResponse(
+    val success: Boolean = false,
+    @SerialName("pending_list") val pendingList: List<GroupJoinRequest> = emptyList()
+)
+
+@Serializable
+data class AuditJoinRequest(
+    @SerialName("group_id") val groupId: Int,
+    @SerialName("user_id") val userId: Int,
+    val action: String  // "approve" or "reject"
+)
+
+// 群操作请求
+@Serializable
+data class GroupActionRequest(
+    @SerialName("group_id") val groupId: Int
+)
+
+@Serializable
+data class KickMemberRequest(
+    @SerialName("group_id") val groupId: Int,
+    @SerialName("user_id") val userId: Int
+)
+
+@Serializable
+data class SetAdminRequest(
+    @SerialName("group_id") val groupId: Int,
+    @SerialName("user_id") val userId: Int,
+    val action: String  // "set" or "remove"
+)
+
+@Serializable
+data class MuteRequest(
+    @SerialName("group_id") val groupId: Int,
+    @SerialName("user_id") val userId: Int,
+    val duration: Int  // 分钟
+)
+
+@Serializable
+data class UnmuteRequest(
+    @SerialName("group_id") val groupId: Int,
+    @SerialName("user_id") val userId: Int
+)
+
+// 通用响应
+@Serializable
+data class GenericResponse(
+    val success: Boolean = false,
+    val message: String? = null
+)

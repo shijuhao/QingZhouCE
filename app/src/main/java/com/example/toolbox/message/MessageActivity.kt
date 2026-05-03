@@ -347,14 +347,14 @@ fun MessageDetailScreen(
         }
     }
 
+    // reverseLayout = false: 加载更多检测滚动到顶部
     LaunchedEffect(listState) {
         snapshotFlow {
             val layoutInfo = listState.layoutInfo
             val visibleItems = layoutInfo.visibleItemsInfo
             if (visibleItems.isNotEmpty()) {
-                val lastVisibleIndex = visibleItems.last().index
-                val totalItems = layoutInfo.totalItemsCount
-                lastVisibleIndex >= totalItems - 5 && uiState.hasMore && !uiState.isLoadingMore
+                val firstVisibleIndex = visibleItems.first().index
+                firstVisibleIndex < 5 && uiState.hasMore && !uiState.isLoadingMore
             } else {
                 false
             }
@@ -365,13 +365,15 @@ fun MessageDetailScreen(
         }
     }
 
+    // reverseLayout = false: 检测是否在底部（最新消息）
     LaunchedEffect(listState) {
         snapshotFlow {
             val layoutInfo = listState.layoutInfo
             val visibleItems = layoutInfo.visibleItemsInfo
-            if (visibleItems.isNotEmpty()) {
-                val firstVisibleIndex = visibleItems.first().index
-                firstVisibleIndex == 0
+            val totalItems = layoutInfo.totalItemsCount
+            if (visibleItems.isNotEmpty() && totalItems > 0) {
+                val lastVisibleIndex = visibleItems.last().index
+                lastVisibleIndex >= totalItems - 1
             } else {
                 true
             }
@@ -393,41 +395,41 @@ fun MessageDetailScreen(
             return@LaunchedEffect
         }
 
-        // 找出新增的消息（假设消息 id 唯一，equals 基于 id）
-        val added = newMessages.filterNot { oldMessages.contains(it) }
-        if (added.isEmpty()) {
+        val addedCount = newMessages.size - oldMessages.size
+        if (addedCount == 0) {
             previousMessages = newMessages
             return@LaunchedEffect
         }
 
-        val oldIndices = oldMessages.map { newMessages.indexOf(it) }
-        val allAtHead = added.all { newMessages.indexOf(it) < (oldIndices.minOrNull() ?: 0) }
-
-        if (allAtHead) {
+        // 判断是加载更多（旧消息添加在开头）还是新消息（添加在末尾）
+        // 如果第一条旧消息在新列表中的索引等于新增消息数量，说明是加载更多
+        val firstOldMsgId = oldMessages.firstOrNull()?.msgId
+        val firstOldMsgNewIndex = newMessages.indexOfFirst { it.msgId == firstOldMsgId }
+        
+        if (firstOldMsgNewIndex == addedCount && addedCount > 0) {
+            // 加载更多：旧消息添加在开头，需要调整滚动位置
+            val currentFirstVisibleItem = listState.firstVisibleItemIndex
+            val currentScrollOffset = listState.firstVisibleItemScrollOffset
+            // 新的滚动位置 = 原位置 + 新增的消息数量
+            coroutineScope.launch {
+                listState.scrollToItem(currentFirstVisibleItem + addedCount, currentScrollOffset)
+            }
+        } else if (addedCount > 0) {
+            // 新消息添加在末尾
             val layoutInfo = listState.layoutInfo
             val visibleItems = layoutInfo.visibleItemsInfo
-            val isAtBottom = visibleItems.isNotEmpty() && visibleItems.first().index == 0
+            val totalItems = layoutInfo.totalItemsCount
+            val isAtBottom = visibleItems.isNotEmpty() && visibleItems.last().index >= totalItems - 1
 
             if (isAtBottom) {
+                // 如果在底部，自动滚动到最新消息
                 coroutineScope.launch {
-                    listState.animateScrollToItem(0)
+                    listState.animateScrollToItem(newMessages.size - 1)
                 }
                 unreadCount = 0
             } else {
-                unreadCount += added.size
-
-                val topVisibleMessageId = visibleItems.firstOrNull()?.let { item ->
-                    newMessages.getOrNull(item.index)?.msgId
-                }
-                if (topVisibleMessageId != null) {
-                    coroutineScope.launch {
-                        delay(10)
-                        val newIndex = newMessages.indexOfFirst { it.msgId == topVisibleMessageId }
-                        if (newIndex != -1) {
-                            listState.scrollToItem(newIndex, 0)
-                        }
-                    }
-                }
+                // 不在底部，增加未读计数
+                unreadCount += addedCount
             }
         }
 
@@ -436,7 +438,11 @@ fun MessageDetailScreen(
 
     val scrollToBottom: () -> Unit = {
         coroutineScope.launch {
-            listState.animateScrollToItem(0)
+            // 滚动到最后一个item（最新消息）
+            val lastIndex = uiState.messages.size - 1
+            if (lastIndex >= 0) {
+                listState.animateScrollToItem(lastIndex)
+            }
             unreadCount = 0
         }
     }

@@ -128,6 +128,24 @@ class WebSocketManager internal constructor() {
                 }
             }
 
+            socket?.on("group_message") { args ->
+                scope.launch {
+                    try {
+                        val json = args[0] as JSONObject
+                        val type = json.optString("type")
+                        val data = json.optJSONObject("data")?.toString()
+                        if (data != null) {
+                            val message = AppJson.json.decodeFromString<Message>(data)
+                            mainHandler.post {
+                                observers.forEach { it(type, message) }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("WS", "解析群聊消息失败", e)
+                    }
+                }
+            }
+
             socket?.connect()
         } catch (e: URISyntaxException) {
             Log.e("WS", "连接地址错误", e)

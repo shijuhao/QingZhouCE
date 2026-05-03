@@ -97,10 +97,13 @@ class MessageDetailViewModel(
 
                 if (result != null && result.status.code == 0) {
                     _uiState.update { current ->
+                        // reverseLayout = false: 消息按时间正序排列（旧消息在前，新消息在后）
                         val newMessages = if (isRefresh) {
-                            result.messages
+                            // 刷新时，API返回的消息需要按时间正序排列
+                            result.messages.sortedBy { it.sendTime }
                         } else {
-                            current.messages + result.messages
+                            // 加载更多时，旧消息插入到前面
+                            result.messages.sortedBy { it.sendTime } + current.messages
                         }
                         current.copy(
                             messages = newMessages,
@@ -492,7 +495,8 @@ class MessageDetailViewModel(
     }
 
     private fun addNewMessage(message: Message) {
-        _uiState.update { it.copy(messages = listOf(message) + it.messages) }
+        // reverseLayout = false: 新消息添加到列表末尾
+        _uiState.update { it.copy(messages = it.messages + message) }
     }
 
     private fun updateMessage(message: Message) {

@@ -6,14 +6,29 @@ import androidx.lifecycle.viewModelScope
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.AppJson
 import com.example.toolbox.community.uploadImage
+import com.example.toolbox.data.AuditJoinRequest
 import com.example.toolbox.data.CreateGroupRequest
 import com.example.toolbox.data.CreateGroupResponse
+import com.example.toolbox.data.CreateTagRequest
+import com.example.toolbox.data.DeleteTagRequest
+import com.example.toolbox.data.EditTagRequest
+import com.example.toolbox.data.GenericResponse
 import com.example.toolbox.data.GroupDetailResponse
 import com.example.toolbox.data.GroupInfo
 import com.example.toolbox.data.GroupInfoResponse
+import com.example.toolbox.data.GroupJoinRequest
+import com.example.toolbox.data.GroupJoinRequestsResponse
 import com.example.toolbox.data.GroupMember
 import com.example.toolbox.data.GroupMembersResponse
+import com.example.toolbox.data.GroupTag
+import com.example.toolbox.data.GroupTagsResponse
 import com.example.toolbox.data.GroupUiState
+import com.example.toolbox.data.KickMemberRequest
+import com.example.toolbox.data.MuteRequest
+import com.example.toolbox.data.SetAdminRequest
+import com.example.toolbox.data.SetMemberTagRequest
+import com.example.toolbox.data.TagResponse
+import com.example.toolbox.data.UnmuteRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -266,7 +281,25 @@ data class GroupInfoUiState(
     val error: String? = null,
     val isJoined: Boolean = false,
     val isJoining: Boolean = false,
-    val myRole: Int = 0  // 0: 普通成员, 1: 管理员, 2: 群主
+    val myRole: Int = 0,  // 0: 普通成员, 1: 管理员, 2: 群主
+    
+    // 标签相关
+    val tags: List<GroupTag> = emptyList(),
+    val isLoadingTags: Boolean = false,
+    
+    // 入群申请相关
+    val joinRequests: List<GroupJoinRequest> = emptyList(),
+    val isLoadingRequests: Boolean = false,
+    
+    // 操作状态
+    val isLeaving: Boolean = false,
+    val isDissolving: Boolean = false,
+    val showLeaveDialog: Boolean = false,
+    val showDissolveDialog: Boolean = false,
+    val showTagDialog: Boolean = false,
+    val editingTag: GroupTag? = null,
+    val newTagName: String = "",
+    val newTagColor: String = "#FF6B6B"
 )
 
 // GroupInfoViewModel for GroupInfoActivity
@@ -292,9 +325,8 @@ class GroupInfoViewModel(
     private val json = AppJson.json
 
     init {
-        if (_uiState.value.group == null) {
-            loadGroupDetail()
-        }
+        // 总是调用 loadGroupDetail 以获取 my_status 和 my_role
+        loadGroupDetail()
         loadMembers()
     }
 
@@ -471,6 +503,609 @@ class GroupInfoViewModel(
             }
         }
     }
+    
+    // 加载标签
+    fun loadTags() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingTags = true) }
+            
+            try {
+                val url = "${ApiAddress}group/tags/list/$groupId"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .get()
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GroupTagsResponse>(responseBody)
+                            Result.success(parsed.tags)
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析标签失败: ${e.message}"))
+                        }
+                    } else {
+                        Result.failure(Exception("获取标签失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = { tags ->
+                        _uiState.update { it.copy(isLoadingTags = false, tags = tags) }
+                    },
+                    onFailure = {
+                        _uiState.update { it.copy(isLoadingTags = false) }
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoadingTags = false) }
+            }
+        }
+    }
+    
+    // 创建标签
+    fun createTag(name: String, color: String) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/tag/create"
+                val requestBody = CreateTagRequest(groupId, name, color)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<TagResponse>(responseBody)
+                            if (parsed.success) Result.success(parsed.tag) else Result.failure(Exception(parsed.message ?: "创建失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = { tag ->
+                        if (tag != null) {
+                            _uiState.update { it.copy(tags = it.tags + tag, showTagDialog = false, newTagName = "", newTagColor = "#FF6B6B") }
+                            _toastMessage.emit("标签创建成功")
+                        }
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "创建失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "创建失败")
+            }
+        }
+    }
+    
+    // 编辑标签
+    fun editTag(tagId: Int, name: String, color: String) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/tag/edit"
+                val requestBody = EditTagRequest(tagId, name, color)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<TagResponse>(responseBody)
+                            if (parsed.success) Result.success(parsed.tag) else Result.failure(Exception(parsed.message ?: "编辑失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = { tag ->
+                        if (tag != null) {
+                            _uiState.update { it.copy(
+                                tags = it.tags.map { t -> if (t.id == tagId) tag else t },
+                                showTagDialog = false,
+                                editingTag = null,
+                                newTagName = "",
+                                newTagColor = "#FF6B6B"
+                            ) }
+                            _toastMessage.emit("标签编辑成功")
+                        }
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "编辑失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "编辑失败")
+            }
+        }
+    }
+    
+    // 加载入群申请
+    fun loadJoinRequests() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingRequests = true) }
+            
+            try {
+                val url = "${ApiAddress}group/pending_list/$groupId"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .get()
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GroupJoinRequestsResponse>(responseBody)
+                            Result.success(parsed.pendingList)
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析申请列表失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("获取申请列表失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = { requests ->
+                        _uiState.update { it.copy(isLoadingRequests = false, joinRequests = requests) }
+                    },
+                    onFailure = {
+                        _uiState.update { it.copy(isLoadingRequests = false) }
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoadingRequests = false) }
+            }
+        }
+    }
+    
+    // 审核入群申请
+    fun auditJoinRequest(userId: Int, approve: Boolean) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/audit_join"
+                val requestBody = AuditJoinRequest(groupId, userId, if (approve) "approve" else "reject")
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "操作失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(joinRequests = it.joinRequests.filter { r -> r.userId != userId }) }
+                        _toastMessage.emit(if (approve) "已通过申请" else "已拒绝申请")
+                        loadMembers() // 刷新成员列表
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "操作失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "操作失败")
+            }
+        }
+    }
+    
+    // 退出群聊
+    fun leaveGroup(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLeaving = true) }
+            
+            try {
+                val url = "${ApiAddress}group/leave"
+                val requestBody = buildJsonObject { put("group_id", groupId) }
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "退出失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _toastMessage.emit("已退出群聊")
+                        onSuccess()
+                    },
+                    onFailure = { e ->
+                        _toastMessage.emit(e.message ?: "退出失败")
+                        _uiState.update { it.copy(isLeaving = false, showLeaveDialog = false) }
+                    }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "退出失败")
+                _uiState.update { it.copy(isLeaving = false, showLeaveDialog = false) }
+            }
+        }
+    }
+    
+    // 解散群聊
+    fun dissolveGroup(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDissolving = true) }
+            
+            try {
+                val url = "${ApiAddress}group/dissolve"
+                val requestBody = buildJsonObject { put("group_id", groupId) }
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "解散失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _toastMessage.emit("群聊已解散")
+                        onSuccess()
+                    },
+                    onFailure = { e ->
+                        _toastMessage.emit(e.message ?: "解散失败")
+                        _uiState.update { it.copy(isDissolving = false, showDissolveDialog = false) }
+                    }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "解散失败")
+                _uiState.update { it.copy(isDissolving = false, showDissolveDialog = false) }
+            }
+        }
+    }
+    
+    // 踢人
+    fun kickMember(userId: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/kick"
+                val requestBody = KickMemberRequest(groupId, userId)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "踢出失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(members = it.members.filter { m -> m.userId != userId }) }
+                        _toastMessage.emit("已踢出该成员")
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "踢出失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "踢出失败")
+            }
+        }
+    }
+    
+    // 设置/取消管理员
+    fun setAdmin(userId: Int, set: Boolean) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/set_admin"
+                val requestBody = SetAdminRequest(groupId, userId, if (set) "set" else "remove")
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "操作失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(
+                            members = it.members.map { m ->
+                                if (m.userId == userId) m.copy(role = if (set) 1 else 0)
+                                else m
+                            }
+                        ) }
+                        _toastMessage.emit(if (set) "已设置为管理员" else "已取消管理员")
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "操作失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "操作失败")
+            }
+        }
+    }
+    
+    // 禁言
+    fun muteMember(userId: Int, duration: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/mute"
+                val requestBody = MuteRequest(groupId, userId, duration)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "禁言失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = { _toastMessage.emit("已禁言 $duration 分钟") },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "禁言失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "禁言失败")
+            }
+        }
+    }
+    
+    // 解除禁言
+    fun unmuteMember(userId: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/unmute"
+                val requestBody = UnmuteRequest(groupId, userId)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "解除禁言失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = { _toastMessage.emit("已解除禁言") },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "解除禁言失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "解除禁言失败")
+            }
+        }
+    }
+    
+    // UI状态更新方法
+    fun showLeaveDialog() { _uiState.update { it.copy(showLeaveDialog = true) } }
+    fun hideLeaveDialog() { _uiState.update { it.copy(showLeaveDialog = false) } }
+    fun showDissolveDialog() { _uiState.update { it.copy(showDissolveDialog = true) } }
+    fun hideDissolveDialog() { _uiState.update { it.copy(showDissolveDialog = false) } }
+    fun showTagDialog(tag: GroupTag? = null) {
+        _uiState.update { it.copy(
+            showTagDialog = true,
+            editingTag = tag,
+            newTagName = tag?.name ?: "",
+            newTagColor = tag?.color ?: "#FF6B6B"
+        ) }
+    }
+    fun hideTagDialog() { _uiState.update { it.copy(showTagDialog = false, editingTag = null) } }
+    fun updateNewTagName(name: String) { _uiState.update { it.copy(newTagName = name) } }
+    fun updateNewTagColor(color: String) { _uiState.update { it.copy(newTagColor = color) } }
+    
+    // 删除标签
+    fun deleteTag(tagId: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/tag/delete"
+                val requestBody = DeleteTagRequest(tagId)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "删除失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(tags = it.tags.filter { t -> t.id != tagId }) }
+                        _toastMessage.emit("标签已删除")
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "删除失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "删除失败")
+            }
+        }
+    }
+    
+    // 给成员设置标签
+    fun setMemberTag(userId: Int, tagId: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/tag/set"
+                val requestBody = SetMemberTagRequest(groupId, userId, tagId)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "设置失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _toastMessage.emit("标签已添加")
+                        loadMembers() // 刷新成员列表
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "设置失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "设置失败")
+            }
+        }
+    }
+    
+    // 移除成员标签
+    fun unsetMemberTag(userId: Int, tagId: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/tag/unset"
+                val requestBody = SetMemberTagRequest(groupId, userId, tagId)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "移除失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _toastMessage.emit("标签已移除")
+                        loadMembers()
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "移除失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "移除失败")
+            }
+        }
+    }
 }
 
 class GroupViewModelFactory(private val token: String) : ViewModelProvider.Factory {
@@ -492,6 +1127,269 @@ class GroupInfoViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(GroupInfoViewModel::class.java)) {
             return GroupInfoViewModel(token, groupId, initialGroupInfo) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+// GroupMembersUiState for GroupMembersActivity
+data class GroupMembersUiState(
+    val isLoading: Boolean = true,
+    val members: List<GroupMember> = emptyList(),
+    val myRole: Int = 0,
+    val error: String? = null
+)
+
+// GroupMembersViewModel for GroupMembersActivity
+class GroupMembersViewModel(
+    private val token: String,
+    private val groupId: Int
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(GroupMembersUiState())
+    val uiState: StateFlow<GroupMembersUiState> = _uiState.asStateFlow()
+
+    private val _toastMessage = MutableSharedFlow<String>()
+    val toastMessage: SharedFlow<String> = _toastMessage.asSharedFlow()
+
+    private val client = OkHttpClient()
+    private val json = AppJson.json
+
+    init {
+        loadData()
+    }
+
+    private fun loadData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            // 先获取群详情以获取 myRole
+            try {
+                val detailUrl = "${ApiAddress}group/detail"
+                val detailRequestBody = buildJsonObject { put("group_id", groupId) }
+                val detailRequest = Request.Builder()
+                    .url(detailUrl)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(detailRequestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val detailResult = withContext(Dispatchers.IO) {
+                    val response = client.newCall(detailRequest).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GroupDetailResponse>(responseBody)
+                            if (parsed.success) parsed.myRole ?: 0 else 0
+                        } catch (e: Exception) { 0 }
+                    } else 0
+                }
+
+                // 获取成员列表
+                val membersUrl = "${ApiAddress}group/members/$groupId"
+                val membersRequest = Request.Builder()
+                    .url(membersUrl)
+                    .header("x-access-token", token)
+                    .get()
+                    .build()
+
+                val membersResult = withContext(Dispatchers.IO) {
+                    val response = client.newCall(membersRequest).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GroupMembersResponse>(responseBody)
+                            Result.success(parsed.members)
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析成员列表失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("获取成员列表失败"))
+                    }
+                }
+
+                membersResult.fold(
+                    onSuccess = { members ->
+                        _uiState.update { it.copy(
+                            isLoading = false,
+                            members = members,
+                            myRole = detailResult,
+                            error = null
+                        ) }
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(isLoading = false, error = e.message) }
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun kickMember(userId: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/kick"
+                val requestBody = KickMemberRequest(groupId, userId)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "踢出失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(members = it.members.filter { m -> m.userId != userId }) }
+                        _toastMessage.emit("已踢出该成员")
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "踢出失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "踢出失败")
+            }
+        }
+    }
+
+    fun setAdmin(userId: Int, set: Boolean) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/set_admin"
+                val requestBody = SetAdminRequest(groupId, userId, if (set) "set" else "remove")
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "操作失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(
+                            members = it.members.map { m ->
+                                if (m.userId == userId) m.copy(role = if (set) 1 else 0)
+                                else m
+                            }
+                        ) }
+                        _toastMessage.emit(if (set) "已设置为管理员" else "已取消管理员")
+                    },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "操作失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "操作失败")
+            }
+        }
+    }
+
+    fun muteMember(userId: Int, duration: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/mute"
+                val requestBody = MuteRequest(groupId, userId, duration)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "禁言失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = { _toastMessage.emit("已禁言 $duration 分钟") },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "禁言失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "禁言失败")
+            }
+        }
+    }
+
+    fun unmuteMember(userId: Int) {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/unmute"
+                val requestBody = UnmuteRequest(groupId, userId)
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GenericResponse>(responseBody)
+                            if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "解除禁言失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("解析响应失败"))
+                        }
+                    } else {
+                        Result.failure(Exception("请求失败"))
+                    }
+                }
+
+                result.fold(
+                    onSuccess = { _toastMessage.emit("已解除禁言") },
+                    onFailure = { e -> _toastMessage.emit(e.message ?: "解除禁言失败") }
+                )
+            } catch (e: Exception) {
+                _toastMessage.emit(e.message ?: "解除禁言失败")
+            }
+        }
+    }
+}
+
+class GroupMembersViewModelFactory(
+    private val token: String,
+    private val groupId: Int
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(GroupMembersViewModel::class.java)) {
+            return GroupMembersViewModel(token, groupId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
