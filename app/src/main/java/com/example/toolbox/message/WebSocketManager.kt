@@ -51,13 +51,13 @@ class WebSocketManager internal constructor() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var scope: CoroutineScope? = null
     
-    private val observers = mutableListOf<(type: String, message: Message) -> Unit>()
-
-    fun addObserver(observer: (type: String, message: Message) -> Unit) {
+    private val observers = mutableListOf<(type: String, chatId: String, chatType: Int, message: Message) -> Unit>()
+    
+    fun addObserver(observer: (type: String, chatId: String, chatType: Int, message: Message) -> Unit) {
         observers.add(observer)
     }
-
-    fun removeObserver(observer: (type: String, message: Message) -> Unit) {
+    
+    fun removeObserver(observer: (type: String, chatId: String, chatType: Int, message: Message) -> Unit) {
         observers.remove(observer)
     }
 
@@ -121,11 +121,13 @@ class WebSocketManager internal constructor() {
                         val type = json.optString("type")
                         val dataObj = json.optJSONObject("data")
                         if (dataObj != null) {
+                            val chatId = dataObj.optString("chat_id", "")
+                            val chatType = dataObj.optInt("chat_type", 0)
                             val dataStr = dataObj.toString()
                             val message = AppJson.json.decodeFromString<Message>(dataStr)
                             mainHandler.post {
                                 observers.forEach { observer ->
-                                    observer(type, message)
+                                    observer(type, chatId, chatType, message)
                                 }
                             }
                         }
@@ -143,11 +145,13 @@ class WebSocketManager internal constructor() {
                         val type = json.optString("type")
                         val dataObj = json.optJSONObject("data")
                         if (dataObj != null) {
+                            val chatId = dataObj.optString("chat_id", "")
+                            val chatType = dataObj.optInt("chat_type", 0)
                             val dataStr = dataObj.toString()
                             val message = AppJson.json.decodeFromString<Message>(dataStr)
                             mainHandler.post {
                                 observers.forEach { observer ->
-                                    observer(type, message)
+                                    observer(type, chatId, chatType, message)
                                 }
                             }
                         }

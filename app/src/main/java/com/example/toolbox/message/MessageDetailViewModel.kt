@@ -480,54 +480,21 @@ class MessageDetailViewModel(
         manager.removeObserver(messageObserver)
     }
 
-    private val messageObserver: (type: String, message: Message) -> Unit = { type, message ->
-        when (type) {
-            "new", "edit", "recall" -> {
-                // 判断是否是当前会话的消息
-                val isCurrentChat = try {
-                    val msgChatType = message.sender.chatType
-                    
-                    // 首先检查聊天类型是否匹配
-                    if (msgChatType != chatType) {
-                        false
-                    } else {
-                        when (chatType) {
-                            1 -> {
-                                // 私信
-                                val senderChatId = message.sender.chatId.toIntOrNull()
-                                val receiverId = message.receiverId
-                                
-                                if (senderChatId == chatId || receiverId == chatId) {
-                                    true
-                                } else if (message.isMine && receiverId == null) {
-                                    // 临时方案：我发的消息且 receiver_id 为 null
-                                    true
-                                } else {
-                                    false
-                                }
-                            }
-                            2 -> {
-                                // 群聊
-                                val msgChatId = message.sender.chatId.toIntOrNull()
-                                msgChatId == chatId
-                            }
-                            else -> false
+    private val messageObserver: (type: String, chatId: String, chatType: Int, message: Message) -> Unit = 
+        { type, pushChatId, pushChatType, message ->
+            when (type) {
+                "new", "edit", "recall" -> {
+                    val isCurrentChat = pushChatType == this.chatType && pushChatId == this.chatId.toString()
+                    if (isCurrentChat) {
+                        when (type) {
+                            "new" -> addNewMessage(message)
+                            "edit" -> updateMessage(message)
+                            "recall" -> removeMessage(message.msgId)
                         }
-                    }
-                } catch (e: Exception) {
-                    false
-                }
-                
-                if (isCurrentChat) {
-                    when (type) {
-                        "new" -> addNewMessage(message)
-                        "edit" -> updateMessage(message)
-                        "recall" -> removeMessage(message.msgId)
                     }
                 }
             }
         }
-    }
 
     private fun addNewMessage(message: Message) {
         // reverseLayout = false: 新消息添加到列表末尾
