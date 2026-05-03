@@ -286,32 +286,6 @@ class MessageDetailActivity : ComponentActivity() {
                                         contentDescription = "返回"
                                     )
                                 }
-                            },
-                            actions = {
-                                if (chatType == 2) {
-                                    IconButton(onClick = {
-                                        val groupInfo = uiState.groupInfo
-                                        startActivity(
-                                            Intent(this@MessageDetailActivity, GroupInfoActivity::class.java).apply {
-                                                putExtra("group_id", finalChatId)
-                                                putExtra("is_joined", true)
-                                                if (groupInfo != null) {
-                                                    putExtra("group_name", groupInfo.name)
-                                                    putExtra("group_avatar", groupInfo.avatarUrl)
-                                                    putExtra("group_description", groupInfo.description)
-                                                    putExtra("group_members_count", groupInfo.membersCount)
-                                                    putExtra("group_created_at", groupInfo.createdAt)
-                                                    putExtra("group_is_private", groupInfo.isPrivate)
-                                                }
-                                            }
-                                        )
-                                    }) {
-                                        Icon(
-                                            Icons.Default.MoreVert,
-                                            contentDescription = "群聊信息"
-                                        )
-                                    }
-                                }
                             }
                         )
                     }

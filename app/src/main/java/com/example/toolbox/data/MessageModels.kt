@@ -166,17 +166,42 @@ data class GroupCreator(
 )
 
 @Serializable
+data class GroupMember(
+    @SerialName("user_id") val userId: Int,
+    val username: String,
+    @SerialName("avatar_url") val avatarUrl: String = "",
+    val nickname: String = "",
+    val role: Int = 0,  // 0: 普通成员, 1: 管理员, 2: 群主
+    val tags: List<String> = emptyList(),
+    @SerialName("joined_at") val joinedAt: String = ""
+)
+
+@Serializable
+data class GroupMembersResponse(
+    val members: List<GroupMember> = emptyList()
+)
+
+@Serializable
 data class GroupInfo(
     val id: Int,
     val name: String,
     @SerialName("avatar_url") val avatarUrl: String = "",
     val description: String = "",
     @SerialName("is_private") val isPrivate: Boolean = false,
+    @SerialName("join_verification") val joinVerification: Boolean = false,
     @SerialName("members_count") val membersCount: Int = 0,
     val status: Int = 0,
     @SerialName("created_at") val createdAt: String = "",
-    @SerialName("is_joined") val isJoined: Boolean = false,
     val creator: GroupCreator? = null
+)
+
+@Serializable
+data class GroupDetailResponse(
+    val success: Boolean,
+    val group: GroupInfo? = null,
+    @SerialName("my_status") val myStatus: String? = null,
+    @SerialName("my_role") val myRole: Int? = null,
+    val message: String? = null
 )
 
 @Serializable
@@ -184,6 +209,14 @@ data class GroupInfoResponse(
     val success: Boolean,
     val group: GroupInfo? = null,
     val message: String? = null
+)
+
+@Serializable
+data class RecallResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val recall_hint: String? = null,
+    val recall_time: String? = null
 )
 
 @Serializable

@@ -63,6 +63,19 @@ class WebSocketManager internal constructor() {
     }
 
     fun connect(token: String) {
+        // 如果已经连接且token相同，直接返回
+        if (socket?.connected() == true && currentToken == token) {
+            Log.d("WS", "已经连接，复用现有连接")
+            return
+        }
+        
+        // 如果token变了，需要重新连接
+        if (currentToken != token && socket != null) {
+            socket?.disconnect()
+            socket?.off()
+            socket = null
+        }
+        
         this.currentToken = token
 
         try {

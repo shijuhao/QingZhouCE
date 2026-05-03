@@ -131,11 +131,14 @@ class MessageDetailViewModel(
     private fun loadGroupInfo() {
         viewModelScope.launch {
             try {
-                val url = "${ApiAddress}group/info/$chatId"
+                val url = "${ApiAddress}group/detail"
+                val requestBody = buildJsonObject {
+                    put("group_id", chatId)
+                }
                 val request = Request.Builder()
                     .url(url)
                     .header("x-access-token", token)
-                    .get()
+                    .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
                     .build()
 
                 val result = withContext(Dispatchers.IO) {
@@ -143,7 +146,7 @@ class MessageDetailViewModel(
                     val responseBody = response.body?.string()
                     if (response.isSuccessful && responseBody != null) {
                         try {
-                            val parsed = json.decodeFromString<GroupInfoResponse>(responseBody)
+                            val parsed = json.decodeFromString<GroupDetailResponse>(responseBody)
                             if (parsed.success) parsed.group else null
                         } catch (e: Exception) {
                             null
@@ -269,17 +272,30 @@ class MessageDetailViewModel(
                     try {
                         val response = client.newCall(request).execute()
                         val responseBody = response.body?.string() ?: ""
-                        json.decodeFromString<ChatStatus>(responseBody)
+                        json.decodeFromString<RecallResponse>(responseBody)
                     } catch (e: Exception) {
-                        ChatStatus(number = -1, code = -1, msg = "操作失败: ${e.message}")
+                        RecallResponse(success = false, message = "操作失败: ${e.message}")
                     }
                 }
 
-                if (result.code == 0) {
-                    _toastMessage.emit("撤回成功")
-                    refresh()
+                if (result.success) {
+                    _toastMessage.emit(result.message ?: "撤回成功")
+                    // Update the message locally to show as recalled
+                    _uiState.update { state ->
+                        state.copy(
+                            messages = state.messages.map { msg ->
+                                if (msg.msgId == msgId) {
+                                    msg.copy(
+                                        msgDeleteTime = System.currentTimeMillis(),
+                                        content = result.message ?: "消息已撤回",
+                                        isSystem = true
+                                    )
+                                } else msg
+                            }
+                        )
+                    }
                 } else {
-                    _toastMessage.emit(result.msg)
+                    _toastMessage.emit(result.message ?: "撤回失败")
                 }
             } catch (e: Exception) {
                 _toastMessage.emit(e.message ?: "撤回失败")
