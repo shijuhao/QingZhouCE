@@ -106,6 +106,8 @@ import com.example.toolbox.data.EditDialogState
 import com.example.toolbox.data.Message
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.example.toolbox.utils.MultiImageViewer
+import com.example.toolbox.utils.MarkdownRenderer
+import coil3.compose.rememberAsyncImagePainter
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -480,11 +482,16 @@ fun MessageDetailScreen(
                     reverseLayout = true,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(uiState.messages, key = { "${it.msgId}_${it.sendTime}" }) { message ->
+                    items(uiState.messages, key = { it.msgId }) { message ->
                         MessageBubble(
                             message = message,
                             onRecall = { viewModel.showRecallDialog(message.msgId) },
                             onEdit = { viewModel.showEditDialog(message) },
+                            onImageClick = { urls, index ->
+                                imageViewerUrls = urls
+                                imageViewerInitialPage = index
+                                showImageViewer = true
+                            },
                             clipboard = clipboard,
                             context = context
                         )
@@ -671,7 +678,8 @@ fun MessageBubble(
     clipboard: Clipboard,
     message: Message,
     onRecall: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onImageClick: (List<String>, Int) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val isMine = message.direction == "right"
@@ -767,15 +775,6 @@ fun MessageBubble(
                     )
             ) {
                 Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start) {
-                    if (!isMine) {
-                        Text(
-                            text = message.sender.name,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    }
-                    
                     Card(
                         shape = RoundedCornerShape(
                             topStart = 16.dp,
@@ -791,14 +790,50 @@ fun MessageBubble(
                         )
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
-                            if (message.content.isNotBlank()) {
+                            if (!isMine) {
                                 Text(
-                                    text = message.content,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    text = message.sender.name,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(bottom = 2.dp)
                                 )
                             }
-
+                    
+                            if (message.content.isNotBlank()) {
+                                if (message.isMarkdown) {
+                                    MarkdownRenderer.Render(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        content = message.content
+                                    )
+                                } else {
+                                    Text(
+                                        text = message.content,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                    
+                            if (message.images.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                message.images.forEachIndexed { index, imageUrl ->
+                                    AsyncImage(
+                                        model = imageUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(150.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable { onImageClick(message.images, index) }
+                                    )
+                                    if (index < message.images.size - 1) {
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                    }
+                                }
+                            }
+                    
                             Row(
                                 modifier = Modifier.align(if (isMine) Alignment.End else Alignment.Start)
                             ) {
@@ -807,7 +842,6 @@ fun MessageBubble(
                                     fontSize = 10.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-
                                 if (message.editTime != null) {
                                     Text(
                                         text = "已编辑",
