@@ -522,7 +522,7 @@ fun MessageDetailScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    reverseLayout = true,
+                    reverseLayout = false,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     items(uiState.messages, key = { it.msgId }) { message ->
