@@ -35,6 +35,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -43,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -56,6 +58,7 @@ import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
+import com.google.zxing.datamatrix.DataMatrixWriter
 import java.util.EnumMap
 
 class QRCodeGeneratorActivity : ComponentActivity() {
@@ -79,14 +82,15 @@ class QRCodeGeneratorActivity : ComponentActivity() {
 fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
+    var barcodeMode by remember { mutableIntStateOf(0) }
     var inputText by remember { mutableStateOf("") }
     var qrCodeBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var errorMessage by remember { mutableStateOf("") }
 
-    fun generateQRCode() {
+    fun generateBarcode() {
         errorMessage = ""
         if (inputText.isEmpty()) {
-            errorMessage = "请输入要生成二维码的内容"
+            errorMessage = if (barcodeMode == 0) "请输入要生成二维码的内容" else "请输入要生成Data Matrix的内容"
             return
         }
 
@@ -96,8 +100,14 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                 put(EncodeHintType.MARGIN, 1)
             }
 
-            val writer = QRCodeWriter()
-            val bitMatrix = writer.encode(inputText, BarcodeFormat.QR_CODE, 512, 512, hints)
+            val size = 512
+            val bitMatrix = if (barcodeMode == 0) {
+                val writer = QRCodeWriter()
+                writer.encode(inputText, BarcodeFormat.QR_CODE, size, size, hints)
+            } else {
+                val writer = DataMatrixWriter()
+                writer.encode(inputText, BarcodeFormat.DATA_MATRIX, size, size, hints)
+            }
 
             val width = bitMatrix.width
             val height = bitMatrix.height
@@ -117,14 +127,15 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
             qrCodeBitmap?.setPixels(pixels, 0, width, 0, 0, width, height)
 
         } catch (e: Exception) {
-            errorMessage = "生成二维码失败: ${e.message}"
+            errorMessage = if (barcodeMode == 0) "生成二维码失败: ${e.message}" else "生成Data Matrix失败: ${e.message}"
         }
     }
 
     fun saveImageToGallery() {
         val bitmap = qrCodeBitmap ?: return
+        val barcodeType = if (barcodeMode == 0) "QR" else "DataMatrix"
         val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "QR_Code_${System.currentTimeMillis()}.png")
+            put(MediaStore.Images.Media.DISPLAY_NAME, "${barcodeType}_Code_${System.currentTimeMillis()}.png")
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/ToolBox")
@@ -153,7 +164,7 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         TopAppBar(
-            title = { Text("二维码生成器") },
+            title = { Text(if (barcodeMode == 0) "二维码生成器" else "Data Matrix生成器") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
@@ -174,18 +185,34 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = barcodeMode == 0,
+                            onClick = { barcodeMode = 0 },
+                            label = { Text("QR Code") }
+                        )
+                        FilterChip(
+                            selected = barcodeMode == 1,
+                            onClick = { barcodeMode = 1 },
+                            label = { Text("Data Matrix") }
+                        )
+                    }
+
                     Text(
                         text = "输入内容",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        style = MaterialTheme.typography.titleMedium
                     )
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("请输入要生成二维码的文本或链接") },
+                        placeholder = { Text(if (barcodeMode == 0) "请输入要生成二维码的文本或链接" else "请输入要生成Data Matrix的文本") },
                         singleLine = false,
                         maxLines = 5
                     )
@@ -217,7 +244,7 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         .padding(16.dp)
                 ) {
                     Button(
-                        onClick = { generateQRCode() },
+                        onClick = { generateBarcode() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -225,11 +252,11 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         ) {
                             Icon(
                                 Icons.Filled.QrCode,
-                                contentDescription = "生成二维码",
+                                contentDescription = if (barcodeMode == 0) "生成二维码" else "生成Data Matrix",
                                 modifier = Modifier.size(ButtonDefaults.IconSize)
                             )
                             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                            Text("生成二维码")
+                            Text(if (barcodeMode == 0) "生成二维码" else "生成Data Matrix")
                         }
                     }
                 }
@@ -246,14 +273,14 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "生成的二维码",
+                            text = if (barcodeMode == 0) "生成的二维码" else "生成的Data Matrix",
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
 
                         Image(
                             bitmap = qrCodeBitmap!!.asImageBitmap(),
-                            contentDescription = "二维码",
+                            contentDescription = if (barcodeMode == 0) "二维码" else "Data Matrix",
                             modifier = Modifier
                                 .size(256.dp)
                                 .padding(8.dp)
