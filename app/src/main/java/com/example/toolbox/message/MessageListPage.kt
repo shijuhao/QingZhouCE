@@ -168,7 +168,7 @@ fun MessageScreen(
                     if (token != "null") {
                         Box {
                             IconButton(onClick = { groupViewModel.showDropdownMenu() }) {
-                                Icon(Icons.Default.PersonAdd, contentDescription = "添加")
+                                Icon(Icons.Default.Add, contentDescription = "添加")
                             }
                             
                             DropdownMenu(
