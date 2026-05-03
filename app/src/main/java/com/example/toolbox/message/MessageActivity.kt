@@ -49,7 +49,6 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -78,7 +77,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -106,18 +104,10 @@ import com.example.toolbox.TokenManager
 import com.example.toolbox.community.UserInfoActivity
 import com.example.toolbox.data.EditDialogState
 import com.example.toolbox.data.Message
-import com.example.toolbox.data.MessageDetailUiState
-import com.example.toolbox.data.MessagePagination
-import com.example.toolbox.data.RecallDialogState
-import com.example.toolbox.data.SendMessageRequest
-import com.example.toolbox.data.SendMessageResponse
 import com.example.toolbox.ui.theme.ToolBoxTheme
-import com.example.toolbox.utils.MarkdownRenderer
 import com.example.toolbox.utils.MultiImageViewer
 import coil3.compose.AsyncImage
-import coil3.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -187,7 +177,6 @@ class MessageDetailActivity : ComponentActivity() {
         setContent {
             ToolBoxTheme {
                 val token = TokenManager.get(this)
-                val context = LocalContext.current
                 val viewModel: MessageDetailViewModel = viewModel(
                     factory = token?.let { MessageDetailViewModelFactory(it, chatType, finalChatId) }
                 )
@@ -199,7 +188,6 @@ class MessageDetailActivity : ComponentActivity() {
                         TopAppBar(
                             title = {
                                 if (chatType == 2 && uiState.groupInfo != null) {
-                                    // 群聊显示群信息
                                     val group = uiState.groupInfo!!
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -237,43 +225,36 @@ class MessageDetailActivity : ComponentActivity() {
                                             )
                                         }
                                     }
-                                } else if (uiState.messages.isNotEmpty()) {
-                                    val firstMessage = uiState.messages.first()
-                                    if (chatType == 1 && firstMessage.direction == "left") {
-                                        // 私聊显示对方信息
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    startActivity(
-                                                        Intent(this@MessageDetailActivity, UserInfoActivity::class.java).apply {
-                                                            putExtra("userId", firstMessage.sender.chatId.toIntOrNull() ?: 0)
-                                                        }
-                                                    )
-                                                }
-                                        ) {
-                                            AsyncImage(
-                                                model = firstMessage.sender.avatarUrl,
-                                                contentDescription = null,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier
-                                                    .size(36.dp)
-                                                    .clip(CircleShape)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
-                                                Text(
-                                                    text = firstMessage.sender.name,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 16.sp
+                                } else if (uiState.otherUser != null) {
+                                    val otherUser = uiState.otherUser!!
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                startActivity(
+                                                    Intent(this@MessageDetailActivity, UserInfoActivity::class.java).apply {
+                                                        putExtra("userId", otherUser.id)
+                                                    }
                                                 )
                                             }
+                                    ) {
+                                        AsyncImage(
+                                            model = otherUser.avatar,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = otherUser.username,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
                                         }
-                                    } else if (chatType == 1) {
-                                        Text("聊天")
-                                    } else {
-                                        Text("聊天详情")
                                     }
                                 } else {
                                     Text("聊天详情")
@@ -312,14 +293,8 @@ fun MessageDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     var previousMessages by remember { mutableStateOf(uiState.messages) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.connectWebSocket()
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.disconnectWebSocket()
-        }
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -344,6 +319,18 @@ fun MessageDetailScreen(
     LaunchedEffect(viewModel) {
         viewModel.toastMessage.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 初始加载完成后滚动到底部
+    LaunchedEffect(uiState.messages.size, uiState.isLoading, uiState.isRefreshing) {
+        if (uiState.messages.isNotEmpty() && !uiState.isLoading && !uiState.isRefreshing) {
+            // 延迟一点确保布局完成
+            kotlinx.coroutines.delay(100)
+            val lastIndex = uiState.messages.size - 1
+            if (lastIndex >= 0) {
+                listState.scrollToItem(lastIndex)
+            }
         }
     }
 
@@ -396,26 +383,24 @@ fun MessageDetailScreen(
         }
 
         val addedCount = newMessages.size - oldMessages.size
-        if (addedCount == 0) {
+        if (addedCount <= 0) {
             previousMessages = newMessages
             return@LaunchedEffect
         }
 
-        // 判断是加载更多（旧消息添加在开头）还是新消息（添加在末尾）
-        // 如果第一条旧消息在新列表中的索引等于新增消息数量，说明是加载更多
+        // 检查是否是加载了更多历史消息（在顶部添加）
         val firstOldMsgId = oldMessages.firstOrNull()?.msgId
         val firstOldMsgNewIndex = newMessages.indexOfFirst { it.msgId == firstOldMsgId }
         
         if (firstOldMsgNewIndex == addedCount && addedCount > 0) {
-            // 加载更多：旧消息添加在开头，需要调整滚动位置
+            // 这是加载更多历史消息的情况，保持当前视觉位置
             val currentFirstVisibleItem = listState.firstVisibleItemIndex
             val currentScrollOffset = listState.firstVisibleItemScrollOffset
-            // 新的滚动位置 = 原位置 + 新增的消息数量
             coroutineScope.launch {
                 listState.scrollToItem(currentFirstVisibleItem + addedCount, currentScrollOffset)
             }
         } else if (addedCount > 0) {
-            // 新消息添加在末尾
+            // 这是新消息到达的情况（在底部添加）
             val layoutInfo = listState.layoutInfo
             val visibleItems = layoutInfo.visibleItemsInfo
             val totalItems = layoutInfo.totalItemsCount
@@ -434,6 +419,24 @@ fun MessageDetailScreen(
         }
 
         previousMessages = newMessages
+    }
+
+    // 监听WebSocket新消息并滚动到底部
+    LaunchedEffect(uiState.messages.size) {
+        // 如果消息数量增加，说明有新消息到达
+        if (uiState.messages.size > previousMessages.size) {
+            val layoutInfo = listState.layoutInfo
+            val visibleItems = layoutInfo.visibleItemsInfo
+            val totalItems = layoutInfo.totalItemsCount
+            val isAtBottom = visibleItems.isNotEmpty() && visibleItems.last().index >= totalItems - 1
+
+            if (isAtBottom) {
+                // 在底部时自动滚动到最新消息
+                coroutineScope.launch {
+                    listState.animateScrollToItem(uiState.messages.size - 1)
+                }
+            }
+        }
     }
 
     val scrollToBottom: () -> Unit = {
@@ -520,12 +523,7 @@ fun MessageDetailScreen(
                             onRecall = { viewModel.showRecallDialog(message.msgId) },
                             onEdit = { viewModel.showEditDialog(message) },
                             clipboard = clipboard,
-                            context = context,
-                            onImageClick = { urls, index ->
-                                imageViewerUrls = urls
-                                imageViewerInitialPage = index
-                                showImageViewer = true
-                            }
+                            context = context
                         )
                     }
 
@@ -598,8 +596,12 @@ fun MessageDetailScreen(
                 onTextChange = { viewModel.updateInputText(it) },
                 onSendClick = {
                     viewModel.sendMessage()
+                    // 发送消息后滚动到底部
                     coroutineScope.launch {
-                        listState.animateScrollToItem(0)
+                        val lastIndex = uiState.messages.size - 1
+                        if (lastIndex >= 0) {
+                            listState.animateScrollToItem(lastIndex)
+                        }
                     }
                 },
                 onAddImageClick = { imagePicker.launch("image/*") },
@@ -713,8 +715,7 @@ fun MessageBubble(
     clipboard: Clipboard,
     message: Message,
     onRecall: () -> Unit,
-    onEdit: () -> Unit,
-    onImageClick: (List<String>, Int) -> Unit
+    onEdit: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val isMine = message.direction == "right"
@@ -726,7 +727,7 @@ fun MessageBubble(
         try {
             val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
             sdf.format(Date(message.sendTime))
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
@@ -774,11 +775,11 @@ fun MessageBubble(
             }
         }
     } else {
-        // 普通消息：左右排列
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.Bottom,
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
         ) {
             if (!isMine) {

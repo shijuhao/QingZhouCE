@@ -39,7 +39,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
@@ -202,7 +201,7 @@ class GroupViewModel(
                     val response = client.newCall(request).execute()
                     if (response.isSuccessful) {
                         val responseBody = response.body.string()
-                        val jsonObj = kotlinx.serialization.json.Json.parseToJsonElement(responseBody)
+                        val jsonObj = AppJson.json.parseToJsonElement(responseBody)
                         jsonObj.jsonObject["success"]?.jsonPrimitive?.booleanOrNull ?: false
                     } else false
                 }
@@ -349,8 +348,8 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GroupMembersResponse>(responseBody)
                             Result.success(parsed.members)
@@ -374,7 +373,7 @@ class GroupInfoViewModel(
                         // 成员列表加载失败不显示错误，只是不显示成员
                     }
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update { it.copy(isLoadingMembers = false) }
             }
         }
@@ -399,8 +398,8 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GroupDetailResponse>(responseBody)
                             if (parsed.success) {
@@ -413,9 +412,9 @@ class GroupInfoViewModel(
                         }
                     } else {
                         try {
-                            val parsed = json.decodeFromString<GroupDetailResponse>(responseBody ?: "{}")
+                            val parsed = json.decodeFromString<GroupDetailResponse>(responseBody)
                             Result.failure(Exception(parsed.message ?: "请求失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("请求失败: ${response.code}"))
                         }
                     }
@@ -467,8 +466,8 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val jsonElement = Json.parseToJsonElement(responseBody)
                             val success = jsonElement.jsonObject["success"]?.jsonPrimitive?.booleanOrNull ?: false
@@ -519,8 +518,8 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GroupTagsResponse>(responseBody)
                             Result.success(parsed.tags)
@@ -540,7 +539,7 @@ class GroupInfoViewModel(
                         _uiState.update { it.copy(isLoadingTags = false) }
                     }
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update { it.copy(isLoadingTags = false) }
             }
         }
@@ -560,12 +559,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<TagResponse>(responseBody)
                             if (parsed.success) Result.success(parsed.tag) else Result.failure(Exception(parsed.message ?: "创建失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -602,12 +601,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<TagResponse>(responseBody)
                             if (parsed.success) Result.success(parsed.tag) else Result.failure(Exception(parsed.message ?: "编辑失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -651,12 +650,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GroupJoinRequestsResponse>(responseBody)
                             Result.success(parsed.pendingList)
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析申请列表失败"))
                         }
                     } else {
@@ -672,7 +671,7 @@ class GroupInfoViewModel(
                         _uiState.update { it.copy(isLoadingRequests = false) }
                     }
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update { it.copy(isLoadingRequests = false) }
             }
         }
@@ -692,12 +691,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "操作失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -735,12 +734,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "退出失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -781,12 +780,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "解散失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -825,12 +824,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "踢出失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -865,12 +864,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "操作失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -910,12 +909,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "禁言失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -947,12 +946,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "解除禁言失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -1001,12 +1000,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "删除失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -1041,12 +1040,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "设置失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -1081,12 +1080,12 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "移除失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -1175,12 +1174,12 @@ class GroupMembersViewModel(
 
                 val detailResult = withContext(Dispatchers.IO) {
                     val response = client.newCall(detailRequest).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GroupDetailResponse>(responseBody)
                             if (parsed.success) parsed.myRole ?: 0 else 0
-                        } catch (e: Exception) { 0 }
+                        } catch (_: Exception) { 0 }
                     } else 0
                 }
 
@@ -1194,12 +1193,12 @@ class GroupMembersViewModel(
 
                 val membersResult = withContext(Dispatchers.IO) {
                     val response = client.newCall(membersRequest).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GroupMembersResponse>(responseBody)
                             Result.success(parsed.members)
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析成员列表失败"))
                         }
                     } else {
@@ -1239,12 +1238,12 @@ class GroupMembersViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "踢出失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -1278,12 +1277,12 @@ class GroupMembersViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "操作失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -1322,12 +1321,12 @@ class GroupMembersViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "禁言失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {
@@ -1358,12 +1357,12 @@ class GroupMembersViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GenericResponse>(responseBody)
                             if (parsed.success) Result.success(true) else Result.failure(Exception(parsed.message ?: "解除禁言失败"))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Result.failure(Exception("解析响应失败"))
                         }
                     } else {

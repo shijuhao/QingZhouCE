@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -77,7 +76,6 @@ import com.example.toolbox.data.Friend
 import com.example.toolbox.mine.notice.FriendRequestActivity
 import com.example.toolbox.mine.notice.snapshotFlow
 import com.example.toolbox.utils.UserAvatar
-import com.example.toolbox.community.uploadImage
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -128,12 +126,6 @@ fun MessageScreen(
 
     LaunchedEffect(Unit) {
         viewModel.connectWebSocket()
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.disconnectWebSocket()
-        }
     }
 
     LaunchedEffect(listState) {
@@ -386,32 +378,7 @@ fun CreateGroupDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = onNameChange,
-                        label = { Text("群聊名称") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        IconButton(onClick = onSelectAvatar) {
-                            Icon(Icons.Default.Add, contentDescription = "选择头像")
-                        }
-                        Text(
-                            "可选",
-                            fontSize = 10.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                
-                // 显示已选择的头像
-                if (avatarPath != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    if (avatarPath != null) {
                         Image(
                             painter = rememberAsyncImagePainter(avatarPath),
                             contentDescription = "群头像预览",
@@ -420,13 +387,21 @@ fun CreateGroupDialog(
                                 .size(40.dp)
                                 .clip(CircleShape)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "已选择头像",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    } else {
+                        IconButton(onClick = onSelectAvatar) {
+                            Icon(Icons.Default.Add, contentDescription = "选择头像")
+                        }
                     }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = onNameChange,
+                        label = { Text("群聊名称") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))

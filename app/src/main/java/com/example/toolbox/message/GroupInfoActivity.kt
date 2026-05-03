@@ -6,8 +6,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,29 +18,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Tag
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -80,9 +73,6 @@ import coil3.compose.AsyncImage
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.TokenManager
 import com.example.toolbox.data.GroupInfo
-import com.example.toolbox.data.GroupJoinRequest
-import com.example.toolbox.data.GroupMember
-import com.example.toolbox.data.GroupTag
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -212,7 +202,7 @@ fun GroupInfoScreen(
                     Surface(
                         shape = RoundedCornerShape(4.dp),
                         color = try { Color(android.graphics.Color.parseColor(uiState.newTagColor)) }
-                            catch (e: Exception) { MaterialTheme.colorScheme.primary }
+                            catch (_: Exception) { MaterialTheme.colorScheme.primary }
                     ) {
                         Text(
                             text = uiState.newTagName.ifEmpty { "标签" },
@@ -280,7 +270,7 @@ fun GroupInfoScreen(
                                     showMenu = false
                                     viewModel.showLeaveDialog()
                                 },
-                                leadingIcon = { Icon(Icons.Default.ExitToApp, null) }
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, null) }
                             )
                         }
                     }
@@ -478,7 +468,7 @@ fun GroupInfoScreen(
                                                     Surface(
                                                         shape = RoundedCornerShape(4.dp),
                                                         color = try { Color(android.graphics.Color.parseColor(tag.color)) }
-                                                            catch (e: Exception) { MaterialTheme.colorScheme.primary },
+                                                            catch (_: Exception) { MaterialTheme.colorScheme.primary },
                                                         modifier = Modifier.clickable {
                                                             if (uiState.myRole == 2) {
                                                                 viewModel.showTagDialog(tag)

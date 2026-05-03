@@ -79,11 +79,24 @@ data class ChatStatus(
 )
 
 @Serializable
+data class OtherUser(
+    val id: Int,
+    val username: String,
+    val avatar: String = "",
+    val title: String = "",
+    @SerialName("title_status") val titleStatus: Int = 0
+)
+
+@Serializable
 data class GetMessagesResponse(
     val status: ChatStatus,
     val messages: List<Message> = emptyList(),
     @SerialName("can_send") val canSend: Boolean = true,
-    val pagination: MessagePagination? = null
+    val pagination: MessagePagination? = null,
+    @SerialName("other_user") val otherUser: OtherUser? = null,
+    @SerialName("chat_background_url") val chatBackgroundUrl: String = "",
+    @SerialName("is_friend") val isFriend: Boolean = true,
+    val relationship: String = "friend"
 )
 
 @Serializable
@@ -141,7 +154,8 @@ data class MessageDetailUiState(
     val editingMessage: Message? = null,
     val isChatExpired: Boolean = false,
     val dailyMessagesLeft: Int = 0,
-    val groupInfo: GroupInfo? = null
+    val groupInfo: GroupInfo? = null,
+    val otherUser: OtherUser? = null // 私信对方用户信息
 )
 
 // 撤回确认弹窗状态

@@ -1,6 +1,5 @@
 package com.example.toolbox.message
 
-import android.content.Context
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -18,7 +17,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.net.URISyntaxException
 
-object PrivateChatSocketManager {
+object ChatSocketManager {
     private var instance: WebSocketManager? = null
 
     fun getInstance(): WebSocketManager {
@@ -38,19 +37,19 @@ class WebSocketManager internal constructor() {
     private var socket: Socket? = null
     private var currentToken: String? = null
 
-    private val heartbeatThread = HandlerThread("WS-Heartbeat-Private").apply { start() }
-    private val heartbeatHandler = Handler(heartbeatThread.looper)
+    private var heartbeatThread: HandlerThread? = null
+    private var heartbeatHandler: Handler? = null
     private val heartbeatRunnable = object : Runnable {
         override fun run() {
             if (socket?.connected() == true) {
                 socket?.emit("heartbeat", JSONObject())
             }
-            heartbeatHandler.postDelayed(this, 30000)
+            heartbeatHandler?.postDelayed(this, 30000)
         }
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var scope: CoroutineScope? = null
     
     private val observers = mutableListOf<(type: String, message: Message) -> Unit>()
 
@@ -63,20 +62,25 @@ class WebSocketManager internal constructor() {
     }
 
     fun connect(token: String) {
-        // 如果已经连接且token相同，直接返回
         if (socket?.connected() == true && currentToken == token) {
             Log.d("WS", "已经连接，复用现有连接")
             return
         }
-        
-        // 如果token变了，需要重新连接
-        if (currentToken != token && socket != null) {
-            socket?.disconnect()
-            socket?.off()
-            socket = null
+
+        if (currentToken != token || socket == null) {
+            disconnect()
         }
         
         this.currentToken = token
+
+        if (heartbeatThread == null) {
+            heartbeatThread = HandlerThread("WS-Heartbeat").apply { start() }
+            heartbeatHandler = Handler(heartbeatThread!!.looper)
+        }
+
+        if (scope == null) {
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        }
 
         try {
             val opts = IO.Options().apply {
@@ -90,7 +94,7 @@ class WebSocketManager internal constructor() {
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d("WS", "连接成功")
                 authenticate()
-                heartbeatHandler.post(heartbeatRunnable)
+                heartbeatHandler?.post(heartbeatRunnable)
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
@@ -111,37 +115,45 @@ class WebSocketManager internal constructor() {
             }
 
             socket?.on("private_message") { args ->
-                scope.launch {
+                scope?.launch {
                     try {
                         val json = args[0] as JSONObject
                         val type = json.optString("type")
-                        val data = json.optJSONObject("data")?.toString()
-                        if (data != null) {
-                            val message = AppJson.json.decodeFromString<Message>(data)
+                        val dataObj = json.optJSONObject("data")
+                        if (dataObj != null) {
+                            val dataStr = dataObj.toString()
+                            val message = AppJson.json.decodeFromString<Message>(dataStr)
                             mainHandler.post {
-                                observers.forEach { it(type, message) }
+                                observers.forEach { observer ->
+                                    observer(type, message)
+                                }
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("WS", "解析私信消息失败", e)
+                        Log.e("WS", "解析私信消息失败: ${e.message}")
+                        e.printStackTrace()
                     }
                 }
             }
 
             socket?.on("group_message") { args ->
-                scope.launch {
+                scope?.launch {
                     try {
                         val json = args[0] as JSONObject
                         val type = json.optString("type")
-                        val data = json.optJSONObject("data")?.toString()
-                        if (data != null) {
-                            val message = AppJson.json.decodeFromString<Message>(data)
+                        val dataObj = json.optJSONObject("data")
+                        if (dataObj != null) {
+                            val dataStr = dataObj.toString()
+                            val message = AppJson.json.decodeFromString<Message>(dataStr)
                             mainHandler.post {
-                                observers.forEach { it(type, message) }
+                                observers.forEach { observer ->
+                                    observer(type, message)
+                                }
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("WS", "解析群聊消息失败", e)
+                        Log.e("WS", "解析群聊消息失败: ${e.message}")
+                        e.printStackTrace()
                     }
                 }
             }
@@ -160,12 +172,16 @@ class WebSocketManager internal constructor() {
     }
 
     fun disconnect() {
-        heartbeatHandler.removeCallbacks(heartbeatRunnable)
-        heartbeatThread.quitSafely()
-        
-        scope.cancel()
-        
+        heartbeatHandler?.removeCallbacks(heartbeatRunnable)
+        heartbeatThread?.quitSafely()
+        heartbeatThread = null
+        heartbeatHandler = null
+
+        scope?.cancel()
+        scope = null
+
         socket?.disconnect()
         socket?.off()
+        socket = null
     }
 }
