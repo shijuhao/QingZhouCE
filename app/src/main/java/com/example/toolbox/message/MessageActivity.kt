@@ -744,7 +744,7 @@ fun MessageBubble(
 
                         },
                         onLongClick = {
-                            val hasContent = message.content.text.isNotBlank()
+                            val hasContent = message.content.isNotBlank()
                             val canRecall = isMine && message.msgDeleteTime == null
                             if (hasContent || canRecall) {
                                 showMenu = true
@@ -777,10 +777,9 @@ fun MessageBubble(
                         )
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
-                            if (message.content.text.isNotBlank()) {
-                                // 暂时不支持 markdown 判断，默认普通文本
+                            if (message.content.isNotBlank()) {
                                 Text(
-                                    text = message.content.text,
+                                    text = message.content,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -813,12 +812,12 @@ fun MessageBubble(
                     onDismissRequest = { showMenu = false },
                     modifier = Modifier.align(if (isMine) Alignment.TopStart else Alignment.TopEnd)
                 ) {
-                    if (message.content.text.isNotBlank()) {
+                    if (message.content.isNotBlank()) {
                         DropdownMenuItem(
                             text = { Text("复制") },
                             onClick = {
                                 clipboard.nativeClipboard.setPrimaryClip(
-                                    ClipData.newPlainText("text", message.content.text)
+                                    ClipData.newPlainText("text", message.content)
                                 )
                                 showMenu = false
                                 Toast.makeText(context, "复制成功", Toast.LENGTH_SHORT).show()
@@ -849,7 +848,7 @@ fun MessageBubble(
                             }
                         )
                         
-                        if (message.content.text.isNotBlank()) {
+                        if (message.content.isNotBlank()) {
                             DropdownMenuItem(
                                 text = { Text("编辑") },
                                 onClick = {

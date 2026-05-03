@@ -124,11 +124,14 @@ class MessageDetailViewModel(
 
     fun loadMore() {
         val currentState = _uiState.value
-        if (currentState.isLoadingMore || !currentState.hasMore || currentState.pagination == null) {
+        if (currentState.isLoadingMore || !currentState.hasMore || currentState.messages.isEmpty()) {
             return
         }
-        val nextPage = currentState.pagination.page + 1
-        loadMessages(page = nextPage, isRefresh = false)
+        // Use the oldest message's ID as before_msg_id for pagination
+        val oldestMsgId = currentState.messages.firstOrNull()?.id
+        if (oldestMsgId != null) {
+            loadMessages(page = 1, isRefresh = false, beforeMsgId = oldestMsgId.toString())
+        }
     }
 
     fun sendMessage() {
@@ -146,7 +149,7 @@ class MessageDetailViewModel(
                 val requestData = SendMessageRequest(
                     chatType = chatType,
                     chatId = chatId,
-                    data = MessageContent(text = state.inputText),
+                    data = MessageData(text = state.inputText),
                     quoteMsgId = null
                 )
                 val bodyJson = json.encodeToString(requestData)
@@ -254,7 +257,7 @@ class MessageDetailViewModel(
             EditDialogState(
                 isOpen = true,
                 message = message,
-                newContent = message.content.text,
+                newContent = message.content,
                 newImages = emptyList()
             )
         }

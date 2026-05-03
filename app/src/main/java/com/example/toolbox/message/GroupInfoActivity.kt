@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -147,7 +149,8 @@ fun GroupInfoScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val group = uiState.group
@@ -394,26 +397,45 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
+                    val responseBody = response.body.string()
                     if (response.isSuccessful) {
-                        val responseBody = response.body.string()
                         try {
-                            AppJson.json.decodeFromString<GroupInfoResponse>(responseBody).group
+                            val parsed = AppJson.json.decodeFromString<GroupInfoResponse>(responseBody)
+                            if (parsed.success) {
+                                Result.success(parsed.group)
+                            } else {
+                                Result.failure(Exception(parsed.message ?: "获取群聊信息失败"))
+                            }
                         } catch (e: Exception) {
-                            null
+                            Result.failure(Exception("解析响应失败: ${e.message}"))
                         }
-                    } else null
+                    } else {
+                        try {
+                            val parsed = AppJson.json.decodeFromString<GroupInfoResponse>(responseBody)
+                            Result.failure(Exception(parsed.message ?: "请求失败"))
+                        } catch (e: Exception) {
+                            Result.failure(Exception("请求失败: ${response.code}"))
+                        }
+                    }
                 }
 
-                if (result != null) {
-                    _uiState.update { it.copy(
-                        isLoading = false, 
-                        group = result, 
-                        error = null,
-                        isJoined = result.isJoined
-                    ) }
-                } else {
-                    _uiState.update { it.copy(isLoading = false, error = "群聊不存在") }
-                }
+                result.fold(
+                    onSuccess = { groupInfo ->
+                        if (groupInfo != null) {
+                            _uiState.update { it.copy(
+                                isLoading = false,
+                                group = groupInfo,
+                                error = null,
+                                isJoined = groupInfo.isJoined
+                            ) }
+                        } else {
+                            _uiState.update { it.copy(isLoading = false, error = "群聊不存在") }
+                        }
+                    },
+                    onFailure = { exception ->
+                        _uiState.update { it.copy(isLoading = false, error = exception.message) }
+                    }
+                )
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
@@ -437,25 +459,32 @@ class GroupInfoViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    if (response.isSuccessful) {
-                        val responseBody = response.body.string()
-                        try {
-                            val jsonElement = Json.parseToJsonElement(responseBody)
-                            jsonElement.jsonObject["success"]?.jsonPrimitive?.booleanOrNull ?: false
-                        } catch (e: Exception) {
-                            false
+                    val responseBody = response.body.string()
+                    try {
+                        val jsonElement = Json.parseToJsonElement(responseBody)
+                        val success = jsonElement.jsonObject["success"]?.jsonPrimitive?.booleanOrNull ?: false
+                        if (success) {
+                            Result.success(true)
+                        } else {
+                            val message = jsonElement.jsonObject["message"]?.jsonPrimitive?.content ?: "加入失败"
+                            Result.failure(Exception(message))
                         }
-                    } else false
+                    } catch (e: Exception) {
+                        Result.failure(Exception("解析响应失败: ${e.message}"))
+                    }
                 }
 
-                if (result) {
-                    _toastMessage.emit("加入成功")
-                    _uiState.update { it.copy(isJoining = false, isJoined = true) }
-                    _joinSuccess.emit(Unit)
-                } else {
-                    _toastMessage.emit("加入失败")
-                    _uiState.update { it.copy(isJoining = false) }
-                }
+                result.fold(
+                    onSuccess = {
+                        _toastMessage.emit("加入成功")
+                        _uiState.update { it.copy(isJoining = false, isJoined = true) }
+                        _joinSuccess.emit(Unit)
+                    },
+                    onFailure = { exception ->
+                        _toastMessage.emit(exception.message ?: "加入失败")
+                        _uiState.update { it.copy(isJoining = false) }
+                    }
+                )
             } catch (e: Exception) {
                 _toastMessage.emit(e.message ?: "加入失败")
                 _uiState.update { it.copy(isJoining = false) }

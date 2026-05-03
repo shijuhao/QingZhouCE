@@ -16,26 +16,59 @@ data class MessageSender(
     @SerialName("chat_type") val chatType: Int,
     val name: String,
     @SerialName("avatar_url") val avatarUrl: String,
-    val tag: List<MessageTag> = emptyList()
+    val tag: List<MessageTag> = emptyList(),
+    @SerialName("tag_old") val tagOld: String? = null
 )
 
 @Serializable
-data class MessageContent(
-    val text: String = ""
+data class EditRecord(
+    @SerialName("editor_id") val editorId: Int,
+    @SerialName("editor_username") val editorUsername: String,
+    @SerialName("edit_time") val editTime: String,
+    @SerialName("old_content") val oldContent: String,
+    @SerialName("new_content") val newContent: String,
+    @SerialName("old_images") val oldImages: List<String> = emptyList(),
+    @SerialName("new_images") val newImages: List<String> = emptyList(),
+    @SerialName("old_is_markdown") val oldIsMarkdown: Boolean = false,
+    @SerialName("new_is_markdown") val newIsMarkdown: Boolean = false
 )
 
 @Serializable
 data class Message(
+    val id: Int? = null,
     @SerialName("msg_id") val msgId: String,
+    @SerialName("sender_id") val senderId: Int? = null,
     val sender: MessageSender,
+    @SerialName("sender_username") val senderUsername: String? = null,
+    @SerialName("sender_avatar") val senderAvatar: String? = null,
+    @SerialName("receiver_id") val receiverId: Int? = null,
     val direction: String, // "left" or "right"
     @SerialName("content_type") val contentType: Int,
-    val content: MessageContent,
+    val content: String = "", // Changed from MessageContent object to String
+    val images: List<String> = emptyList(),
+    @SerialName("is_markdown") val isMarkdown: Boolean = false,
+    @SerialName("is_system") val isSystem: Boolean = false,
+    val timestamp: String? = null,
+    @SerialName("timestamp_display") val timestampDisplay: String? = null,
     @SerialName("send_time") val sendTime: Long,
+    @SerialName("send_time_formatted") val sendTimeFormatted: String? = null,
+    @SerialName("send_time_display") val sendTimeDisplay: String? = null,
+    @SerialName("is_deleted") val isDeleted: Boolean = false,
+    @SerialName("is_recalled") val isRecalled: Boolean = false,
+    @SerialName("recall_hint") val recallHint: String? = null,
+    @SerialName("recall_time") val recallTime: String? = null,
+    @SerialName("is_edited") val isEdited: Boolean = false,
+    @SerialName("is_read") val isRead: Boolean = true,
+    @SerialName("is_mine") val isMine: Boolean = false,
+    @SerialName("edit_records") val editRecords: List<EditRecord> = emptyList(),
     @SerialName("msg_seq") val msgSeq: Long,
     @SerialName("quote_msg_id") val quoteMsgId: String? = null,
     @SerialName("edit_time") val editTime: Long? = null,
-    @SerialName("msg_delete_time") val msgDeleteTime: Long? = null
+    @SerialName("edit_time_formatted") val editTimeFormatted: String? = null,
+    @SerialName("edit_time_display") val editTimeDisplay: String? = null,
+    @SerialName("msg_delete_time") val msgDeleteTime: Long? = null,
+    @SerialName("msg_delete_time_formatted") val msgDeleteTimeFormatted: String? = null,
+    @SerialName("msg_delete_time_display") val msgDeleteTimeDisplay: String? = null
 )
 
 @Serializable
@@ -62,12 +95,26 @@ data class MessagePagination(
 )
 
 @Serializable
+data class GetMessagesRequest(
+    @SerialName("chat_type") val chatType: Int,
+    @SerialName("chat_id") val chatId: Int,
+    val page: Int = 1,
+    @SerialName("per_page") val perPage: Int = 20,
+    @SerialName("before_msg_id") val beforeMsgId: Int? = null
+)
+
+@Serializable
 data class SendMessageRequest(
     @SerialName("chat_type") val chatType: Int,
     @SerialName("chat_id") val chatId: Int,
     @SerialName("content_type") val contentType: Int = 1,
-    val data: MessageContent,
+    val data: MessageData,
     @SerialName("quote_msg_id") val quoteMsgId: String? = null
+)
+
+@Serializable
+data class MessageData(
+    val text: String
 )
 
 @Serializable
@@ -92,8 +139,8 @@ data class MessageDetailUiState(
     val selectedImages: List<String> = emptyList(),
     val isMarkdown: Boolean = false,
     val editingMessage: Message? = null,
-    val dailyMessagesLeft: Int = 0,
-    val isChatExpired: Boolean = false
+    val isChatExpired: Boolean = false,
+    val dailyMessagesLeft: Int = 0
 )
 
 // 撤回确认弹窗状态

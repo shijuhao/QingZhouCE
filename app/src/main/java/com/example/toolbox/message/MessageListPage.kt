@@ -77,6 +77,7 @@ import com.example.toolbox.data.Friend
 import com.example.toolbox.mine.notice.FriendRequestActivity
 import com.example.toolbox.mine.notice.snapshotFlow
 import com.example.toolbox.utils.UserAvatar
+import com.example.toolbox.community.uploadImage
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
