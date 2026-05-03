@@ -156,7 +156,8 @@ data class MessageDetailUiState(
     val isChatExpired: Boolean = false,
     val dailyMessagesLeft: Int = 0,
     val groupInfo: GroupInfo? = null,
-    val otherUser: OtherUser? = null // 私信对方用户信息
+    val otherUser: OtherUser? = null,
+    val relationship: String = ""
 )
 
 // 撤回确认弹窗状态

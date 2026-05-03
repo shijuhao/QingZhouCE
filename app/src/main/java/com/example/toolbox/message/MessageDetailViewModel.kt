@@ -109,6 +109,7 @@ class MessageDetailViewModel(
                             pagination = result.pagination,
                             hasMore = hasMore,
                             otherUser = result.otherUser,
+                            relationship = result.relationship,
                             isChatExpired = result.tempChatExpired,
                             isRefreshing = false,
                             isLoadingMore = false,

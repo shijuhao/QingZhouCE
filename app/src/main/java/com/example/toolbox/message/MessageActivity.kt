@@ -401,7 +401,7 @@ fun MessageDetailScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        if (uiState.chatType == 1 && !uiState.canSend) {
+        if (uiState.chatType == 1 && uiState.relationship != "friend") {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.errorContainer,
@@ -458,16 +458,6 @@ fun MessageDetailScreen(
                     reverseLayout = false,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(uiState.messages, key = { "${it.msgId}_${it.sendTime}" }) { message ->
-                        MessageBubble(
-                            message = message,
-                            onRecall = { viewModel.showRecallDialog(message.msgId) },
-                            onEdit = { viewModel.showEditDialog(message) },
-                            clipboard = clipboard,
-                            context = context
-                        )
-                    }
-
                     if (uiState.isLoadingMore) {
                         item {
                             Box(
@@ -479,6 +469,16 @@ fun MessageDetailScreen(
                                 ContainedLoadingIndicator()
                             }
                         }
+                    }
+                    
+                    items(uiState.messages, key = { "${it.msgId}_${it.sendTime}" }) { message ->
+                        MessageBubble(
+                            message = message,
+                            onRecall = { viewModel.showRecallDialog(message.msgId) },
+                            onEdit = { viewModel.showEditDialog(message) },
+                            clipboard = clipboard,
+                            context = context
+                        )
                     }
                 }
             }
