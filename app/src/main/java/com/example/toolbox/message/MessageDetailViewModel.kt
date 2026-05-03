@@ -15,7 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -84,7 +83,7 @@ class MessageDetailViewModel(
                     try {
                         val response = client.newCall(request).execute()
                         if (response.isSuccessful) {
-                            val responseBody = response.body?.string() ?: ""
+                            val responseBody = response.body.string()
                             json.decodeFromString<GetMessagesResponse>(responseBody)
                         } else {
                             null
@@ -96,20 +95,20 @@ class MessageDetailViewModel(
                 }
 
                 if (result != null && result.status.code == 0) {
+                    val hasMore = result.pagination?.let { it.page < it.pages } ?: false
+                    
                     _uiState.update { current ->
-                        // reverseLayout = false: 消息按时间正序排列（旧消息在前，新消息在后）
                         val newMessages = if (isRefresh) {
-                            // 刷新时，API返回的消息需要按时间正序排列
                             result.messages.sortedBy { it.sendTime }
                         } else {
-                            // 加载更多时，旧消息插入到前面
                             result.messages.sortedBy { it.sendTime } + current.messages
                         }
                         current.copy(
                             messages = newMessages,
                             canSend = result.canSend,
                             pagination = result.pagination,
-                            hasMore = result.pagination?.let { it.page < it.pages } ?: false,
+                            hasMore = hasMore,
+                            otherUser = result.otherUser, // 保存对方用户信息
                             isRefreshing = false,
                             isLoadingMore = false,
                             error = null
@@ -146,12 +145,12 @@ class MessageDetailViewModel(
 
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-                    if (response.isSuccessful && responseBody != null) {
+                    val responseBody = response.body.string()
+                    if (response.isSuccessful) {
                         try {
                             val parsed = json.decodeFromString<GroupDetailResponse>(responseBody)
                             if (parsed.success) parsed.group else null
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             null
                         }
                     } else null
@@ -160,8 +159,7 @@ class MessageDetailViewModel(
                 if (result != null) {
                     _uiState.update { it.copy(groupInfo = result) }
                 }
-            } catch (e: Exception) {
-                // Silently fail for group info loading
+            } catch (_: Exception) {
             }
         }
     }
@@ -208,13 +206,13 @@ class MessageDetailViewModel(
                 val result = withContext(Dispatchers.IO) {
                     try {
                         val response = client.newCall(request).execute()
-                        val responseBody = response.body?.string() ?: ""
+                        val responseBody = response.body.string()
                         if (response.isSuccessful) {
                             json.decodeFromString<SendMessageResponse>(responseBody)
                         } else {
                             val status = try {
                                 json.decodeFromString<ChatStatus>(responseBody)
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 ChatStatus(number = response.code, code = -1, msg = "发送失败")
                             }
                             SendMessageResponse(status = status)
@@ -274,7 +272,7 @@ class MessageDetailViewModel(
                 val result = withContext(Dispatchers.IO) {
                     try {
                         val response = client.newCall(request).execute()
-                        val responseBody = response.body?.string() ?: ""
+                        val responseBody = response.body.string()
                         json.decodeFromString<RecallResponse>(responseBody)
                     } catch (e: Exception) {
                         RecallResponse(success = false, message = "操作失败: ${e.message}")
@@ -372,7 +370,7 @@ class MessageDetailViewModel(
                 val result = withContext(Dispatchers.IO) {
                     try {
                         val response = client.newCall(request).execute()
-                        val responseBody = response.body?.string() ?: ""
+                        val responseBody = response.body.string()
                         json.decodeFromString<ChatStatus>(responseBody)
                     } catch (e: Exception) {
                         ChatStatus(number = -1, code = -1, msg = "编辑失败: ${e.message}")
@@ -420,7 +418,7 @@ class MessageDetailViewModel(
                     } else {
                         null
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
     
@@ -468,14 +466,17 @@ class MessageDetailViewModel(
 
     fun connectWebSocket() {
         if (token.isNotBlank()) {
-            val manager = PrivateChatSocketManager.getInstance()
+            val manager = ChatSocketManager.getInstance()
+            // 先移除旧的观察者，避免重复注册
+            manager.removeObserver(messageObserver)
+            // 再添加新的观察者
             manager.addObserver(messageObserver)
             manager.connect(token)
         }
     }
 
     fun disconnectWebSocket() {
-        val manager = PrivateChatSocketManager.getInstance()
+        val manager = ChatSocketManager.getInstance()
         manager.removeObserver(messageObserver)
     }
 
@@ -483,7 +484,41 @@ class MessageDetailViewModel(
         when (type) {
             "new", "edit", "recall" -> {
                 // 判断是否是当前会话的消息
-                if (message.sender.chatId == chatId.toString() && message.sender.chatType == chatType) {
+                val isCurrentChat = try {
+                    val msgChatType = message.sender.chatType
+                    
+                    // 首先检查聊天类型是否匹配
+                    if (msgChatType != chatType) {
+                        false
+                    } else {
+                        when (chatType) {
+                            1 -> {
+                                // 私信
+                                val senderChatId = message.sender.chatId.toIntOrNull()
+                                val receiverId = message.receiverId
+                                
+                                if (senderChatId == chatId || receiverId == chatId) {
+                                    true
+                                } else if (message.isMine && receiverId == null) {
+                                    // 临时方案：我发的消息且 receiver_id 为 null
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                            2 -> {
+                                // 群聊
+                                val msgChatId = message.sender.chatId.toIntOrNull()
+                                msgChatId == chatId
+                            }
+                            else -> false
+                        }
+                    }
+                } catch (e: Exception) {
+                    false
+                }
+                
+                if (isCurrentChat) {
                     when (type) {
                         "new" -> addNewMessage(message)
                         "edit" -> updateMessage(message)

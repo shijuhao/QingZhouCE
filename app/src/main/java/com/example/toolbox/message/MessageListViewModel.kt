@@ -167,14 +167,14 @@ class MessageViewModel(
 
     fun connectWebSocket() {
         if (token.isNotBlank()) {
-            val manager = PrivateChatSocketManager.getInstance()
+            val manager = ChatSocketManager.getInstance()
             manager.addObserver(messageObserver)
             manager.connect(token)
         }
     }
 
     fun disconnectWebSocket() {
-        val manager = PrivateChatSocketManager.getInstance()
+        val manager = ChatSocketManager.getInstance()
         manager.removeObserver(messageObserver)
     }
 

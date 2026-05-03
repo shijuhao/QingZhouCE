@@ -5,6 +5,7 @@ import cat.ereza.customactivityoncrash.config.CaocConfig
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.request.crossfade
+import com.example.toolbox.message.ChatSocketManager
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 
@@ -41,6 +42,11 @@ class MyApplication : Application(), SingletonImageLoader.Factory {
             .minTimeBetweenCrashesMs(2000)
             .restartActivity(MainActivity::class.java)
             .apply()
+    }
+
+    override fun onTerminate() {
+        super.onTerminate()
+        ChatSocketManager.disconnect()
     }
 
     override fun newImageLoader(context: android.content.Context): ImageLoader {
