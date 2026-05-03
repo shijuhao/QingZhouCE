@@ -173,19 +173,27 @@ fun MultiImageViewer(
                                     imageStates[page].value.scale > 1.001f 
                                 }
                             )
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onDoubleTap = {
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onDoubleTap = { tapOffset ->
+                                    val currentState = imageStates[page].value
+                                    if (currentState.scale > 1.001f) {
                                         imageStates[page].value = ImageState()
-                                    },
-                                    onTap = {
-                                        onDismiss()
-                                    },
-                                    onLongPress = {
-                                        showMenu = true
+                                    } else {
+                                        val newScale = 3f
+                                        val maxOffsetX = (screenWidth * newScale - screenWidth) / 2
+                                        val maxOffsetY = (screenHeight * newScale - screenHeight) / 2
+                                        
+                                        val targetX = -(tapOffset.x * newScale - screenWidth / 2).coerceIn(-maxOffsetX, maxOffsetX)
+                                        val targetY = -(tapOffset.y * newScale - screenHeight / 2).coerceIn(-maxOffsetY, maxOffsetY)
+                                        
+                                        imageStates[page].value = ImageState(newScale, Offset(targetX, targetY))
                                     }
-                                )
-                            },
+                                },
+                                onTap = { onDismiss() },
+                                onLongPress = { showMenu = true }
+                            )
+                        },
                         contentScale = ContentScale.Fit,
                         onState = { newState ->
                             loadStates[page].value = newState
