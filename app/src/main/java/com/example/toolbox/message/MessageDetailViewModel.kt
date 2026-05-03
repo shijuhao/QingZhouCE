@@ -108,7 +108,8 @@ class MessageDetailViewModel(
                             canSend = result.canSend,
                             pagination = result.pagination,
                             hasMore = hasMore,
-                            otherUser = result.otherUser, // 保存对方用户信息
+                            otherUser = result.otherUser,
+                            isChatExpired = result.tempChatExpired,
                             isRefreshing = false,
                             isLoadingMore = false,
                             error = null
@@ -169,7 +170,6 @@ class MessageDetailViewModel(
         if (currentState.isLoadingMore || !currentState.hasMore || currentState.messages.isEmpty()) {
             return
         }
-        // Use the oldest message's ID as before_msg_id for pagination
         val oldestMsgId = currentState.messages.firstOrNull()?.id
         if (oldestMsgId != null) {
             loadMessages(page = 1, isRefresh = false, beforeMsgId = oldestMsgId.toString())
@@ -229,7 +229,6 @@ class MessageDetailViewModel(
                             selectedImages = emptyList()
                         )
                     }
-                    refresh()
                 } else {
                     _toastMessage.emit(result.status.msg)
                 }
@@ -497,8 +496,10 @@ class MessageDetailViewModel(
         }
 
     private fun addNewMessage(message: Message) {
-        // reverseLayout = false: 新消息添加到列表末尾
-        _uiState.update { it.copy(messages = it.messages + message) }
+        _uiState.update { state ->
+            if (state.messages.any { it.msgId == message.msgId }) return@update state
+            state.copy(messages = state.messages + message)
+        }
     }
 
     private fun updateMessage(message: Message) {

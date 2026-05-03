@@ -322,121 +322,62 @@ fun MessageDetailScreen(
         }
     }
 
-    // 初始加载完成后滚动到底部
-    LaunchedEffect(uiState.messages.size, uiState.isLoading, uiState.isRefreshing) {
-        if (uiState.messages.isNotEmpty() && !uiState.isLoading && !uiState.isRefreshing) {
-            // 延迟一点确保布局完成
-            kotlinx.coroutines.delay(100)
+    // 1. 初始加载完成后直接跳到底部（不用动画，不闪）
+    LaunchedEffect(uiState.isLoading) {
+        if (!uiState.isLoading && uiState.messages.isNotEmpty()) {
+            snapshotFlow { listState.layoutInfo.totalItemsCount }
+                .first { it > 0 }
             val lastIndex = uiState.messages.size - 1
             if (lastIndex >= 0) {
                 listState.scrollToItem(lastIndex)
             }
         }
     }
-
-    // reverseLayout = false: 加载更多检测滚动到顶部
-    LaunchedEffect(listState) {
-        snapshotFlow {
-            val layoutInfo = listState.layoutInfo
-            val visibleItems = layoutInfo.visibleItemsInfo
-            if (visibleItems.isNotEmpty()) {
-                val firstVisibleIndex = visibleItems.first().index
-                firstVisibleIndex < 5 && uiState.hasMore && !uiState.isLoadingMore
-            } else {
-                false
-            }
-        }.collect { shouldLoadMore ->
-            if (shouldLoadMore) {
-                viewModel.loadMore()
-            }
-        }
-    }
-
-    // reverseLayout = false: 检测是否在底部（最新消息）
-    LaunchedEffect(listState) {
-        snapshotFlow {
-            val layoutInfo = listState.layoutInfo
-            val visibleItems = layoutInfo.visibleItemsInfo
-            val totalItems = layoutInfo.totalItemsCount
-            if (visibleItems.isNotEmpty() && totalItems > 0) {
-                val lastVisibleIndex = visibleItems.last().index
-                lastVisibleIndex >= totalItems - 1
-            } else {
-                true
-            }
-        }.collect { isAtBottom ->
-            showScrollToBottom = !isAtBottom
-            if (isAtBottom) {
-                unreadCount = 0
-            }
-        }
-    }
-
-    LaunchedEffect(uiState.messages) {
-        val newMessages = uiState.messages
-        val oldMessages = previousMessages
-
-        // 数量未变 → 可能是编辑/撤回，不处理滚动和未读
-        if (newMessages.size == oldMessages.size) {
-            previousMessages = newMessages
-            return@LaunchedEffect
-        }
-
-        val addedCount = newMessages.size - oldMessages.size
-        if (addedCount <= 0) {
-            previousMessages = newMessages
-            return@LaunchedEffect
-        }
-
-        // 检查是否是加载了更多历史消息（在顶部添加）
-        val firstOldMsgId = oldMessages.firstOrNull()?.msgId
-        val firstOldMsgNewIndex = newMessages.indexOfFirst { it.msgId == firstOldMsgId }
-        
-        if (firstOldMsgNewIndex == addedCount && addedCount > 0) {
-            // 这是加载更多历史消息的情况，保持当前视觉位置
-            val currentFirstVisibleItem = listState.firstVisibleItemIndex
-            val currentScrollOffset = listState.firstVisibleItemScrollOffset
-            coroutineScope.launch {
-                listState.scrollToItem(currentFirstVisibleItem + addedCount, currentScrollOffset)
-            }
-        } else if (addedCount > 0) {
-            // 这是新消息到达的情况（在底部添加）
-            val layoutInfo = listState.layoutInfo
-            val visibleItems = layoutInfo.visibleItemsInfo
-            val totalItems = layoutInfo.totalItemsCount
-            val isAtBottom = visibleItems.isNotEmpty() && visibleItems.last().index >= totalItems - 1
-
-            if (isAtBottom) {
-                // 如果在底部，自动滚动到最新消息
-                coroutineScope.launch {
-                    listState.animateScrollToItem(newMessages.size - 1)
-                }
-                unreadCount = 0
-            } else {
-                // 不在底部，增加未读计数
-                unreadCount += addedCount
-            }
-        }
-
-        previousMessages = newMessages
-    }
-
-    // 监听WebSocket新消息并滚动到底部
+    
+    // 2. 新消息到达 → 只在底部时自动滑
     LaunchedEffect(uiState.messages.size) {
-        // 如果消息数量增加，说明有新消息到达
-        if (uiState.messages.size > previousMessages.size) {
-            val layoutInfo = listState.layoutInfo
-            val visibleItems = layoutInfo.visibleItemsInfo
-            val totalItems = layoutInfo.totalItemsCount
-            val isAtBottom = visibleItems.isNotEmpty() && visibleItems.last().index >= totalItems - 1
-
+        val currentSize = uiState.messages.size
+        if (currentSize > previousMessages.size && previousMessages.isNotEmpty()) {
+            val isAtBottom = with(listState.layoutInfo) {
+                visibleItemsInfo.isNotEmpty() && visibleItemsInfo.last().index >= totalItemsCount - 1
+            }
             if (isAtBottom) {
-                // 在底部时自动滚动到最新消息
-                coroutineScope.launch {
-                    listState.animateScrollToItem(uiState.messages.size - 1)
+                val lastIndex = currentSize - 1
+                if (lastIndex >= 0) {
+                    listState.animateScrollToItem(lastIndex)
                 }
+                unreadCount = 0
+            } else {
+                unreadCount += currentSize - previousMessages.size
             }
         }
+        previousMessages = uiState.messages
+    }
+    
+    // 3. 加载更多：滚到顶部附近触发
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            visibleItems.isNotEmpty() && visibleItems.first().index < 5
+                    && uiState.hasMore && !uiState.isLoadingMore
+        }
+            .distinctUntilChanged()
+            .filter { it }
+            .collect { viewModel.loadMore() }
+    }
+    
+    // 4. 检测是否在底部（控制 FAB 显隐）
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            visibleItems.isNotEmpty()
+                    && visibleItems.last().index >= listState.layoutInfo.totalItemsCount - 1
+        }
+            .distinctUntilChanged()
+            .collect { atBottom ->
+                showScrollToBottom = !atBottom
+                if (atBottom) unreadCount = 0
+            }
     }
 
     val scrollToBottom: () -> Unit = {
@@ -517,7 +458,7 @@ fun MessageDetailScreen(
                     reverseLayout = false,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(uiState.messages, key = { it.msgId }) { message ->
+                    items(uiState.messages, key = { "${it.msgId}_${it.sendTime}" }) { message ->
                         MessageBubble(
                             message = message,
                             onRecall = { viewModel.showRecallDialog(message.msgId) },
@@ -596,13 +537,6 @@ fun MessageDetailScreen(
                 onTextChange = { viewModel.updateInputText(it) },
                 onSendClick = {
                     viewModel.sendMessage()
-                    // 发送消息后滚动到底部
-                    coroutineScope.launch {
-                        val lastIndex = uiState.messages.size - 1
-                        if (lastIndex >= 0) {
-                            listState.animateScrollToItem(lastIndex)
-                        }
-                    }
                 },
                 onAddImageClick = { imagePicker.launch("image/*") },
                 onRemoveImage = { viewModel.removeImage(it) },

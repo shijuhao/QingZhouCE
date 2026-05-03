@@ -96,7 +96,8 @@ data class GetMessagesResponse(
     @SerialName("other_user") val otherUser: OtherUser? = null,
     @SerialName("chat_background_url") val chatBackgroundUrl: String = "",
     @SerialName("is_friend") val isFriend: Boolean = true,
-    val relationship: String = "friend"
+    val relationship: String = "friend",
+    @SerialName("temp_chat_expired") val tempChatExpired: Boolean = false,
 )
 
 @Serializable
