@@ -93,26 +93,35 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
             errorMessage = if (barcodeMode == 0) "请输入要生成二维码的内容" else "请输入要生成Data Matrix的内容"
             return
         }
-
+    
         try {
             val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java).apply {
                 put(EncodeHintType.CHARACTER_SET, "UTF-8")
                 put(EncodeHintType.MARGIN, 1)
             }
-
-            val size = 512
+    
+            val size = if (barcodeMode == 0) {
+                512
+            } else {
+                minOf(1024, maxOf(256, inputText.length * 8))
+            }
+    
             val bitMatrix = if (barcodeMode == 0) {
                 val writer = QRCodeWriter()
                 writer.encode(inputText, BarcodeFormat.QR_CODE, size, size, hints)
             } else {
+                val encodedText = android.util.Base64.encodeToString(
+                    inputText.toByteArray(Charsets.UTF_8),
+                    android.util.Base64.NO_WRAP
+                )
                 val writer = DataMatrixWriter()
-                writer.encode(inputText, BarcodeFormat.DATA_MATRIX, size, size, hints)
+                writer.encode(encodedText, BarcodeFormat.DATA_MATRIX, size, size, hints)
             }
-
+    
             val width = bitMatrix.width
             val height = bitMatrix.height
             val pixels = IntArray(width * height)
-
+    
             for (y in 0 until height) {
                 for (x in 0 until width) {
                     pixels[y * width + x] = if (bitMatrix[x, y]) {
@@ -122,10 +131,10 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                     }
                 }
             }
-
+    
             qrCodeBitmap = createBitmap(width, height)
             qrCodeBitmap?.setPixels(pixels, 0, width, 0, 0, width, height)
-
+    
         } catch (e: Exception) {
             errorMessage = if (barcodeMode == 0) "生成二维码失败: ${e.message}" else "生成Data Matrix失败: ${e.message}"
         }
@@ -216,6 +225,14 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         singleLine = false,
                         maxLines = 5
                     )
+                    if (barcodeMode == 1) {
+                        Text(
+                            text = "提示：Data Matrix 不支持中文等特殊字符，将自动进行编码处理",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
                 }
             }
 
