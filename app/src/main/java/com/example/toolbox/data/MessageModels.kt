@@ -140,7 +140,8 @@ data class MessageDetailUiState(
     val isMarkdown: Boolean = false,
     val editingMessage: Message? = null,
     val isChatExpired: Boolean = false,
-    val dailyMessagesLeft: Int = 0
+    val dailyMessagesLeft: Int = 0,
+    val groupInfo: GroupInfo? = null
 )
 
 // 撤回确认弹窗状态

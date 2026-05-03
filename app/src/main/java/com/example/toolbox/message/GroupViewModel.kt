@@ -105,7 +105,7 @@ class GroupViewModel(
             try {
                 // 先上传头像（如果有）
                 val avatarUrl = if (!avatarFilePath.isNullOrBlank()) {
-                    uploadImage(avatarFilePath, token, 1) { _: Int -> }
+                    uploadImage(avatarFilePath, token, 3) { _: Int -> }
                 } else {
                     null
                 }

@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -197,38 +198,61 @@ class MessageDetailActivity : ComponentActivity() {
                     topBar = {
                         TopAppBar(
                             title = {
-                                if (uiState.messages.isNotEmpty()) {
-                                    val firstMessage = uiState.messages.first()
-                                    val title = if (chatType == 1) {
-                                        // 私聊显示对方名字
-                                        if (firstMessage.direction == "left") firstMessage.sender.name else "聊天"
-                                    } else {
-                                        // 群聊显示群名（待完善：从API获取群信息）
-                                        "群聊"
-                                    }
-                                    
+                                if (chatType == 2 && uiState.groupInfo != null) {
+                                    // 群聊显示群信息
+                                    val group = uiState.groupInfo!!
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
-                                                if (chatType == 1 && firstMessage.direction == "left") {
+                                                startActivity(
+                                                    Intent(this, GroupInfoActivity::class.java).apply {
+                                                        putExtra("group_id", chatId)
+                                                        putExtra("is_joined", true)
+                                                        putExtra("group_name", group.name)
+                                                        putExtra("group_avatar", group.avatarUrl)
+                                                        putExtra("group_description", group.description)
+                                                        putExtra("group_members_count", group.membersCount)
+                                                        putExtra("group_created_at", group.createdAt)
+                                                        putExtra("group_is_private", group.isPrivate)
+                                                    }
+                                                )
+                                            }
+                                    ) {
+                                        AsyncImage(
+                                            model = if (group.avatarUrl.startsWith("http")) group.avatarUrl else "${ApiAddress}uploads/${group.avatarUrl}",
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = "${group.name} (${group.membersCount})",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                    }
+                                } else if (uiState.messages.isNotEmpty()) {
+                                    val firstMessage = uiState.messages.first()
+                                    if (chatType == 1 && firstMessage.direction == "left") {
+                                        // 私聊显示对方信息
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
                                                     startActivity(
                                                         Intent(this, UserInfoActivity::class.java).apply {
                                                             putExtra("userId", firstMessage.sender.chatId.toIntOrNull() ?: 0)
                                                         }
                                                     )
-                                                } else if (chatType == 2) {
-                                                    startActivity(
-                                                        Intent(this, GroupInfoActivity::class.java).apply {
-                                                            putExtra("group_id", chatId)
-                                                            putExtra("is_joined", true)
-                                                        }
-                                                    )
                                                 }
-                                            }
-                                    ) {
-                                        if (chatType == 1 && firstMessage.direction == "left") {
+                                        ) {
                                             AsyncImage(
                                                 model = firstMessage.sender.avatarUrl,
                                                 contentDescription = null,
@@ -238,14 +262,18 @@ class MessageDetailActivity : ComponentActivity() {
                                                     .clip(CircleShape)
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                Text(
+                                                    text = firstMessage.sender.name,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 16.sp
+                                                )
+                                            }
                                         }
-                                        Column {
-                                            Text(
-                                                text = title,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 16.sp
-                                            )
-                                        }
+                                    } else if (chatType == 1) {
+                                        Text("聊天")
+                                    } else {
+                                        Text("聊天详情")
                                     }
                                 } else {
                                     Text("聊天详情")
@@ -257,6 +285,23 @@ class MessageDetailActivity : ComponentActivity() {
                                         Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "返回"
                                     )
+                                }
+                            },
+                            actions = {
+                                if (chatType == 2) {
+                                    IconButton(onClick = {
+                                        startActivity(
+                                            Intent(this, GroupInfoActivity::class.java).apply {
+                                                putExtra("group_id", finalChatId)
+                                                putExtra("is_joined", true)
+                                            }
+                                        )
+                                    }) {
+                                        Icon(
+                                            Icons.Default.MoreVert,
+                                            contentDescription = "群聊信息"
+                                        )
+                                    }
                                 }
                             }
                         )

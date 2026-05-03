@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -89,11 +90,26 @@ class GroupInfoActivity : ComponentActivity() {
         val groupId = intent.getIntExtra("group_id", -1)
         val isJoined = intent.getBooleanExtra("is_joined", false)
         
+        // Get initial group data from intent (passed from MessageActivity)
+        val initialGroupInfo = if (intent.hasExtra("group_name")) {
+            GroupInfo(
+                id = groupId,
+                name = intent.getStringExtra("group_name") ?: "",
+                avatarUrl = intent.getStringExtra("group_avatar") ?: "",
+                description = intent.getStringExtra("group_description") ?: "",
+                isPrivate = intent.getBooleanExtra("group_is_private", false),
+                membersCount = intent.getIntExtra("group_members_count", 0),
+                createdAt = intent.getStringExtra("group_created_at") ?: "",
+                isJoined = isJoined,
+                creator = null
+            )
+        } else null
+        
         setContent {
             ToolBoxTheme {
                 val token = TokenManager.get(this)
                 val viewModel: GroupInfoViewModel = viewModel(
-                    factory = token?.let { GroupInfoViewModelFactory(it, groupId, isJoined) }
+                    factory = token?.let { GroupInfoViewModelFactory(it, groupId, isJoined, initialGroupInfo) }
                 )
                 GroupInfoScreen(
                     viewModel = viewModel,
@@ -143,16 +159,21 @@ fun GroupInfoScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (uiState.isLoading) {
+            if (uiState.isLoading && uiState.group == null) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (uiState.group != null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize()
                 ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                     val group = uiState.group
                     if (group == null) {
                         return@Column
@@ -306,17 +327,8 @@ fun GroupInfoScreen(
                     
                     Spacer(modifier = Modifier.weight(1f))
                     
-                    // 底部按钮
-                    if (uiState.isJoined) {
-                        // 已加入 - 显示进入聊天按钮
-                        Button(
-                            onClick = onBack,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("返回")
-                        }
-                    } else {
-                        // 未加入 - 显示加入按钮
+                    // 底部按钮 - 仅当未加入时显示加入按钮
+                    if (!uiState.isJoined) {
                         Button(
                             onClick = { viewModel.joinGroup() },
                             modifier = Modifier.fillMaxWidth(),
@@ -334,6 +346,7 @@ fun GroupInfoScreen(
                         }
                     }
                 }
+            }
             } else if (uiState.error != null) {
                 Text(
                     text = "错误: ${uiState.error}",
@@ -358,6 +371,7 @@ fun formatGroupTime(timeStr: String): String {
 // GroupInfoViewModel
 data class GroupInfoUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val group: GroupInfo? = null,
     val error: String? = null,
     val isJoined: Boolean = false,
@@ -367,10 +381,15 @@ data class GroupInfoUiState(
 class GroupInfoViewModel(
     private val token: String,
     private val groupId: Int,
-    initialIsJoined: Boolean = false
+    initialIsJoined: Boolean = false,
+    initialGroupInfo: GroupInfo? = null
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(GroupInfoUiState(isJoined = initialIsJoined))
+    private val _uiState = MutableStateFlow(GroupInfoUiState(
+        isJoined = initialIsJoined,
+        group = initialGroupInfo,
+        isLoading = initialGroupInfo == null
+    ))
     val uiState: StateFlow<GroupInfoUiState> = _uiState.asStateFlow()
 
     private val _toastMessage = MutableSharedFlow<String>()
@@ -382,11 +401,21 @@ class GroupInfoViewModel(
     private val client = OkHttpClient()
 
     init {
-        loadGroupInfo()
+        if (_uiState.value.group == null) {
+            loadGroupInfo()
+        }
     }
 
-    private fun loadGroupInfo() {
+    fun refresh() {
+        loadGroupInfo(isRefresh = true)
+    }
+
+    private fun loadGroupInfo(isRefresh: Boolean = false) {
         viewModelScope.launch {
+            if (isRefresh) {
+                _uiState.update { it.copy(isRefreshing = true) }
+            }
+            
             try {
                 val url = "${ApiAddress}group/info/$groupId"
                 val request = Request.Builder()
@@ -424,20 +453,21 @@ class GroupInfoViewModel(
                         if (groupInfo != null) {
                             _uiState.update { it.copy(
                                 isLoading = false,
+                                isRefreshing = false,
                                 group = groupInfo,
                                 error = null,
                                 isJoined = groupInfo.isJoined
                             ) }
                         } else {
-                            _uiState.update { it.copy(isLoading = false, error = "群聊不存在") }
+                            _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = "群聊不存在") }
                         }
                     },
                     onFailure = { exception ->
-                        _uiState.update { it.copy(isLoading = false, error = exception.message) }
+                        _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = exception.message) }
                     }
                 )
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = e.message) }
             }
         }
     }
@@ -496,12 +526,13 @@ class GroupInfoViewModel(
 class GroupInfoViewModelFactory(
     private val token: String,
     private val groupId: Int,
-    private val isJoined: Boolean
+    private val isJoined: Boolean,
+    private val initialGroupInfo: GroupInfo? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(GroupInfoViewModel::class.java)) {
-            return GroupInfoViewModel(token, groupId, isJoined) as T
+            return GroupInfoViewModel(token, groupId, isJoined, initialGroupInfo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

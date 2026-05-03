@@ -47,6 +47,9 @@ class MessageDetailViewModel(
 
     init {
         loadMessages(page = 1, isRefresh = true)
+        if (chatType == 2) {
+            loadGroupInfo()
+        }
     }
 
     // 加载聊天记录
@@ -120,6 +123,41 @@ class MessageDetailViewModel(
 
     fun refresh() {
         loadMessages(page = 1, isRefresh = true)
+        if (chatType == 2) {
+            loadGroupInfo()
+        }
+    }
+
+    private fun loadGroupInfo() {
+        viewModelScope.launch {
+            try {
+                val url = "${ApiAddress}group/info/$chatId"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("x-access-token", token)
+                    .get()
+                    .build()
+
+                val result = withContext(Dispatchers.IO) {
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val parsed = json.decodeFromString<GroupInfoResponse>(responseBody)
+                            if (parsed.success) parsed.group else null
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } else null
+                }
+
+                if (result != null) {
+                    _uiState.update { it.copy(groupInfo = result) }
+                }
+            } catch (e: Exception) {
+                // Silently fail for group info loading
+            }
+        }
     }
 
     fun loadMore() {

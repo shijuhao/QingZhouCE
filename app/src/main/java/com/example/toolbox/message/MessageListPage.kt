@@ -394,8 +394,15 @@ fun CreateGroupDialog(
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = onSelectAvatar) {
-                        Icon(Icons.Default.Add, contentDescription = "选择头像")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = onSelectAvatar) {
+                            Icon(Icons.Default.Add, contentDescription = "选择头像")
+                        }
+                        Text(
+                            "可选",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
                 
