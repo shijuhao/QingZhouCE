@@ -157,7 +157,7 @@ data class MessageDetailUiState(
     val dailyMessagesLeft: Int = 0,
     val groupInfo: GroupInfo? = null,
     val otherUser: OtherUser? = null,
-    val relationship: String = "friends"
+    val relationship: String = "friend"
 )
 
 // 撤回确认弹窗状态
