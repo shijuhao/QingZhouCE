@@ -207,7 +207,7 @@ class MessageDetailActivity : ComponentActivity() {
                                             .fillMaxWidth()
                                             .clickable {
                                                 startActivity(
-                                                    Intent(this, GroupInfoActivity::class.java).apply {
+                                                    Intent(this@MessageDetailActivity, GroupInfoActivity::class.java).apply {
                                                         putExtra("group_id", chatId)
                                                         putExtra("is_joined", true)
                                                         putExtra("group_name", group.name)
@@ -247,7 +247,7 @@ class MessageDetailActivity : ComponentActivity() {
                                                 .fillMaxWidth()
                                                 .clickable {
                                                     startActivity(
-                                                        Intent(this, UserInfoActivity::class.java).apply {
+                                                        Intent(this@MessageDetailActivity, UserInfoActivity::class.java).apply {
                                                             putExtra("userId", firstMessage.sender.chatId.toIntOrNull() ?: 0)
                                                         }
                                                     )
@@ -290,10 +290,19 @@ class MessageDetailActivity : ComponentActivity() {
                             actions = {
                                 if (chatType == 2) {
                                     IconButton(onClick = {
+                                        val groupInfo = uiState.groupInfo
                                         startActivity(
-                                            Intent(this, GroupInfoActivity::class.java).apply {
+                                            Intent(this@MessageDetailActivity, GroupInfoActivity::class.java).apply {
                                                 putExtra("group_id", finalChatId)
                                                 putExtra("is_joined", true)
+                                                if (groupInfo != null) {
+                                                    putExtra("group_name", groupInfo.name)
+                                                    putExtra("group_avatar", groupInfo.avatarUrl)
+                                                    putExtra("group_description", groupInfo.description)
+                                                    putExtra("group_members_count", groupInfo.membersCount)
+                                                    putExtra("group_created_at", groupInfo.createdAt)
+                                                    putExtra("group_is_private", groupInfo.isPrivate)
+                                                }
                                             }
                                         )
                                     }) {
@@ -729,7 +738,8 @@ fun MessageBubble(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val isMine = message.direction == "right"
-    val isSystemMessage = message.msgDeleteTime != null
+    val isRecalledMessage = message.msgDeleteTime != null
+    val isSystemMessage = message.isSystem
     
     // 格式化时间
     val timestampDisplay = remember(message.sendTime) {
@@ -741,7 +751,8 @@ fun MessageBubble(
         }
     }
 
-    if (isSystemMessage) {
+    if (isRecalledMessage) {
+        // 撤回消息
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -756,6 +767,27 @@ fun MessageBubble(
             ) {
                 Text(
                     text = "消息已撤回",
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                )
+            }
+        }
+    } else if (isSystemMessage) {
+        // 系统消息
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.widthIn(max = 300.dp)
+            ) {
+                Text(
+                    text = message.content,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                 )
