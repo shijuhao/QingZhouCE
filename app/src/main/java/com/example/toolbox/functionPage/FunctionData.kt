@@ -151,6 +151,8 @@ val functionData = listOf(
             FunctionItem("摩斯密码", "com.example.toolbox.function.text.MorseCodeActivity", Icons.Outlined.TextFields, "gray"),
             FunctionItem("RC4加解密", "com.example.toolbox.function.text.Rc4Activity", Icons.Outlined.Key, "red"),
             FunctionItem("AES加解密", "com.example.toolbox.function.text.AESActivity", Icons.Outlined.Key, "blue"),
+            FunctionItem("Unicode编解码", "com.example.toolbox.function.text.UnicodeActivity", Icons.Outlined.TextFields, "purple"),
+            FunctionItem("URL编解码", "com.example.toolbox.function.text.URLActivity", Icons.Outlined.Public, "green"),
         )
     ),
     FunctionCategory(

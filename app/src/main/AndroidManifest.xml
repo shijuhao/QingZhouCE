@@ -318,6 +318,14 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".function.text.UnicodeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".function.text.URLActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".function.visual.QRCodeGeneratorActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
