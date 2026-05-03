@@ -51,8 +51,7 @@ class MessageDetailViewModel(
         }
     }
 
-    // 加载聊天记录
-    fun loadMessages(page: Int, isRefresh: Boolean, beforeMsgId: String? = null) {
+    fun loadMessages(page: Int, isRefresh: Boolean) {
         viewModelScope.launch {
             _uiState.update {
                 if (isRefresh) it.copy(isRefreshing = true, error = null)
@@ -66,9 +65,6 @@ class MessageDetailViewModel(
                     put("chat_id", chatId)
                     put("page", page)
                     put("per_page", 20)
-                    if (beforeMsgId != null) {
-                        put("before_msg_id", beforeMsgId)
-                    }
                 }
                 
                 val body = requestObj.toString().toRequestBody("application/json".toMediaType())
@@ -99,9 +95,9 @@ class MessageDetailViewModel(
                     
                     _uiState.update { current ->
                         val newMessages = if (isRefresh) {
-                            result.messages.sortedBy { it.sendTime }
+                            result.messages.sortedByDescending { it.sendTime }
                         } else {
-                            result.messages.sortedBy { it.sendTime } + current.messages
+                            current.messages + result.messages.sortedByDescending { it.sendTime }
                         }
                         current.copy(
                             messages = newMessages,
@@ -168,13 +164,11 @@ class MessageDetailViewModel(
 
     fun loadMore() {
         val currentState = _uiState.value
-        if (currentState.isLoadingMore || !currentState.hasMore || currentState.messages.isEmpty()) {
+        if (currentState.isLoadingMore || !currentState.hasMore || currentState.pagination == null) {
             return
         }
-        val oldestMsgId = currentState.messages.firstOrNull()?.id
-        if (oldestMsgId != null) {
-            loadMessages(page = 1, isRefresh = false, beforeMsgId = oldestMsgId.toString())
-        }
+        val nextPage = currentState.pagination!!.page + 1
+        loadMessages(page = nextPage, isRefresh = false)
     }
 
     fun sendMessage() {

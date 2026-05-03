@@ -265,15 +265,16 @@ fun GroupInfoScreen(
                                     },
                                     leadingIcon = { Icon(Icons.Default.Delete, null) }
                                 )
+                            } else {
+                                DropdownMenuItem(
+                                    text = { Text("退出群聊") },
+                                    onClick = {
+                                        showMenu = false
+                                        viewModel.showLeaveDialog()
+                                    },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, null) }
+                                )
                             }
-                            DropdownMenuItem(
-                                text = { Text("退出群聊") },
-                                onClick = {
-                                    showMenu = false
-                                    viewModel.showLeaveDialog()
-                                },
-                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, null) }
-                            )
                         }
                     }
                 }
@@ -461,7 +462,7 @@ fun GroupInfoScreen(
                                             uiState.tags.forEach { tag ->
                                                 add {
                                                     SettingsCustomItem(onClick = {
-                                                        if (uiState.myRole == 2) {
+                                                        if (uiState.myRole > 0) {
                                                             viewModel.showTagDialog(tag)
                                                         }
                                                     }) {
@@ -482,7 +483,7 @@ fun GroupInfoScreen(
                                                                 Spacer(modifier = Modifier.width(12.dp))
                                                                 Text(tag.name, style = MaterialTheme.typography.bodyLarge)
                                                             }
-                                                            if (uiState.myRole == 2) {
+                                                            if (uiState.myRole > 0) {
                                                                 Icon(
                                                                     Icons.Default.Delete,
                                                                     contentDescription = "删除标签",

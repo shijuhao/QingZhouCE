@@ -324,14 +324,15 @@ class GroupInfoViewModel(
     private val json = AppJson.json
 
     init {
-        // 总是调用 loadGroupDetail 以获取 my_status 和 my_role
         loadGroupDetail()
         loadMembers()
+        loadTags()
     }
 
     fun refresh() {
         loadGroupDetail(isRefresh = true)
         loadMembers()
+        loadTags()
     }
 
     private fun loadMembers() {
