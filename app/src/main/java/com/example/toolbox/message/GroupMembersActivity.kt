@@ -229,6 +229,7 @@ fun MemberItem(
     onMute: () -> Unit,
     onUnmute: () -> Unit
 ) {
+    val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
     
     Row(
