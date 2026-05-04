@@ -197,7 +197,8 @@ data class EditDialogState(
     val isOpen: Boolean = false,
     val message: Message? = null,
     val newContent: String = "",
-    val newImages: List<String> = emptyList()
+    val newImages: List<String> = emptyList(),
+    val isMarkdown: Boolean = false
 )
 
 @Serializable
