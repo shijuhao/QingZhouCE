@@ -75,6 +75,7 @@ import coil3.compose.AsyncImage
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.TokenManager
 import com.example.toolbox.data.GroupInfo
+import com.example.toolbox.community.UserInfoActivity
 import com.example.toolbox.settings.SettingsGroup
 import com.example.toolbox.settings.SettingsItemCell
 import com.example.toolbox.settings.SettingsCustomItem
@@ -412,7 +413,13 @@ fun GroupInfoScreen(
                                         {
                                             SettingsCustomItem {
                                                 Row(
-                                                    modifier = Modifier.padding(16.dp),
+                                                    modifier = Modifier
+                                                        .padding(16.dp)
+                                                        .clickable {
+                                                            val intent = Intent(context, UserInfoActivity::class.java)
+                                                            intent.putExtra("userId", creator.id)
+                                                            context.startActivity(intent)
+                                                        },
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     AsyncImage(

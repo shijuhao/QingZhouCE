@@ -192,7 +192,6 @@ fun SignInDialog(
                         }
                     }
 
-                    // 使用 PullToRefreshBox 替代 SwipeRefresh
                     PullToRefreshBox(
                         isRefreshing = isRefreshing,
                         onRefresh = { loadRanking() },

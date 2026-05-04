@@ -187,9 +187,7 @@ class MessageDetailViewModel(
     fun sendMessage() {
         val state = _uiState.value
         if (state.inputText.isBlank() && state.selectedImages.isEmpty()) {
-            viewModelScope.launch {
-                _toastMessage.emit("请输入内容或选择图片")
-            }
+            viewModelScope.launch { _toastMessage.emit("请输入内容或选择图片") }
             return
         }
     
@@ -197,31 +195,14 @@ class MessageDetailViewModel(
             try {
                 val url = "${ApiAddress}chat/send"
     
-                val hasText = state.inputText.isNotBlank()
-                val hasImages = state.selectedImages.isNotEmpty()
-    
-                val (contentType, text, images) = when {
-                    state.isMarkdown -> {
-                        val imageText = if (hasImages) {
-                            state.selectedImages.joinToString("\n") { "![]($it)" }
-                        } else ""
-                        val finalText = if (hasText) {
-                            state.inputText + "\n" + imageText
-                        } else {
-                            imageText
-                        }
-                        Triple(4, finalText, emptyList())
-                    }
-                    hasImages && !hasText -> Triple(2, "", state.selectedImages)
-                    hasText && hasImages -> Triple(3, state.inputText, state.selectedImages)
-                    else -> Triple(1, state.inputText, emptyList())
-                }
-    
                 val requestData = SendMessageRequest(
                     chatType = chatType,
                     chatId = chatId,
-                    contentType = contentType,
-                    data = MessageData(text = text, images = images),
+                    data = MessageData(
+                        text = state.inputText,
+                        images = state.selectedImages,
+                        isMarkdown = state.isMarkdown
+                    ),
                     quoteMsgId = _replyTo.value?.msgId
                 )
                 val bodyJson = json.encodeToString(requestData)

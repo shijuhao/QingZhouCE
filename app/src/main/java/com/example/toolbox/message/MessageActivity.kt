@@ -43,7 +43,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
@@ -68,6 +67,9 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.ui.res.painterResource
+import com.example.toolbox.R
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -226,9 +228,14 @@ class MessageDetailActivity : ComponentActivity() {
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Column {
                                             Text(
-                                                text = "${group.name} (${group.membersCount})",
+                                                text = group.name,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 16.sp
+                                            )
+                                            Text(
+                                                text = "${group.membersCount} 名成员",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -804,7 +811,7 @@ fun MessageBubble(
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -886,61 +893,52 @@ fun MessageBubble(
                                 }
                             }
                             
-                            if (message.isReferenced && message.referencedMessage != null) {
-                                val ref = message.referencedMessage!!
-                                if (ref.canView) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 4.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Row(modifier = Modifier.padding(8.dp)) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(3.dp)
-                                                    .height(32.dp)
-                                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                            if (message.quoteMsgInfo != null) {
+                                val ref = message.quoteMsgInfo!!
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 4.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(modifier = Modifier.padding(8.dp)) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(3.dp)
+                                                .height(32.dp)
+                                                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = ref.senderUsername,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
+                                            if (ref.content.isNotBlank()) {
                                                 Text(
-                                                    text = ref.senderUsername,
+                                                    text = ref.content.take(100) + if (ref.content.length > 100) "..." else "",
                                                     fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    maxLines = 2,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
-                                                if (ref.content.isNotBlank()) {
-                                                    Text(
-                                                        text = ref.content.take(100) + if (ref.content.length > 100) "..." else "",
-                                                        fontSize = 12.sp,
-                                                        maxLines = 2,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                                if (ref.imageUrl.isNotBlank()) {
-                                                    AsyncImage(
-                                                        model = ref.imageUrl,
-                                                        contentDescription = null,
-                                                        contentScale = ContentScale.Crop,
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .height(100.dp)
-                                                            .clip(RoundedCornerShape(4.dp))
-                                                            .padding(top = 4.dp)
-                                                    )
-                                                }
+                                            }
+                                            if (ref.images.isNotEmpty()) {
+                                                AsyncImage(
+                                                    model = ref.images.first(),
+                                                    contentDescription = null,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(100.dp)
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .padding(top = 4.dp)
+                                                )
                                             }
                                         }
                                     }
-                                } else {
-                                    Text(
-                                        text = "引用的消息不可见",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.padding(bottom = 4.dp)
-                                    )
                                 }
                             }
                     
@@ -995,7 +993,7 @@ fun MessageBubble(
                             text = { Text("引用") },
                             onClick = {
                                 showMenu = false
-                                viewModel.setReplyTo(message)
+                                onReply()
                             },
                             leadingIcon = {
                                 Icon(Icons.Default.FormatQuote, null, Modifier.size(18.dp))
@@ -1044,7 +1042,7 @@ fun MessageBubble(
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                 )
             }
@@ -1139,12 +1137,22 @@ fun MessageInput(
 
                 IconButton(
                     onClick = onToggleMarkdown,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (isMarkdown)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (isMarkdown)
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 ) {
                     Icon(
-                        if (isMarkdown) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                        painter = painterResource(R.drawable.markdown),
                         contentDescription = "Markdown模式",
-                        tint = if (isMarkdown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
