@@ -103,6 +103,10 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".message.JoinRequestsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".function.yunhu.yhbotmaker.runtime.RunBotActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />

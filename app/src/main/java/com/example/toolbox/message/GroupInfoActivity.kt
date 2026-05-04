@@ -22,8 +22,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.Icons
@@ -35,7 +33,6 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -82,6 +79,7 @@ import com.example.toolbox.settings.SettingsCustomItem
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.core.graphics.toColorInt
 
 class GroupInfoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -204,7 +202,7 @@ fun GroupInfoScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = try { Color(android.graphics.Color.parseColor(uiState.newTagColor)) }
+                        color = try { Color(uiState.newTagColor.toColorInt()) }
                             catch (_: Exception) { MaterialTheme.colorScheme.primary }
                     ) {
                         Text(
@@ -243,8 +241,14 @@ fun GroupInfoScreen(
                     }
                 },
                 actions = {
-                    if (uiState.isJoined && uiState.myRole > 0) {
-                        IconButton(onClick = { viewModel.loadJoinRequests() }) {
+                    if (uiState.isJoined && uiState.myRole > 0 && uiState.group != null) {
+                        val group = uiState.group!!
+                        IconButton(onClick = { 
+                            val intent = Intent(context, JoinRequestsActivity::class.java)
+                            intent.putExtra("group_id", group.id)
+                            intent.putExtra("group_name", "${group.name} - 入群申请")
+                            context.startActivity(intent)
+                        }) {
                             Icon(Icons.Default.Group, contentDescription = "入群申请")
                         }
                     }
@@ -414,12 +418,12 @@ fun GroupInfoScreen(
                                             SettingsCustomItem {
                                                 Row(
                                                     modifier = Modifier
-                                                        .padding(16.dp)
                                                         .clickable {
                                                             val intent = Intent(context, UserInfoActivity::class.java)
                                                             intent.putExtra("userId", creator.id)
                                                             context.startActivity(intent)
-                                                        },
+                                                        }
+                                                        .padding(16.dp),
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     AsyncImage(
@@ -483,7 +487,8 @@ fun GroupInfoScreen(
                                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                                 Surface(
                                                                     shape = RoundedCornerShape(4.dp),
-                                                                    color = try { Color(android.graphics.Color.parseColor(tag.color)) }
+                                                                    color = try {
+                                                                        Color(tag.color.toColorInt()) }
                                                                         catch (_: Exception) { MaterialTheme.colorScheme.primary },
                                                                     modifier = Modifier.size(12.dp)
                                                                 ) {}
@@ -522,48 +527,6 @@ fun GroupInfoScreen(
                                                         )
                                                         Spacer(modifier = Modifier.width(16.dp))
                                                         Text("添加标签", color = MaterialTheme.colorScheme.primary)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
-
-                        if (uiState.isJoined && uiState.myRole > 0 && uiState.joinRequests.isNotEmpty()) {
-                            item {
-                                SettingsGroup(
-                                    title = "入群申请",
-                                    items = uiState.joinRequests.map { request ->
-                                        {
-                                            SettingsCustomItem {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    AsyncImage(
-                                                        model = if (request.avatarUrl.startsWith("http")) request.avatarUrl
-                                                            else "${ApiAddress}uploads/${request.avatarUrl}",
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(36.dp).clip(CircleShape)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(12.dp))
-                                                    Column(modifier = Modifier.weight(1f)) {
-                                                        Text(request.username, fontWeight = FontWeight.Medium)
-                                                        Text(
-                                                            formatGroupTime(request.applyTime),
-                                                            fontSize = 12.sp,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                    IconButton(onClick = { viewModel.auditJoinRequest(request.userId, true) }) {
-                                                        Icon(Icons.Default.Check, contentDescription = "通过", tint = MaterialTheme.colorScheme.primary)
-                                                    }
-                                                    IconButton(onClick = { viewModel.auditJoinRequest(request.userId, false) }) {
-                                                        Icon(Icons.Default.Close, contentDescription = "拒绝", tint = MaterialTheme.colorScheme.error)
                                                     }
                                                 }
                                             }

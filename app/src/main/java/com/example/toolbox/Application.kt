@@ -17,6 +17,7 @@ object AppJson {
         coerceInputValues = true
         ignoreUnknownKeys = true
         encodeDefaults = true
+        isLenient = true
         explicitNulls = false
     }
 

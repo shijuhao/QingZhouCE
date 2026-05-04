@@ -180,7 +180,7 @@ class MessageDetailViewModel(
         if (currentState.isLoadingMore || !currentState.hasMore || currentState.pagination == null) {
             return
         }
-        val nextPage = currentState.pagination!!.page + 1
+        val nextPage = currentState.pagination.page + 1
         loadMessages(page = nextPage, isRefresh = false)
     }
 
@@ -254,7 +254,6 @@ class MessageDetailViewModel(
         _recallDialog.update { RecallDialogState() }
     }
 
-    // 撤回消息
     fun recallMessage() {
         val msgId = _recallDialog.value.messageId ?: return
         viewModelScope.launch {
@@ -291,7 +290,7 @@ class MessageDetailViewModel(
                     _uiState.update { state ->
                         state.copy(
                             messages = state.messages.map { msg ->
-                                if (msg.msgId == msgId) {
+                                if (msg.effectiveMsgId == msgId) {
                                     msg.copy(
                                         msgDeleteTime = System.currentTimeMillis(),
                                         content = "",
@@ -353,7 +352,7 @@ class MessageDetailViewModel(
                 }
                 
                 val jsonObject = buildJsonObject {
-                    put("message_id", message.msgId)
+                    put("message_id", message.effectiveMsgId)
                     if (chatType == 1) {
                         put("new_content", dialogState.newContent)
                         put("new_images", buildJsonArray {
@@ -380,7 +379,13 @@ class MessageDetailViewModel(
                     try {
                         val response = client.newCall(request).execute()
                         val responseBody = response.body.string()
-                        json.decodeFromString<ChatStatus>(responseBody)
+                        if (response.isSuccessful) {
+                            val jsonElement = json.decodeFromString<JsonElement>(responseBody)
+                            val msg = jsonElement.jsonObject["msg"]?.jsonPrimitive?.content
+                            ChatStatus(number = 200, code = 0, msg = msg ?: "编辑成功")
+                        } else {
+                            ChatStatus(number = response.code, code = -1, msg = "编辑失败")
+                        }
                     } catch (e: Exception) {
                         ChatStatus(number = -1, code = -1, msg = "编辑失败: ${e.message}")
                     }
@@ -507,14 +512,14 @@ class MessageDetailViewModel(
 
     private fun addNewMessage(message: Message) {
         _uiState.update { state ->
-            if (state.messages.any { it.msgId == message.msgId }) state
+            if (state.messages.any { it.effectiveMsgId == message.effectiveMsgId }) state
             else state.copy(messages = listOf(message) + state.messages)
         }
     }
 
     private fun updateMessage(message: Message) {
         _uiState.update { state ->
-            val updated = state.messages.map { if (it.msgId == message.msgId) message else it }
+            val updated = state.messages.map { if (it.effectiveMsgId == message.effectiveMsgId) message else it }
             state.copy(messages = updated)
         }
     }
@@ -522,14 +527,14 @@ class MessageDetailViewModel(
     private fun removeMessage(msgId: String) {
         _uiState.update { state ->
             val updated = state.messages.map { msg ->
-                if (msg.msgId == msgId) {
-                    val senderName = msg.sender.name.ifEmpty { "对方" }
+                if (msg.effectiveMsgId == msgId) {
+                    val senderName = msg.displayName.ifEmpty { "对方" }
                     msg.copy(
                         msgDeleteTime = System.currentTimeMillis(),
                         content = "",
                         images = emptyList(),
                         isRecalled = true,
-                        recallHint = "${senderName} 撤回了消息"
+                        recallHint = "$senderName 撤回了消息"
                     )
                 } else msg
             }

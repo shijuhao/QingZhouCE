@@ -36,21 +36,21 @@ data class EditRecord(
 @Serializable
 data class Message(
     val id: Int? = null,
-    @SerialName("msg_id") val msgId: String,
+    @SerialName("msg_id") val msgId: String = "",
     @SerialName("sender_id") val senderId: Int? = null,
-    val sender: MessageSender,
+    val sender: MessageSender? = null,
     @SerialName("sender_username") val senderUsername: String? = null,
     @SerialName("sender_avatar") val senderAvatar: String? = null,
     @SerialName("receiver_id") val receiverId: Int? = null,
-    val direction: String, // "left" or "right"
-    @SerialName("content_type") val contentType: Int,
-    val content: String = "", // Changed from MessageContent object to String
+    val direction: String = "left",
+    @SerialName("content_type") val contentType: Int = 0,
+    val content: String = "",
     val images: List<String> = emptyList(),
     @SerialName("is_markdown") val isMarkdown: Boolean = false,
     @SerialName("is_system") val isSystem: Boolean = false,
     val timestamp: String? = null,
     @SerialName("timestamp_display") val timestampDisplay: String? = null,
-    @SerialName("send_time") val sendTime: Long,
+    @SerialName("send_time") val sendTime: Long = 0,
     @SerialName("send_time_formatted") val sendTimeFormatted: String? = null,
     @SerialName("send_time_display") val sendTimeDisplay: String? = null,
     @SerialName("is_deleted") val isDeleted: Boolean = false,
@@ -61,7 +61,7 @@ data class Message(
     @SerialName("is_read") val isRead: Boolean = true,
     @SerialName("is_mine") val isMine: Boolean = false,
     @SerialName("edit_records") val editRecords: List<EditRecord> = emptyList(),
-    @SerialName("msg_seq") val msgSeq: Long,
+    @SerialName("msg_seq") val msgSeq: Long = 0,
     @SerialName("quote_msg_id") val quoteMsgId: String? = null,
     @SerialName("quote_msg_info") val quoteMsgInfo: QuoteMsgInfo? = null,
     @SerialName("edit_time") val editTime: Long? = null,
@@ -71,6 +71,15 @@ data class Message(
     @SerialName("msg_delete_time_formatted") val msgDeleteTimeFormatted: String? = null,
     @SerialName("msg_delete_time_display") val msgDeleteTimeDisplay: String? = null
 )
+
+val Message.displayName: String
+    get() = sender?.name ?: senderUsername ?: ""
+
+val Message.displayAvatar: String
+    get() = sender?.avatarUrl ?: senderAvatar ?: ""
+
+val Message.effectiveMsgId: String
+    get() = msgId.ifEmpty { id?.toString() ?: "" }
 
 @Serializable
 data class QuoteMsgInfo(

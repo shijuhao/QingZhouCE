@@ -51,7 +51,6 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -92,6 +91,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.Clipboard
@@ -110,15 +110,15 @@ import com.example.toolbox.data.Message
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.example.toolbox.utils.MultiImageViewer
 import com.example.toolbox.utils.MarkdownRenderer
-import coil3.compose.rememberAsyncImagePainter
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.delay
+import com.example.toolbox.data.displayAvatar
+import com.example.toolbox.data.displayName
+import com.example.toolbox.data.effectiveMsgId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -305,7 +305,7 @@ fun MessageDetailScreen(
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
     val uiState by viewModel.uiState.collectAsState()
-    var previousMessages by remember { mutableStateOf(uiState.messages) }
+    var firstMessageId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(viewModel) {
         viewModel.connectWebSocket()
@@ -366,62 +366,39 @@ fun MessageDetailScreen(
             .distinctUntilChanged()
             .collect { atBottom ->
                 showScrollToBottom = !atBottom
-                if (atBottom) unreadCount = 0
+                if (atBottom) {
+                    unreadCount = 0
+                    if (uiState.messages.isNotEmpty()) {
+                        firstMessageId = uiState.messages.first().effectiveMsgId
+                    }
+                }
             }
     }
     
     LaunchedEffect(uiState.messages) {
-        val newMessages = uiState.messages
-        val oldMessages = previousMessages
-    
-        if (newMessages.size == oldMessages.size) {
-            previousMessages = newMessages
-            return@LaunchedEffect
-        }
-    
-        val added = newMessages.filter { newMsg -> oldMessages.none { it.msgId == newMsg.msgId } }
-        if (added.isEmpty()) {
-            previousMessages = newMessages
-            return@LaunchedEffect
-        }
-    
-        val oldIndices = oldMessages.mapNotNull { old -> newMessages.indexOfFirst { it.msgId == old.msgId } }
-        val allAtHead = added.all { newMessages.indexOf(it) < (oldIndices.minOrNull() ?: 0) }
-    
-        if (allAtHead) {
-            val layoutInfo = listState.layoutInfo
-            val visibleItems = layoutInfo.visibleItemsInfo
-            val isAtBottom = visibleItems.isNotEmpty() && visibleItems.first().index == 0
-    
-            if (isAtBottom) {
-                coroutineScope.launch {
-                    listState.animateScrollToItem(0)
-                }
-                unreadCount = 0
+        if (uiState.messages.isEmpty()) return@LaunchedEffect
+        
+        val currentFirstId = uiState.messages.first().effectiveMsgId
+        
+        if (firstMessageId != null && currentFirstId != firstMessageId) {
+            if (showScrollToBottom) {
+                unreadCount += 1
             } else {
-                unreadCount += added.size
-                val topVisibleMsgId = visibleItems.firstOrNull()?.let { item ->
-                    newMessages.getOrNull(item.index)?.msgId
-                }
-                if (topVisibleMsgId != null) {
-                    coroutineScope.launch {
-                        delay(10)
-                        val newIndex = newMessages.indexOfFirst { it.msgId == topVisibleMsgId }
-                        if (newIndex != -1) {
-                            listState.scrollToItem(newIndex, 0)
-                        }
-                    }
-                }
+                listState.scrollToItem(0)
+                unreadCount = 0
             }
         }
-    
-        previousMessages = newMessages
+        
+        firstMessageId = currentFirstId
     }
     
     val scrollToBottom: () -> Unit = {
         coroutineScope.launch {
             listState.animateScrollToItem(0)
             unreadCount = 0
+            if (uiState.messages.isNotEmpty()) {
+                firstMessageId = uiState.messages.first().effectiveMsgId
+            }
         }
     }
 
@@ -492,10 +469,10 @@ fun MessageDetailScreen(
                     reverseLayout = true,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(uiState.messages, key = { it.msgId }) { message ->
+                    items(uiState.messages, key = { it.effectiveMsgId }) { message ->
                         MessageBubble(
                             message = message,
-                            onRecall = { viewModel.showRecallDialog(message.msgId) },
+                            onRecall = { viewModel.showRecallDialog(message.effectiveMsgId) },
                             onEdit = { viewModel.showEditDialog(message) },
                             onImageClick = { urls, index ->
                                 imageViewerUrls = urls
@@ -593,7 +570,7 @@ fun MessageDetailScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = repliedMessage.sender.name,
+                                    text = repliedMessage.displayName,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -741,22 +718,22 @@ fun MessageBubble(
     isAdmin: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    val isMine = message.direction == "right"
+    val isMine = message.isMine || message.direction == "right"
     val isRecalledMessage = message.msgDeleteTime != null
     val isSystemMessage = message.isSystem
-    
-    // 格式化时间
-    val timestampDisplay = remember(message.sendTime) {
-        try {
-            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-            sdf.format(Date(message.sendTime))
-        } catch (_: Exception) {
-            ""
+
+    val timestampDisplay = message.timestampDisplay
+        ?: message.sendTimeDisplay
+        ?: remember(message.sendTime) {
+            try {
+                val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+                sdf.format(Date(message.sendTime))
+            } catch (_: Exception) {
+                ""
+            }
         }
-    }
 
     if (isRecalledMessage) {
-        // 撤回消息
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -777,7 +754,6 @@ fun MessageBubble(
             }
         }
     } else if (isSystemMessage) {
-        // 系统消息
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -801,13 +777,24 @@ fun MessageBubble(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+
+                    },
+                    onLongClick = {
+                        val hasContent = message.content.isNotBlank()
+                        if (hasContent || isMine) {
+                            showMenu = true
+                        }
+                    }
+                )
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
         ) {
             if (!isMine) {
                 AsyncImage(
-                    model = message.sender.avatarUrl,
+                    model = message.displayAvatar,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -817,22 +804,7 @@ fun MessageBubble(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            Box(
-                modifier = Modifier
-                    .widthIn(max = 250.dp)
-                    .combinedClickable(
-                        onClick = {
-
-                        },
-                        onLongClick = {
-                            val hasContent = message.content.isNotBlank()
-                            val canRecall = isMine && message.msgDeleteTime == null
-                            if (hasContent || canRecall) {
-                                showMenu = true
-                            }
-                        }
-                    )
-            ) {
+            Box {
                 Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start) {
                     Card(
                         shape = RoundedCornerShape(
@@ -851,7 +823,7 @@ fun MessageBubble(
                         Column(modifier = Modifier.padding(8.dp)) {
                             if (!isMine) {
                                 Text(
-                                    text = message.sender.name,
+                                    text = message.displayName,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold,
@@ -894,7 +866,7 @@ fun MessageBubble(
                             }
                             
                             if (message.quoteMsgInfo != null) {
-                                val ref = message.quoteMsgInfo!!
+                                val ref = message.quoteMsgInfo
                                 Surface(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -988,7 +960,7 @@ fun MessageBubble(
                         )
                     }
                     
-                    if (!isRecalledMessage && !isSystemMessage && message.content.isNotBlank()) {
+                    if (message.content.isNotBlank()) {
                         DropdownMenuItem(
                             text = { Text("引用") },
                             onClick = {
@@ -1001,7 +973,7 @@ fun MessageBubble(
                         )
                     }
                     
-                    if ((isMine || isAdmin) && message.msgDeleteTime == null) {
+                    if (isMine || isAdmin) {
                         DropdownMenuItem(
                             text = { Text("撤回") },
                             onClick = {
@@ -1014,7 +986,7 @@ fun MessageBubble(
                         )
                     }
 
-                    if (isMine && message.msgDeleteTime == null) {
+                    if (isMine) {
                         if (message.content.isNotBlank()) {
                             DropdownMenuItem(
                                 text = { Text("编辑") },
@@ -1038,7 +1010,7 @@ fun MessageBubble(
             if (isMine) {
                 Spacer(modifier = Modifier.width(8.dp))
                 AsyncImage(
-                    model = message.sender.avatarUrl,
+                    model = message.displayAvatar,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -1142,7 +1114,7 @@ fun MessageInput(
                         containerColor = if (isMarkdown)
                             MaterialTheme.colorScheme.primary
                         else
-                            MaterialTheme.colorScheme.surfaceVariant,
+                            Color.Transparent,
                         contentColor = if (isMarkdown)
                             MaterialTheme.colorScheme.onPrimary
                         else
