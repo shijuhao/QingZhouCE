@@ -63,10 +63,8 @@ data class Message(
     @SerialName("edit_records") val editRecords: List<EditRecord> = emptyList(),
     @SerialName("msg_seq") val msgSeq: Long,
     @SerialName("quote_msg_id") val quoteMsgId: String? = null,
-    @SerialName("is_referenced") val isReferenced: Boolean = false,
-    @SerialName("referenced_message_id") val referencedMessageId: Int? = null,
-    @SerialName("referenced_message") val referencedMessage: ReferencedMessage? = null,
-    @SerialName("reference_count") val referenceCount: Int = 0,
+    @SerialName("quote_msg_id") val quoteMsgId: String? = null,
+    @SerialName("quote_msg_info") val quoteMsgInfo: QuoteMsgInfo? = null,
     @SerialName("edit_time") val editTime: Long? = null,
     @SerialName("edit_time_formatted") val editTimeFormatted: String? = null,
     @SerialName("edit_time_display") val editTimeDisplay: String? = null,
@@ -76,15 +74,16 @@ data class Message(
 )
 
 @Serializable
-data class ReferencedMessage(
-    @SerialName("message_id") val messageId: Int,
+data class QuoteMsgInfo(
+    val id: Int,
     val content: String = "",
-    @SerialName("message_type") val messageType: Int = 0,
-    @SerialName("sender_username") val senderUsername: String = "",
+    @SerialName("content_type") val contentType: Int = 0,
+    val images: List<String> = emptyList(),
+    @SerialName("is_markdown") val isMarkdown: Boolean = false,
+    @SerialName("is_system") val isSystem: Boolean = false,
     @SerialName("sender_id") val senderId: Int = 0,
-    @SerialName("image_url") val imageUrl: String = "",
-    @SerialName("is_private") val isPrivate: Boolean = false,
-    @SerialName("can_view") val canView: Boolean = true
+    @SerialName("sender_username") val senderUsername: String = "",
+    val status: Int = 0
 )
 
 @Serializable
@@ -138,15 +137,15 @@ data class GetMessagesRequest(
 data class SendMessageRequest(
     @SerialName("chat_type") val chatType: Int,
     @SerialName("chat_id") val chatId: Int,
-    @SerialName("content_type") val contentType: Int = 1,
     val data: MessageData,
     @SerialName("quote_msg_id") val quoteMsgId: String? = null
 )
 
 @Serializable
 data class MessageData(
-    val text: String,
-    val images: List<String> = emptyList()
+    val text: String = "",
+    val images: List<String> = emptyList(),
+    @SerialName("is_markdown") val isMarkdown: Boolean = false
 )
 
 @Serializable
