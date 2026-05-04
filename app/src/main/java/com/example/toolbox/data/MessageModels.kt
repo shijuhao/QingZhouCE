@@ -66,7 +66,7 @@ data class Message(
     @SerialName("is_referenced") val isReferenced: Boolean = false,
     @SerialName("referenced_message_id") val referencedMessageId: Int? = null,
     @SerialName("referenced_message") val referencedMessage: ReferencedMessage? = null,
-    @SerialName("reference_count") val referenceCount: Int = 0
+    @SerialName("reference_count") val referenceCount: Int = 0,
     @SerialName("edit_time") val editTime: Long? = null,
     @SerialName("edit_time_formatted") val editTimeFormatted: String? = null,
     @SerialName("edit_time_display") val editTimeDisplay: String? = null,
