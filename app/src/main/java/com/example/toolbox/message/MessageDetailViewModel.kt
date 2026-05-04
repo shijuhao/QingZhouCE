@@ -321,9 +321,14 @@ class MessageDetailViewModel(
                 isOpen = true,
                 message = message,
                 newContent = message.content,
-                newImages = emptyList()
+                newImages = message.images,
+                isMarkdown = message.isMarkdown
             )
         }
+    }
+    
+    fun toggleEditMarkdown() {
+        _editDialog.update { it.copy(isMarkdown = !it.isMarkdown) }
     }
 
     fun hideEditDialog() {
@@ -358,13 +363,13 @@ class MessageDetailViewModel(
                         put("new_images", buildJsonArray {
                             dialogState.newImages.forEach { add(JsonPrimitive(it)) }
                         })
-                        put("new_is_markdown", false)
+                        put("new_is_markdown", dialogState.isMarkdown)
                     } else {
                         put("content", dialogState.newContent)
                         put("images", buildJsonArray {
                             dialogState.newImages.forEach { add(JsonPrimitive(it)) }
                         })
-                        put("is_markdown", false)
+                        put("is_markdown", dialogState.isMarkdown)
                     }
                 }
                 val bodyJson = jsonObject.toString()

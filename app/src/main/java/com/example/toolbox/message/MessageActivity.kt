@@ -44,6 +44,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatQuote
@@ -74,6 +75,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -636,7 +639,8 @@ fun MessageDetailScreen(
             state = editDialog,
             onDismiss = { viewModel.hideEditDialog() },
             onContentChange = { viewModel.updateEditContent(it) },
-            onSave = { viewModel.editMessage() }
+            onSave = { viewModel.editMessage() },
+            onToggleMarkdown = { viewModel.toggleEditMarkdown() }
         )
     }
 }
@@ -1158,23 +1162,14 @@ fun EditMessageDialog(
     state: EditDialogState,
     onDismiss: () -> Unit,
     onContentChange: (String) -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    onToggleMarkdown: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "编辑消息",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("编辑消息") },
+        text = {
+            Column {
                 OutlinedTextField(
                     value = state.newContent,
                     onValueChange = onContentChange,
@@ -1182,22 +1177,34 @@ fun EditMessageDialog(
                     label = { Text("新内容") },
                     minLines = 3
                 )
-
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.End
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("取消")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = onSave) {
-                        Text("保存")
-                    }
+                    Text("Markdown")
+                    Switch(
+                        checked = state.isMarkdown,
+                        onCheckedChange = { onToggleMarkdown() },
+                        thumbContent = {
+                            Icon(
+                                imageVector = if (state.isMarkdown) Icons.Default.Check else Icons.Default.Close,
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize),
+                                tint = if (state.isMarkdown) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                        }
+                    )
                 }
             }
+        },
+        confirmButton = {
+            Button(onClick = onSave) { Text("保存") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
         }
-    }
+    )
 }
