@@ -804,7 +804,7 @@ fun MessageBubble(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            Box {
+            Box(modifier = Modifier.weight(1f, fill = false)) {
                 Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start) {
                     Card(
                         shape = RoundedCornerShape(
