@@ -40,6 +40,17 @@ class MessageDetailViewModel(
 
     private val _editDialog = MutableStateFlow(EditDialogState())
     val editDialog: StateFlow<EditDialogState> = _editDialog.asStateFlow()
+    
+    private val _replyTo = MutableStateFlow<Message?>(null)
+    val replyTo: StateFlow<Message?> = _replyTo.asStateFlow()
+    
+    fun setReplyTo(message: Message?) {
+        _replyTo.value = message
+    }
+    
+    fun clearReplyTo() {
+        _replyTo.value = null
+    }
 
     private val client = OkHttpClient()
     private val json = AppJson.json
@@ -108,6 +119,7 @@ class MessageDetailViewModel(
                             otherUser = result.otherUser,
                             relationship = result.relationship,
                             isChatExpired = result.tempChatExpired,
+                            isAdmin = result.isAdmin,
                             isRefreshing = false,
                             isLoadingMore = false,
                             error = null
@@ -180,25 +192,47 @@ class MessageDetailViewModel(
             }
             return
         }
-
+    
         viewModelScope.launch {
             try {
                 val url = "${ApiAddress}chat/send"
+    
+                val hasText = state.inputText.isNotBlank()
+                val hasImages = state.selectedImages.isNotEmpty()
+    
+                val (contentType, text, images) = when {
+                    state.isMarkdown -> {
+                        val imageText = if (hasImages) {
+                            state.selectedImages.joinToString("\n") { "![]($it)" }
+                        } else ""
+                        val finalText = if (hasText) {
+                            state.inputText + "\n" + imageText
+                        } else {
+                            imageText
+                        }
+                        Triple(4, finalText, emptyList())
+                    }
+                    hasImages && !hasText -> Triple(2, "", state.selectedImages)
+                    hasText && hasImages -> Triple(3, state.inputText, state.selectedImages)
+                    else -> Triple(1, state.inputText, emptyList())
+                }
+    
                 val requestData = SendMessageRequest(
                     chatType = chatType,
                     chatId = chatId,
-                    data = MessageData(text = state.inputText),
-                    quoteMsgId = null
+                    contentType = contentType,
+                    data = MessageData(text = text, images = images),
+                    quoteMsgId = _replyTo.value?.msgId
                 )
                 val bodyJson = json.encodeToString(requestData)
                 val body = bodyJson.toRequestBody("application/json".toMediaType())
-
+    
                 val request = Request.Builder()
                     .url(url)
                     .header("x-access-token", token)
                     .post(body)
                     .build()
-
+    
                 val result = withContext(Dispatchers.IO) {
                     try {
                         val response = client.newCall(request).execute()
@@ -217,14 +251,10 @@ class MessageDetailViewModel(
                         SendMessageResponse(status = ChatStatus(-1, -1, e.message ?: "未知错误"))
                     }
                 }
-
+    
                 if (result.status.code == 0) {
-                    _uiState.update {
-                        it.copy(
-                            inputText = "",
-                            selectedImages = emptyList()
-                        )
-                    }
+                    _uiState.update { it.copy(inputText = "", selectedImages = emptyList()) }
+                    _replyTo.value = null
                 } else {
                     _toastMessage.emit(result.status.msg)
                 }
@@ -276,15 +306,18 @@ class MessageDetailViewModel(
 
                 if (result.success) {
                     _toastMessage.emit(result.message ?: "撤回成功")
-                    // Update the message locally to show as recalled
+                    val hint = result.recall_hint ?: "你撤回了消息"
                     _uiState.update { state ->
                         state.copy(
                             messages = state.messages.map { msg ->
                                 if (msg.msgId == msgId) {
                                     msg.copy(
                                         msgDeleteTime = System.currentTimeMillis(),
-                                        content = result.message ?: "消息已撤回",
-                                        isSystem = true
+                                        content = "",
+                                        images = emptyList(),
+                                        isRecalled = true,
+                                        isSystem = false,
+                                        recallHint = hint
                                     )
                                 } else msg
                             }
@@ -507,7 +540,18 @@ class MessageDetailViewModel(
 
     private fun removeMessage(msgId: String) {
         _uiState.update { state ->
-            val updated = state.messages.filter { it.msgId != msgId }
+            val updated = state.messages.map { msg ->
+                if (msg.msgId == msgId) {
+                    val senderName = msg.sender.name.ifEmpty { "对方" }
+                    msg.copy(
+                        msgDeleteTime = System.currentTimeMillis(),
+                        content = "",
+                        images = emptyList(),
+                        isRecalled = true,
+                        recallHint = "${senderName} 撤回了消息"
+                    )
+                } else msg
+            }
             state.copy(messages = updated)
         }
     }

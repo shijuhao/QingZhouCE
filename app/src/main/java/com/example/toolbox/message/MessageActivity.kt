@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PersonAdd
@@ -324,6 +325,8 @@ fun MessageDetailScreen(
     var showImageViewer by remember { mutableStateOf(false) }
     var imageViewerUrls by remember { mutableStateOf<List<String>>(emptyList()) }
     var imageViewerInitialPage by remember { mutableIntStateOf(0) }
+    
+    val replyTo by viewModel.replyTo.collectAsState()
 
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -369,13 +372,13 @@ fun MessageDetailScreen(
             return@LaunchedEffect
         }
     
-        val added = newMessages.filterNot { oldMessages.contains(it) }
+        val added = newMessages.filter { newMsg -> oldMessages.none { it.msgId == newMsg.msgId } }
         if (added.isEmpty()) {
             previousMessages = newMessages
             return@LaunchedEffect
         }
     
-        val oldIndices = oldMessages.map { newMessages.indexOf(it) }
+        val oldIndices = oldMessages.mapNotNull { old -> newMessages.indexOfFirst { it.msgId == old.msgId } }
         val allAtHead = added.all { newMessages.indexOf(it) < (oldIndices.minOrNull() ?: 0) }
     
         if (allAtHead) {
@@ -493,7 +496,9 @@ fun MessageDetailScreen(
                                 showImageViewer = true
                             },
                             clipboard = clipboard,
-                            context = context
+                            context = context,
+                            onReply = { viewModel.setReplyTo(message) },
+                            isAdmin = uiState.isAdmin
                         )
                     }
                     
@@ -559,19 +564,64 @@ fun MessageDetailScreen(
                 }
             }
         } else {
-            MessageInput(
-                inputText = uiState.inputText,
-                selectedImages = uiState.selectedImages,
-                isMarkdown = uiState.isMarkdown,
-                onTextChange = { viewModel.updateInputText(it) },
-                onSendClick = {
-                    viewModel.sendMessage()
-                },
-                onAddImageClick = { imagePicker.launch("image/*") },
-                onRemoveImage = { viewModel.removeImage(it) },
-                onToggleMarkdown = { viewModel.toggleMarkdown() },
-                innerPadding = innerPadding,
-            )
+            Column {
+                replyTo?.let { repliedMessage ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(32.dp)
+                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = repliedMessage.sender.name,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = repliedMessage.content.take(50) + if (repliedMessage.content.length > 50) "..." else "",
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(
+                                onClick = { viewModel.clearReplyTo() },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "取消引用", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+            
+                MessageInput(
+                    inputText = uiState.inputText,
+                    selectedImages = uiState.selectedImages,
+                    isMarkdown = uiState.isMarkdown,
+                    onTextChange = { viewModel.updateInputText(it) },
+                    onSendClick = {
+                        viewModel.sendMessage()
+                    },
+                    onAddImageClick = { imagePicker.launch("image/*") },
+                    onRemoveImage = { viewModel.removeImage(it) },
+                    onToggleMarkdown = { viewModel.toggleMarkdown() },
+                    innerPadding = innerPadding,
+                )
+            }
         }
     }
 
@@ -679,7 +729,9 @@ fun MessageBubble(
     message: Message,
     onRecall: () -> Unit,
     onEdit: () -> Unit,
-    onImageClick: (List<String>, Int) -> Unit
+    onImageClick: (List<String>, Int) -> Unit,
+    onReply: () -> Unit,
+    isAdmin: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val isMine = message.direction == "right"
@@ -711,7 +763,7 @@ fun MessageBubble(
                 modifier = Modifier.widthIn(max = 250.dp)
             ) {
                 Text(
-                    text = "消息已撤回",
+                    text = message.recallHint ?: "消息已撤回",
                     fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                 )
@@ -833,6 +885,64 @@ fun MessageBubble(
                                     }
                                 }
                             }
+                            
+                            if (message.isReferenced && message.referencedMessage != null) {
+                                val ref = message.referencedMessage!!
+                                if (ref.canView) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 4.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Row(modifier = Modifier.padding(8.dp)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(3.dp)
+                                                    .height(32.dp)
+                                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                Text(
+                                                    text = ref.senderUsername,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                if (ref.content.isNotBlank()) {
+                                                    Text(
+                                                        text = ref.content.take(100) + if (ref.content.length > 100) "..." else "",
+                                                        fontSize = 12.sp,
+                                                        maxLines = 2,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                                if (ref.imageUrl.isNotBlank()) {
+                                                    AsyncImage(
+                                                        model = ref.imageUrl,
+                                                        contentDescription = null,
+                                                        contentScale = ContentScale.Crop,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .height(100.dp)
+                                                            .clip(RoundedCornerShape(4.dp))
+                                                            .padding(top = 4.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Text(
+                                        text = "引用的消息不可见",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.padding(bottom = 4.dp)
+                                    )
+                                }
+                            }
                     
                             Row(
                                 modifier = Modifier.align(if (isMine) Alignment.End else Alignment.Start)
@@ -879,8 +989,21 @@ fun MessageBubble(
                             }
                         )
                     }
-
-                    if (isMine && message.msgDeleteTime == null) {
+                    
+                    if (!isRecalledMessage && !isSystemMessage && message.content.isNotBlank()) {
+                        DropdownMenuItem(
+                            text = { Text("引用") },
+                            onClick = {
+                                showMenu = false
+                                viewModel.setReplyTo(message)
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.FormatQuote, null, Modifier.size(18.dp))
+                            }
+                        )
+                    }
+                    
+                    if ((isMine || uiState.isAdmin) && message.msgDeleteTime == null) {
                         DropdownMenuItem(
                             text = { Text("撤回") },
                             onClick = {
@@ -888,14 +1011,12 @@ fun MessageBubble(
                                 onRecall()
                             },
                             leadingIcon = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Undo,
-                                    null,
-                                    Modifier.size(18.dp)
-                                )
+                                Icon(Icons.AutoMirrored.Filled.Undo, null, Modifier.size(18.dp))
                             }
                         )
-                        
+                    }
+
+                    if (isMine && message.msgDeleteTime == null) {
                         if (message.content.isNotBlank()) {
                             DropdownMenuItem(
                                 text = { Text("编辑") },
