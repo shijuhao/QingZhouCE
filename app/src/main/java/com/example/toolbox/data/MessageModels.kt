@@ -63,7 +63,6 @@ data class Message(
     @SerialName("edit_records") val editRecords: List<EditRecord> = emptyList(),
     @SerialName("msg_seq") val msgSeq: Long,
     @SerialName("quote_msg_id") val quoteMsgId: String? = null,
-    @SerialName("quote_msg_id") val quoteMsgId: String? = null,
     @SerialName("quote_msg_info") val quoteMsgInfo: QuoteMsgInfo? = null,
     @SerialName("edit_time") val editTime: Long? = null,
     @SerialName("edit_time_formatted") val editTimeFormatted: String? = null,

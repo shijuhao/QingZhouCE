@@ -462,7 +462,6 @@ fun FriendItem(friend: Friend) {
             .fillMaxWidth()
             .clickable {
                 val intent = Intent(context, MessageDetailActivity::class.java)
-                // 根据类型设置不同的参数
                 if (friend.type == "group") {
                     intent.putExtra("chat_type", 2)
                     intent.putExtra("chat_id", friend.id)
@@ -506,22 +505,26 @@ fun FriendItem(friend: Friend) {
                 )
                 if (friend.title.isNotBlank()) {
                     Spacer(modifier = Modifier.width(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(14.dp),
-                            contentDescription = null,
-                            imageVector = Icons.Default.CheckCircle,
-                            tint = when (friend.titleStatus) {
-                                1 -> MaterialTheme.colorScheme.error
-                                2 -> MaterialTheme.colorScheme.tertiary
-                                4 -> MaterialTheme.colorScheme.primary
-                                else -> MaterialTheme.colorScheme.onSurface
-                            }
-                        )
-                    }
+                    Icon(
+                        modifier = Modifier.size(14.dp),
+                        contentDescription = null,
+                        imageVector = Icons.Default.CheckCircle,
+                        tint = when (friend.titleStatus) {
+                            1 -> MaterialTheme.colorScheme.error
+                            2 -> MaterialTheme.colorScheme.tertiary
+                            4 -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                if (friend.type == "group") {
+                    Icon(
+                        imageVector = Icons.Default.Group,
+                        contentDescription = "群聊",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 

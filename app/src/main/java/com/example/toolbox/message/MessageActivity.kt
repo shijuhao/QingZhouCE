@@ -1001,7 +1001,7 @@ fun MessageBubble(
                         )
                     }
                     
-                    if ((isMine || uiState.isAdmin) && message.msgDeleteTime == null) {
+                    if ((isMine || isAdmin) && message.msgDeleteTime == null) {
                         DropdownMenuItem(
                             text = { Text("撤回") },
                             onClick = {
