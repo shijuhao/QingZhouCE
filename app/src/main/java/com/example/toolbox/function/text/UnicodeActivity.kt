@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,6 +35,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -40,6 +44,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -72,18 +78,31 @@ class UnicodeActivity : ComponentActivity() {
 fun UnicodeScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
+    var displayMode by remember { mutableIntStateOf(0) }
     var inputText by remember { mutableStateOf("") }
     var outputText by remember { mutableStateOf("编码/解码结果将显示在这里") }
     var errorMessage by remember { mutableStateOf("") }
+    val structuredList = remember { mutableStateListOf<Pair<Char, String>>() }
 
     fun encodeToUnicode() {
         errorMessage = ""
+        structuredList.clear()
         try {
             if (inputText.isNotEmpty()) {
-                val encoded = inputText.toCharArray().joinToString("") { char ->
-                    "\\u%04x".format(char.code)
+                val chars = inputText.toCharArray()
+                
+                if (displayMode == 0) {
+                    val encoded = chars.joinToString("") { char ->
+                        "\\u%04x".format(char.code)
+                    }
+                    outputText = encoded
+                } else {
+                    chars.forEach { char ->
+                        val unicode = "\\u%04x".format(char.code)
+                        structuredList.add(Pair(char, unicode))
+                    }
+                    outputText = "结构化显示模式"
                 }
-                outputText = encoded
             } else {
                 errorMessage = "请输入要编码的文本"
             }
@@ -94,19 +113,32 @@ fun UnicodeScreen(modifier: Modifier = Modifier) {
 
     fun decodeFromUnicode() {
         errorMessage = ""
+        structuredList.clear()
         try {
             if (inputText.isNotEmpty()) {
                 val regex = Regex("\\\\u([0-9a-fA-F]{4})")
-                val decoded = regex.replace(inputText) { matchResult ->
-                    val hexValue = matchResult.groupValues[1]
-                    val codePoint = hexValue.toInt(16)
-                    Char(codePoint).toString()
+                val matches = regex.findAll(inputText)
+                
+                if (displayMode == 1 && matches.any()) {
+                    matches.forEach { matchResult ->
+                        val hexValue = matchResult.groupValues[1]
+                        val codePoint = hexValue.toInt(16)
+                        val char = Char(codePoint)
+                        structuredList.add(Pair(char, "\\u${hexValue.lowercase()}"))
+                    }
+                    outputText = "结构化显示模式"
+                } else {
+                    val decoded = regex.replace(inputText) { matchResult ->
+                        val hexValue = matchResult.groupValues[1]
+                        val codePoint = hexValue.toInt(16)
+                        Char(codePoint).toString()
+                    }
+                    outputText = decoded
                 }
-                outputText = decoded
             } else {
                 errorMessage = "请输入要解码的Unicode文本"
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             errorMessage = "解码失败: 请检查输入是否为有效的Unicode编码"
         }
     }
@@ -149,18 +181,34 @@ fun UnicodeScreen(modifier: Modifier = Modifier) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = displayMode == 0,
+                            onClick = { displayMode = 0 },
+                            label = { Text("紧凑模式") }
+                        )
+                        FilterChip(
+                            selected = displayMode == 1,
+                            onClick = { displayMode = 1 },
+                            label = { Text("结构模式") }
+                        )
+                    }
+
                     Text(
                         text = "输入文本",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        style = MaterialTheme.typography.titleMedium
                     )
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("请输入文本或Unicode编码") },
+                        placeholder = { Text(if (displayMode == 0) "请输入文本或Unicode编码" else "请输入文本（结构模式）") },
                         singleLine = false,
                         maxLines = 5
                     )
@@ -247,19 +295,71 @@ fun UnicodeScreen(modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Text(
-                            text = outputText.ifEmpty { "编码/解码结果将显示在这里" },
+                    
+                    if (structuredList.isNotEmpty()) {
+                        LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            style = TextStyle(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 14.sp
+                                .heightIn(300.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(structuredList) { (char, unicode) ->
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "'$char'",
+                                            style = TextStyle(
+                                                fontSize = 18.sp,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                            ),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            text = "U+${unicode.substring(2).uppercase()}",
+                                            style = TextStyle(
+                                                fontFamily = FontFamily.Monospace,
+                                                fontSize = 14.sp,
+                                                color = MaterialTheme.colorScheme.primary
+                                            ),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            text = unicode,
+                                            style = TextStyle(
+                                                fontFamily = FontFamily.Monospace,
+                                                fontSize = 14.sp
+                                            ),
+                                            modifier = Modifier.weight(2f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Text(
+                                text = outputText.ifEmpty { "编码/解码结果将显示在这里" },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                style = TextStyle(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 14.sp
+                                )
                             )
-                        )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
