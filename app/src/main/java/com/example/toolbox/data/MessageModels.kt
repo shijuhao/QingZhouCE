@@ -63,12 +63,28 @@ data class Message(
     @SerialName("edit_records") val editRecords: List<EditRecord> = emptyList(),
     @SerialName("msg_seq") val msgSeq: Long,
     @SerialName("quote_msg_id") val quoteMsgId: String? = null,
+    @SerialName("is_referenced") val isReferenced: Boolean = false,
+    @SerialName("referenced_message_id") val referencedMessageId: Int? = null,
+    @SerialName("referenced_message") val referencedMessage: ReferencedMessage? = null,
+    @SerialName("reference_count") val referenceCount: Int = 0
     @SerialName("edit_time") val editTime: Long? = null,
     @SerialName("edit_time_formatted") val editTimeFormatted: String? = null,
     @SerialName("edit_time_display") val editTimeDisplay: String? = null,
     @SerialName("msg_delete_time") val msgDeleteTime: Long? = null,
     @SerialName("msg_delete_time_formatted") val msgDeleteTimeFormatted: String? = null,
     @SerialName("msg_delete_time_display") val msgDeleteTimeDisplay: String? = null
+)
+
+@Serializable
+data class ReferencedMessage(
+    @SerialName("message_id") val messageId: Int,
+    val content: String = "",
+    @SerialName("message_type") val messageType: Int = 0,
+    @SerialName("sender_username") val senderUsername: String = "",
+    @SerialName("sender_id") val senderId: Int = 0,
+    @SerialName("image_url") val imageUrl: String = "",
+    @SerialName("is_private") val isPrivate: Boolean = false,
+    @SerialName("can_view") val canView: Boolean = true
 )
 
 @Serializable
@@ -98,6 +114,7 @@ data class GetMessagesResponse(
     @SerialName("is_friend") val isFriend: Boolean = true,
     val relationship: String = "friend",
     @SerialName("temp_chat_expired") val tempChatExpired: Boolean = false,
+    @SerialName("is_admin") val isAdmin: Boolean = false
 )
 
 @Serializable
@@ -128,7 +145,8 @@ data class SendMessageRequest(
 
 @Serializable
 data class MessageData(
-    val text: String
+    val text: String,
+    val images: List<String> = emptyList()
 )
 
 @Serializable
@@ -157,6 +175,7 @@ data class MessageDetailUiState(
     val dailyMessagesLeft: Int = 0,
     val groupInfo: GroupInfo? = null,
     val otherUser: OtherUser? = null,
+    val isAdmin: Boolean = false,
     val relationship: String = "friend"
 )
 

@@ -120,16 +120,20 @@ class WebSocketManager internal constructor() {
                         val json = args[0] as JSONObject
                         val type = json.optString("type")
                         val dataObj = json.optJSONObject("data")
+                        Log.d("WS", "🔥 private_message 收到: type=$type, dataObj=$dataObj")
                         if (dataObj != null) {
                             val chatId = dataObj.optString("chat_id", "")
                             val chatType = dataObj.optInt("chat_type", 0)
                             val dataStr = dataObj.toString()
                             val message = AppJson.json.decodeFromString<Message>(dataStr)
+                            Log.d("WS", "🔥 解析完成: chatId=$chatId, chatType=$chatType, msgId=${message.msgId}")
                             mainHandler.post {
                                 observers.forEach { observer ->
                                     observer(type, chatId, chatType, message)
                                 }
                             }
+                        } else {
+                            Log.d("WS", "🔥 dataObj 为 null")
                         }
                     } catch (e: Exception) {
                         Log.e("WS", "解析私信消息失败: ${e.message}")
