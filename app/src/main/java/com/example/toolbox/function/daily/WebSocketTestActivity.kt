@@ -70,7 +70,7 @@ fun WebSocketTestScreen(
                         viewModel.clearMessages()
                         Toast.makeText(context, "已清空消息", Toast.LENGTH_SHORT).show()
                     }) {
-                        Icon(Icons.Default.Clear, "清空")
+                        Icon(Icons.Default.Delete, "清空")
                     }
                 }
             )
@@ -121,7 +121,7 @@ fun WebSocketTestScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(14.dp),
                 elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isConnected) 
@@ -133,7 +133,7 @@ fun WebSocketTestScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

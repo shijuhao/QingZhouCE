@@ -43,6 +43,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -70,8 +72,9 @@ import java.io.File
 import java.io.FileOutputStream
 
 private data class ImageState(
-    var scale: Float = 1f,
-    var offset: Offset = Offset.Zero
+    val scale: Float = 1f,
+    val offset: Offset = Offset.Zero,
+    val containerSize: Size = Size.Zero
 )
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -135,6 +138,13 @@ fun MultiImageViewer(
                             .align(Alignment.Center)
                             .fillMaxSize()
                             .clipToBounds()
+                            .onSizeChanged { size ->
+                                if (imageStates[page].value.containerSize != Size(size.width.toFloat(), size.height.toFloat())) {
+                                    imageStates[page].value = imageStates[page].value.copy(
+                                        containerSize = Size(size.width.toFloat(), size.height.toFloat())
+                                    )
+                                }
+                            }
                             .graphicsLayer(
                                 scaleX = imageStates[page].value.scale,
                                 scaleY = imageStates[page].value.scale,
@@ -143,64 +153,71 @@ fun MultiImageViewer(
                             )
                             .transformable(
                                 state = rememberTransformableState { zoomChange, panChange, _ ->
-                                    val currentScale = imageStates[page].value.scale
-                                    val currentOffset = imageStates[page].value.offset
+                                    val currentState = imageStates[page].value
+                                    val currentScale = currentState.scale
+                                    val currentOffset = currentState.offset
+                                    val container = currentState.containerSize
                                     
                                     val newScale = (currentScale * zoomChange).coerceIn(1f, 5f)
                                     
                                     if (newScale > 1.001f || zoomChange != 1f) {
-                                        val maxOffsetX = maxOf(0f, (screenWidth * newScale - screenWidth) / 2)
-                                        val maxOffsetY = maxOf(0f, (screenHeight * newScale - screenHeight) / 2)
+                                        val maxOffsetX = if (container.width > 0) 
+                                            maxOf(0f, (container.width * newScale - container.width) / 2) else 0f
+                                        val maxOffsetY = if (container.height > 0) 
+                                            maxOf(0f, (container.height * newScale - container.height) / 2) else 0f
                                         
                                         var newX = currentOffset.x + panChange.x
                                         var newY = currentOffset.y + panChange.y
                                         
-                                        newX = when {
-                                            newX > maxOffsetX -> maxOffsetX
-                                            newX < -maxOffsetX -> -maxOffsetX
-                                            else -> newX
-                                        }
-                                        newY = when {
-                                            newY > maxOffsetY -> maxOffsetY
-                                            newY < -maxOffsetY -> -maxOffsetY
-                                            else -> newY
-                                        }
+                                        newX = newX.coerceIn(-maxOffsetX, maxOffsetX)
+                                        newY = newY.coerceIn(-maxOffsetY, maxOffsetY)
                                         
-                                        imageStates[page].value = ImageState(newScale, Offset(newX, newY))
+                                        imageStates[page].value = currentState.copy(
+                                            scale = newScale,
+                                            offset = Offset(newX, newY)
+                                        )
                                     }
                                 },
                                 canPan = { 
                                     imageStates[page].value.scale > 1.001f 
                                 }
                             )
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onDoubleTap = { tapOffset ->
-                                    val currentState = imageStates[page].value
-                                    if (currentState.scale > 1.001f) {
-                                        imageStates[page].value = ImageState()
-                                    } else {
-                                        val newScale = 2f
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onDoubleTap = { tapOffset ->
+                                        val currentState = imageStates[page].value
+                                        val container = currentState.containerSize
                                         
-                                        val imageX = (tapOffset.x - currentState.offset.x) / currentState.scale
-                                        val imageY = (tapOffset.y - currentState.offset.y) / currentState.scale
-                                        
-                                        var newX = tapOffset.x - imageX * newScale
-                                        var newY = tapOffset.y - imageY * newScale
-                                        
-                                        val maxOffsetX = maxOf(0f, (screenWidth * newScale - screenWidth) / 2)
-                                        val maxOffsetY = maxOf(0f, (screenHeight * newScale - screenHeight) / 2)
-                                        
-                                        newX = newX.coerceIn(-maxOffsetX, maxOffsetX)
-                                        newY = newY.coerceIn(-maxOffsetY, maxOffsetY)
-                                        
-                                        imageStates[page].value = ImageState(newScale, Offset(newX, newY))
-                                    }
-                                },
-                                onTap = { onDismiss() },
-                                onLongPress = { showMenu = true }
-                            )
-                        },
+                                        if (currentState.scale > 1.001f) {
+                                            imageStates[page].value = ImageState(containerSize = container)
+                                        } else if (container.width > 0 && container.height > 0) {
+                                            val targetScale = 2.5f
+                                            
+                                            val centeredTap = Offset(
+                                                x = tapOffset.x - container.width / 2f,
+                                                y = tapOffset.y - container.height / 2f
+                                            )
+                                            
+                                            var newX = -centeredTap.x * (targetScale - 1f)
+                                            var newY = -centeredTap.y * (targetScale - 1f)
+                                            
+                                            val maxOffsetX = maxOf(0f, (container.width * targetScale - container.width) / 2)
+                                            val maxOffsetY = maxOf(0f, (container.height * targetScale - container.height) / 2)
+                                            
+                                            newX = newX.coerceIn(-maxOffsetX, maxOffsetX)
+                                            newY = newY.coerceIn(-maxOffsetY, maxOffsetY)
+                                            
+                                            imageStates[page].value = ImageState(
+                                                scale = targetScale,
+                                                offset = Offset(newX, newY),
+                                                containerSize = container
+                                            )
+                                        }
+                                    },
+                                    onTap = { onDismiss() },
+                                    onLongPress = { showMenu = true }
+                                )
+                            },
                         contentScale = ContentScale.Fit,
                         onState = { newState ->
                             loadStates[page].value = newState
