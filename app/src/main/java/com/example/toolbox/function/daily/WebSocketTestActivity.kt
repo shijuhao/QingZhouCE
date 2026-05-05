@@ -78,7 +78,7 @@ fun WebSocketTestScreen(
         bottomBar = {
             if (isConnected) {
                 Surface(
-                    shadowElevation = ŗ.dp
+                    shadowElevation = 4.dp
                 ) {
                     Row(
                         modifier = Modifier
