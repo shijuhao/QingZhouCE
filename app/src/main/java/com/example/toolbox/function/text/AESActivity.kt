@@ -492,12 +492,20 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Text(
-                        text = "• OpenSSL格式（推荐）：与OpenSSL工具兼容，密文以\"U2FsdGVkX1\"开头\n" +
-                                "• 简单AES格式：使用AES/ECB模式，密文为纯Base64编码\n" +
-                                "• 加密：输入文本和密钥，点击\"加密\"按钮\n" +
-                                "• 解密：输入Base64密文和密钥，点击\"解密\"按钮\n" +
-                                "• 请确保加密和解密使用相同的密钥和格式\n" +
-                                "• 对于OpenSSL格式，会自动尝试AES-128、AES-192和AES-256",
+                        text = "• OpenSSL格式（推荐）：\n" +
+                                "  - 算法：AES/CBC/PKCS5Padding\n" +
+                                "  - 密钥派生：EVP_BytesToKey (MD5)\n" +
+                                "  - 支持AES-128/192/256（根据密码长度自动选择）\n" +
+                                "  - 密文特征：以\"U2FsdGVkX1\"开头（Base64后）\n" +
+                                "  - 兼容OpenSSL命令行工具\n\n" +
+                                "• 简单AES格式：\n" +
+                                "  - 算法：AES/ECB/PKCS5Padding\n" +
+                                "  - 密钥处理：不足补零，超过截断（16/24/32字节）\n" +
+                                "  - ⚠️ ECB模式安全性较低，仅用于测试\n\n" +
+                                "• 使用提示：\n" +
+                                "  - 加密和解密必须使用相同的密钥和格式\n" +
+                                "  - OpenSSL模式下，密钥可以是任意长度\n" +
+                                "  - 简单模式下，建议使用16/24/32字符的密钥",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
