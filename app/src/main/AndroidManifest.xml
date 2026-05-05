@@ -330,6 +330,38 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".function.text.MD5Activity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".function.text.JSONFormatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".function.text.TimestampActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".function.text.HTMLEntityActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".function.text.JWTParseActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".function.text.UUIDGeneratorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".function.text.RegexTesterActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
+            android:name=".function.text.TextDiffActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".function.visual.QRCodeGeneratorActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />

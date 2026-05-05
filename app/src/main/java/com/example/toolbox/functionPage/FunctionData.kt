@@ -153,6 +153,14 @@ val functionData = listOf(
             FunctionItem("AES加解密", "com.example.toolbox.function.text.AESActivity", Icons.Outlined.Key, "blue"),
             FunctionItem("Unicode编解码", "com.example.toolbox.function.text.UnicodeActivity", Icons.Outlined.TextFields, "purple"),
             FunctionItem("URL编解码", "com.example.toolbox.function.text.URLActivity", Icons.Outlined.Public, "green"),
+            FunctionItem("MD5哈希", "com.example.toolbox.function.text.MD5Activity", Icons.Outlined.TextFields, "red"),
+            FunctionItem("JSON格式化", "com.example.toolbox.function.text.JSONFormatActivity", Icons.Outlined.Code, "yellow"),
+            FunctionItem("时间戳转换", "com.example.toolbox.function.text.TimestampActivity", Icons.Outlined.AccessTime, "orange"),
+            FunctionItem("HTML实体编解码", "com.example.toolbox.function.text.HTMLEntityActivity", Icons.Outlined.Code, "purple"),
+            FunctionItem("JWT解析", "com.example.toolbox.function.text.JWTParseActivity", Icons.Outlined.Key, "gray"),
+            FunctionItem("UUID生成器", "com.example.toolbox.function.text.UUIDGeneratorActivity", Icons.Outlined.Info, "blue"),
+            FunctionItem("正则测试", "com.example.toolbox.function.text.RegexTesterActivity", Icons.Outlined.Code, "green"),
+            FunctionItem("文本对比", "com.example.toolbox.function.text.TextDiffActivity", Icons.Outlined.TextFields, "red"),
         )
     ),
     FunctionCategory(
