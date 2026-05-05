@@ -106,14 +106,6 @@ fun TimerDetailScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = timer.name,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
             // 时间显示
             if (timerType == "countdown") {
                 val remainingColor = if (timer.elapsedTime <= 0 && !timer.isRunning) {
@@ -125,7 +117,7 @@ fun TimerDetailScreen(
                 Text(
                     text = if (timer.elapsedTime <= 0 && !timer.isRunning) "时间到！"
                     else formatTime(timer.elapsedTime),
-                    fontSize = 72.sp,
+                    fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
                     color = remainingColor,
                     textAlign = TextAlign.Center
@@ -133,7 +125,7 @@ fun TimerDetailScreen(
             } else {
                 Text(
                     text = formatTime(timer.elapsedTime),
-                    fontSize = 72.sp,
+                    fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center

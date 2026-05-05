@@ -786,10 +786,7 @@ fun MessageBubble(
 
                     },
                     onLongClick = {
-                        val hasContent = message.content.isNotBlank()
-                        if (hasContent || isMine) {
-                            showMenu = true
-                        }
+                        showMenu = true
                     }
                 )
                 .padding(horizontal = 8.dp, vertical = 4.dp),

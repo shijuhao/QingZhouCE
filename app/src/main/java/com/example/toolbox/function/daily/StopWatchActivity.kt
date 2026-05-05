@@ -41,6 +41,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -248,31 +249,49 @@ fun StopwatchCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 if (!stopwatch.isRunning) {
-                    Button(onClick = { viewModel.startStopwatch(stopwatch.id) }) {
-                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(if (stopwatch.elapsedTime == 0L) "开始" else "继续")
-                    }
-
-                    Button(
-                        onClick = { viewModel.resetStopwatch(stopwatch.id) },
-                        enabled = stopwatch.elapsedTime > 0
+                    FilledIconButton(
+                        onClick = { viewModel.startStopwatch(stopwatch.id) },
+                        modifier = Modifier.size(56.dp)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.RotateLeft, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("重置")
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = if (stopwatch.elapsedTime == 0L) "开始" else "继续",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+            
+                    FilledTonalIconButton(
+                        onClick = { viewModel.resetStopwatch(stopwatch.id) },
+                        enabled = stopwatch.elapsedTime > 0,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.RotateLeft,
+                            contentDescription = "重置",
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 } else {
-                    Button(onClick = { viewModel.pauseStopwatch(stopwatch.id) }) {
-                        Icon(Icons.Default.Stop, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("暂停")
+                    FilledIconButton(
+                        onClick = { viewModel.pauseStopwatch(stopwatch.id) },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Stop,
+                            contentDescription = "暂停",
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
-
-                    Button(onClick = { viewModel.recordLap(stopwatch.id) }) {
-                        Icon(Icons.Default.Edit, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("计次")
+            
+                    FilledTonalIconButton(
+                        onClick = { viewModel.recordLap(stopwatch.id) },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "计次",
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 }
             }
@@ -433,27 +452,38 @@ fun CountdownCard(
             ) {
                 if (!countdown.isRunning) {
                     if (countdown.elapsedTime > 0) {
-                        Button(onClick = { viewModel.startCountdown(countdown.id) }) {
-                            Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                            Text("开始")
+                        FilledIconButton(
+                            onClick = { viewModel.startCountdown(countdown.id) },
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = "开始",
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
                     }
-
-                    Button(onClick = { viewModel.resetCountdown(countdown.id) }) {
-                        Icon(Icons.AutoMirrored.Filled.RotateLeft, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("重置")
-                    }
-
-                    Button(onClick = { showEditDialog = true }) {
-                        Text("设置时长")
+            
+                    FilledTonalIconButton(
+                        onClick = { viewModel.resetCountdown(countdown.id) },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.RotateLeft,
+                            contentDescription = "重置",
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 } else {
-                    Button(onClick = { viewModel.pauseCountdown(countdown.id) }) {
-                        Icon(Icons.Default.Stop, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("暂停")
+                    FilledIconButton(
+                        onClick = { viewModel.pauseCountdown(countdown.id) },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Stop,
+                            contentDescription = "暂停",
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 }
             }
