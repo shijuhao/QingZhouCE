@@ -89,19 +89,23 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
     var argbText by remember { mutableStateOf("ARGB(255, 255, 255, 255)") }
     var errorMessage by remember { mutableStateOf("") }
 
-    val gradientBitmap = remember(hue) {
+    val gradientBitmap = remember {
         val width = 256
         val height = 256
-        val bitmap = createBitmap(width, height)
+        createBitmap(width, height)
+    }
+
+    LaunchedEffect(hue) {
+        val width = 256
+        val height = 256
         for (y in 0 until height) {
             for (x in 0 until width) {
                 val s = x / (width - 1f)
                 val v = 1f - y / (height - 1f)
                 val color = AndroidColor.HSVToColor(floatArrayOf(hue, s, v))
-                bitmap[x, y] = color
+                gradientBitmap[x, y] = color
             }
         }
-        bitmap
     }
 
     val hsv = FloatArray(3)
