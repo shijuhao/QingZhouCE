@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.RotateLeft
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -471,6 +472,17 @@ fun CountdownCard(
                         Icon(
                             Icons.AutoMirrored.Filled.RotateLeft,
                             contentDescription = "重置",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    
+                    FilledTonalIconButton(
+                        onClick = { showEditDialog = true },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.AccessTime,
+                            contentDescription = "设置时长",
                             modifier = Modifier.size(28.dp)
                         )
                     }

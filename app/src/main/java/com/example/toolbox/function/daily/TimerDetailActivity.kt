@@ -40,14 +40,11 @@ class TimerDetailActivity : ComponentActivity() {
 
         setContent {
             ToolBoxTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    TimerDetailScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        timerId = timerId,
-                        timerType = timerType,
-                        viewModel = viewModel
-                    )
-                }
+                TimerDetailScreen(
+                    timerId = timerId,
+                    timerType = timerType,
+                    viewModel = viewModel
+                )
             }
         }
     }
@@ -56,7 +53,6 @@ class TimerDetailActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimerDetailScreen(
-    modifier: Modifier = Modifier,
     timerId: String,
     timerType: String,
     viewModel: StopWatchViewModel
@@ -88,25 +84,26 @@ fun TimerDetailScreen(
         return String.format(java.util.Locale.getDefault(), "%02d:%02d.%02d", minutes, seconds, milliseconds)
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(timer.name) },
-            navigationIcon = {
-                FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text(timer.name) },
+                navigationIcon = {
+                    FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    }
                 }
-            }
-        )
-
-        // 全屏展示计时器
+            )
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 时间显示
             if (timerType == "countdown") {
                 val remainingColor = if (timer.elapsedTime <= 0 && !timer.isRunning) {
                     MaterialTheme.colorScheme.error
@@ -117,7 +114,7 @@ fun TimerDetailScreen(
                 Text(
                     text = if (timer.elapsedTime <= 0 && !timer.isRunning) "时间到！"
                     else formatTime(timer.elapsedTime),
-                    fontSize = 48.sp,
+                    fontSize = 52.sp,
                     fontWeight = FontWeight.Bold,
                     color = remainingColor,
                     textAlign = TextAlign.Center
@@ -125,7 +122,7 @@ fun TimerDetailScreen(
             } else {
                 Text(
                     text = formatTime(timer.elapsedTime),
-                    fontSize = 48.sp,
+                    fontSize = 52.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center
