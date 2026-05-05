@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -59,6 +60,12 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.datamatrix.DataMatrixWriter
+import com.google.zxing.oned.Code128Writer
+import com.google.zxing.oned.Code39Writer
+import com.google.zxing.oned.EAN13Writer
+import com.google.zxing.oned.EAN8Writer
+import com.google.zxing.pdf417.PDF417Writer
+import com.google.zxing.aztec.AztecWriter
 import java.util.EnumMap
 
 class QRCodeGeneratorActivity : ComponentActivity() {
@@ -82,46 +89,79 @@ class QRCodeGeneratorActivity : ComponentActivity() {
 fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
-    var barcodeMode by remember { mutableIntStateOf(0) }
+    data class BarcodeType(val name: String, val format: BarcodeFormat, val is1D: Boolean)
+    
+    val barcodeTypes = remember {
+        listOf(
+            BarcodeType("QR Code", BarcodeFormat.QR_CODE, false),
+            BarcodeType("Data Matrix", BarcodeFormat.DATA_MATRIX, false),
+            BarcodeType("Aztec", BarcodeFormat.AZTEC, false),
+            BarcodeType("PDF 417", BarcodeFormat.PDF_417, false),
+            BarcodeType("Code 128", BarcodeFormat.CODE_128, true),
+            BarcodeType("Code 39", BarcodeFormat.CODE_39, true),
+            BarcodeType("EAN-13", BarcodeFormat.EAN_13, true),
+            BarcodeType("EAN-8", BarcodeFormat.EAN_8, true)
+        )
+    }
+
+    var selectedTypeIndex by remember { mutableIntStateOf(0) }
     var inputText by remember { mutableStateOf("") }
     var qrCodeBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var errorMessage by remember { mutableStateOf("") }
+    
+    val currentType = barcodeTypes[selectedTypeIndex]
 
     fun generateBarcode() {
         errorMessage = ""
         if (inputText.isEmpty()) {
-            errorMessage = if (barcodeMode == 0) "请输入要生成二维码的内容" else "请输入要生成Data Matrix的内容"
+            errorMessage = "请输入要生成${currentType.name}的内容"
             return
         }
-    
+
         try {
             val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java).apply {
                 put(EncodeHintType.CHARACTER_SET, "UTF-8")
                 put(EncodeHintType.MARGIN, 1)
             }
-    
-            val size = if (barcodeMode == 0) {
-                512
-            } else {
-                minOf(1024, maxOf(256, inputText.length * 8))
+
+            val bitMatrix = when (currentType.format) {
+                BarcodeFormat.QR_CODE -> {
+                    QRCodeWriter().encode(inputText, BarcodeFormat.QR_CODE, 512, 512, hints)
+                }
+                BarcodeFormat.DATA_MATRIX -> {
+                    DataMatrixWriter().encode(inputText, BarcodeFormat.DATA_MATRIX, 256, 256, hints)
+                }
+                BarcodeFormat.AZTEC -> {
+                    AztecWriter().encode(inputText, BarcodeFormat.AZTEC, 256, 256, hints)
+                }
+                BarcodeFormat.PDF_417 -> {
+                    PDF417Writer().encode(inputText, BarcodeFormat.PDF_417, 512, 256, hints)
+                }
+                BarcodeFormat.CODE_128 -> {
+                    Code128Writer().encode(inputText, BarcodeFormat.CODE_128, 512, 100, hints)
+                }
+                BarcodeFormat.CODE_39 -> {
+                    Code39Writer().encode(inputText, BarcodeFormat.CODE_39, 512, 100, hints)
+                }
+                BarcodeFormat.EAN_13 -> {
+                    if (!inputText.matches(Regex("\\d{12,13}"))) {
+                        throw IllegalArgumentException("EAN-13需要12或13位数字")
+                    }
+                    EAN13Writer().encode(inputText.take(12), BarcodeFormat.EAN_13, 512, 100, hints)
+                }
+                BarcodeFormat.EAN_8 -> {
+                    if (!inputText.matches(Regex("\\d{7,8}"))) {
+                        throw IllegalArgumentException("EAN-8需要7或8位数字")
+                    }
+                    EAN8Writer().encode(inputText.take(7), BarcodeFormat.EAN_8, 512, 100, hints)
+                }
+                else -> throw IllegalArgumentException("不支持的条码格式")
             }
-    
-            val bitMatrix = if (barcodeMode == 0) {
-                val writer = QRCodeWriter()
-                writer.encode(inputText, BarcodeFormat.QR_CODE, size, size, hints)
-            } else {
-                val encodedText = android.util.Base64.encodeToString(
-                    inputText.toByteArray(Charsets.UTF_8),
-                    android.util.Base64.NO_WRAP
-                )
-                val writer = DataMatrixWriter()
-                writer.encode(encodedText, BarcodeFormat.DATA_MATRIX, size, size, hints)
-            }
-    
+
             val width = bitMatrix.width
             val height = bitMatrix.height
             val pixels = IntArray(width * height)
-    
+
             for (y in 0 until height) {
                 for (x in 0 until width) {
                     pixels[y * width + x] = if (bitMatrix[x, y]) {
@@ -131,20 +171,20 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                     }
                 }
             }
-    
+
             qrCodeBitmap = createBitmap(width, height)
             qrCodeBitmap?.setPixels(pixels, 0, width, 0, 0, width, height)
-    
+
         } catch (e: Exception) {
-            errorMessage = if (barcodeMode == 0) "生成二维码失败: ${e.message}" else "生成Data Matrix失败: ${e.message}"
+            errorMessage = "生成${currentType.name}失败: ${e.message}"
         }
     }
 
     fun saveImageToGallery() {
         val bitmap = qrCodeBitmap ?: return
-        val barcodeType = if (barcodeMode == 0) "QR" else "DataMatrix"
+        val barcodeType = currentType.name.replace(" ", "_")
         val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "${barcodeType}_Code_${System.currentTimeMillis()}.png")
+            put(MediaStore.Images.Media.DISPLAY_NAME, "${barcodeType}_${System.currentTimeMillis()}.png")
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/ToolBox")
@@ -173,7 +213,7 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         TopAppBar(
-            title = { Text(if (barcodeMode == 0) "二维码生成器" else "Data Matrix生成器") },
+            title = { Text("${currentType.name}生成器") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
@@ -197,20 +237,20 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
+                    Text(
+                        text = "选择条码类型",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FilterChip(
-                            selected = barcodeMode == 0,
-                            onClick = { barcodeMode = 0 },
-                            label = { Text("QR Code") }
-                        )
-                        FilterChip(
-                            selected = barcodeMode == 1,
-                            onClick = { barcodeMode = 1 },
-                            label = { Text("Data Matrix") }
-                        )
+                        items(barcodeTypes.size) { index ->
+                            FilterChip(
+                                selected = selectedTypeIndex == index,
+                                onClick = { selectedTypeIndex = index },
+                                label = { Text(barcodeTypes[index].name) }
+                            )
+                        }
                     }
 
                     Text(
@@ -221,13 +261,20 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         value = inputText,
                         onValueChange = { inputText = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text(if (barcodeMode == 0) "请输入要生成二维码的文本或链接" else "请输入要生成Data Matrix的文本") },
+                        placeholder = { 
+                            Text(when {
+                                currentType.format == BarcodeFormat.EAN_13 -> "请输入12或13位数字"
+                                currentType.format == BarcodeFormat.EAN_8 -> "请输入7或8位数字"
+                                currentType.is1D -> "请输入文本（仅支持字母、数字和部分符号）"
+                                else -> "请输入文本或链接"
+                            })
+                        },
                         singleLine = false,
                         maxLines = 5
                     )
-                    if (barcodeMode == 1) {
+                    if (currentType.is1D) {
                         Text(
-                            text = "提示：Data Matrix 不支持中文等特殊字符，将自动进行编码处理",
+                            text = "提示：一维码仅支持ASCII字符，不支持中文",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp)
@@ -269,11 +316,11 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         ) {
                             Icon(
                                 Icons.Filled.QrCode,
-                                contentDescription = if (barcodeMode == 0) "生成二维码" else "生成Data Matrix",
+                                contentDescription = "生成${currentType.name}",
                                 modifier = Modifier.size(ButtonDefaults.IconSize)
                             )
                             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                            Text(if (barcodeMode == 0) "生成二维码" else "生成Data Matrix")
+                            Text("生成${currentType.name}")
                         }
                     }
                 }
@@ -290,14 +337,14 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (barcodeMode == 0) "生成的二维码" else "生成的Data Matrix",
+                            text = "生成的${currentType.name}",
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
 
                         Image(
                             bitmap = qrCodeBitmap!!.asImageBitmap(),
-                            contentDescription = if (barcodeMode == 0) "二维码" else "Data Matrix",
+                            contentDescription = currentType.name,
                             modifier = Modifier
                                 .size(256.dp)
                                 .padding(8.dp)
