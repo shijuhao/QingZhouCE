@@ -68,13 +68,13 @@ class WebSocketTestViewModel : ViewModel() {
             
             override fun onMessage(webSocket: WebSocket, text: String) {
                 viewModelScope.launch {
-                    addMessage("收到: $text", MessageType.RECEIVED)
+                    addMessage(text, MessageType.RECEIVED)
                 }
             }
             
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
                 viewModelScope.launch {
-                    addMessage("收到二进制数据: ${bytes.hex()}", MessageType.RECEIVED)
+                    addMessage("${bytes.hex()}", MessageType.RECEIVED)
                 }
             }
             
@@ -112,7 +112,7 @@ class WebSocketTestViewModel : ViewModel() {
         }
         
         webSocket?.send(message)
-        addMessage("发送: $message", MessageType.SENT)
+        addMessage(message, MessageType.SENT)
     }
     
     // 断开连接
