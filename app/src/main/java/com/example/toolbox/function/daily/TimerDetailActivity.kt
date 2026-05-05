@@ -6,11 +6,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.RotateLeft
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -145,7 +149,7 @@ fun TimerDetailScreen(
             ) {
                 if (!timer.isRunning) {
                     if (timerType == "stopwatch" || timer.elapsedTime > 0) {
-                        Button(
+                        FilledIconButton(
                             onClick = {
                                 if (timerType == "stopwatch") {
                                     viewModel.startStopwatch(timer.id)
@@ -153,18 +157,17 @@ fun TimerDetailScreen(
                                     viewModel.startCountdown(timer.id)
                                 }
                             },
-                            modifier = Modifier.size(80.dp),
-                            shape = MaterialTheme.shapes.extraLarge
+                            modifier = Modifier.size(64.dp)
                         ) {
                             Icon(
                                 Icons.Default.PlayArrow,
                                 contentDescription = if (timer.elapsedTime == 0L) "开始" else "继续",
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(32.dp)
                             )
                         }
                     }
-
-                    Button(
+            
+                    FilledTonalIconButton(
                         onClick = {
                             if (timerType == "stopwatch") {
                                 viewModel.resetStopwatch(timer.id)
@@ -173,17 +176,16 @@ fun TimerDetailScreen(
                             }
                         },
                         enabled = timer.elapsedTime > 0,
-                        modifier = Modifier.size(80.dp),
-                        shape = MaterialTheme.shapes.extraLarge
+                        modifier = Modifier.size(64.dp)
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.RotateLeft,
                             contentDescription = "重置",
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 } else {
-                    Button(
+                    FilledIconButton(
                         onClick = {
                             if (timerType == "stopwatch") {
                                 viewModel.pauseStopwatch(timer.id)
@@ -191,16 +193,72 @@ fun TimerDetailScreen(
                                 viewModel.pauseCountdown(timer.id)
                             }
                         },
-                        modifier = Modifier.size(80.dp),
-                        shape = MaterialTheme.shapes.extraLarge
+                        modifier = Modifier.size(64.dp)
                     ) {
                         Icon(
                             Icons.Default.Stop,
                             contentDescription = "暂停",
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
+                    
+                    if (timerType == "stopwatch") {
+                        FilledTonalIconButton(
+                            onClick = { viewModel.recordLap(timer.id) },
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "计次",
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
                 }
+            }
+            
+            // 计次记录
+            if (timerType == "stopwatch" && timer.lapTimes.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(32.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "计次记录",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(timer.lapTimes) { index, lapTime ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "计次 ${timer.lapTimes.size - index}",
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = formatTime(lapTime),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }

@@ -194,6 +194,7 @@ fun StopwatchCard(
     viewModel: StopWatchViewModel,
     formatTime: (Long) -> String
 ) {
+    val context = LocalContext.current
     var showRenameDialog by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf(stopwatch.name) }
 
@@ -365,6 +366,7 @@ fun CountdownCard(
     viewModel: StopWatchViewModel,
     formatTime: (Long) -> String
 ) {
+    val context = LocalContext.current
     var showEditDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf(countdown.name) }
