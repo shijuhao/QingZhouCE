@@ -118,12 +118,6 @@ fun Greeting(
         }
     }
 
-    LaunchedEffect(stopwatches, countdowns) {
-        while (true) {
-            delay(10) // 每10ms刷新一次UI，保证毫秒显示流畅
-        }
-    }
-
     fun formatTime(millis: Long): String {
         val totalSeconds = millis / 1000
         val minutes = totalSeconds / 60

@@ -86,16 +86,16 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         if (index != -1 && !list[index].isRunning) {
             val stopwatch = list[index]
             val now = System.currentTimeMillis()
-            // 如果是首次启动，从0开始；如果是继续，从暂停时的累计时间开始
-            val baseTime = if (stopwatch.pausedAt > 0) {
-                // 计算暂停期间经过的时间
-                now - stopwatch.elapsedTime - (now - stopwatch.pausedAt)
-            } else {
+            
+            val newStartTime = if (stopwatch.pausedAt > 0) {
                 now - stopwatch.elapsedTime
+            } else {
+                now
             }
+            
             list[index] = stopwatch.copy(
                 isRunning = true,
-                startTime = baseTime,
+                startTime = newStartTime,
                 pausedAt = 0L
             )
             _stopwatches.value = list
@@ -107,11 +107,14 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         val list = _stopwatches.value.toMutableList()
         val index = list.indexOfFirst { it.id == id }
         if (index != -1 && list[index].isRunning) {
+            val stopwatch = list[index]
             val now = System.currentTimeMillis()
-            list[index] = list[index].copy(
+            val elapsed = now - stopwatch.startTime
+            
+            list[index] = stopwatch.copy(
                 isRunning = false,
-                elapsedTime = now - list[index].startTime,
-                pausedAt = now // 记录暂停时的系统时间
+                elapsedTime = elapsed,
+                pausedAt = now
             )
             _stopwatches.value = list
         }
@@ -151,20 +154,6 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    // 更新秒表时间
-    fun updateStopwatchTime(id: String, currentTime: Long) {
-        val list = _stopwatches.value.toMutableList()
-        val index = list.indexOfFirst { it.id == id }
-        if (index != -1 && list[index].isRunning) {
-            list[index] = list[index].copy(
-                elapsedTime = currentTime - list[index].startTime
-            )
-            _stopwatches.value = list
-        }
-    }
-
-    // === 倒计时功能 ===
-
     // 添加新倒计时
     fun addCountdown(name: String = "倒计时 ${_countdowns.value.size + 1}", duration: Long = 60000) {
         val newCountdown = TimerInstance(
@@ -183,44 +172,42 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         if (index != -1 && !list[index].isRunning && list[index].elapsedTime > 0) {
             val countdown = list[index]
             val now = System.currentTimeMillis()
-            // 计算剩余时间
-            val remainingTime = if (countdown.pausedAt > 0) {
-                // 从暂停时继续，计算已经经过的时间
-                val elapsedDuringPause = now - countdown.pausedAt
-                countdown.elapsedTime - elapsedDuringPause
+            
+            val newStartTime = if (countdown.pausedAt > 0) {
+                val alreadyElapsed = countdown.targetTime - countdown.elapsedTime
+                now - alreadyElapsed
             } else {
-                countdown.elapsedTime
+                now
             }
             
             list[index] = countdown.copy(
                 isRunning = true,
-                elapsedTime = maxOf(0L, remainingTime),
-                startTime = now,
+                startTime = newStartTime,
                 pausedAt = 0L
             )
             _countdowns.value = list
         }
     }
-
+    
     // 暂停倒计时
     fun pauseCountdown(id: String) {
         val list = _countdowns.value.toMutableList()
         val index = list.indexOfFirst { it.id == id }
         if (index != -1 && list[index].isRunning) {
-            val now = System.currentTimeMillis()
             val countdown = list[index]
+            val now = System.currentTimeMillis()
             val elapsed = now - countdown.startTime
-            val remaining = maxOf(0L, countdown.elapsedTime - elapsed)
+            val remaining = (countdown.targetTime - elapsed).coerceAtLeast(0)
             
             list[index] = countdown.copy(
                 isRunning = false,
                 elapsedTime = remaining,
-                pausedAt = now // 记录暂停时的系统时间
+                pausedAt = now
             )
             _countdowns.value = list
         }
     }
-
+    
     // 重置倒计时
     fun resetCountdown(id: String) {
         val list = _countdowns.value.toMutableList()
@@ -278,41 +265,53 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         monitorJob?.cancel()
         monitorJob = viewModelScope.launch {
             while (true) {
-                delay(10) // 每10ms检查一次，保证毫秒级精度
+                delay(10)
+                
                 val currentTime = System.currentTimeMillis()
                 
-                // 更新秒表
-                _stopwatches.value.filter { it.isRunning }.forEach { stopwatch ->
-                    updateStopwatchTime(stopwatch.id, currentTime)
-                }
+                // === 更新秒表 ===
+                val currentStopwatches = _stopwatches.value.toMutableList()
+                var stopwatchesChanged = false
                 
-                // 更新倒计时并检查是否结束
-                val countdowns = _countdowns.value
-                countdowns.filter { it.isRunning }.forEach { countdown ->
-                    val elapsed = currentTime - countdown.startTime
-                    val remaining = countdown.targetTime - elapsed
-                    
-                    if (remaining <= 0) {
-                        // 倒计时结束，发送通知
-                        sendNotification(countdown.name)
-                        // 停止倒计时
-                        pauseCountdown(countdown.id)
-                        // 重置为0
-                        val list = _countdowns.value.toMutableList()
-                        val index = list.indexOfFirst { it.id == countdown.id }
-                        if (index != -1) {
-                            list[index] = list[index].copy(elapsedTime = 0L)
-                            _countdowns.value = list
-                        }
-                    } else {
-                        // 更新剩余时间
-                        val list = _countdowns.value.toMutableList()
-                        val index = list.indexOfFirst { it.id == countdown.id }
-                        if (index != -1) {
-                            list[index] = list[index].copy(elapsedTime = remaining)
-                            _countdowns.value = list
+                currentStopwatches.forEachIndexed { index, stopwatch ->
+                    if (stopwatch.isRunning) {
+                        val elapsed = currentTime - stopwatch.startTime
+                        if (currentStopwatches[index].elapsedTime != elapsed) {
+                            currentStopwatches[index] = stopwatch.copy(elapsedTime = elapsed)
+                            stopwatchesChanged = true
                         }
                     }
+                }
+                if (stopwatchesChanged) {
+                    _stopwatches.value = currentStopwatches
+                }
+                
+                // === 更新倒计时 ===
+                val currentCountdowns = _countdowns.value.toMutableList()
+                var countdownsChanged = false
+                
+                currentCountdowns.forEachIndexed { index, countdown ->
+                    if (countdown.isRunning) {
+                        val elapsed = currentTime - countdown.startTime
+                        val remaining = (countdown.targetTime - elapsed).coerceAtLeast(0)
+                        
+                        if (remaining <= 0) {
+                            if (countdown.isRunning) {
+                                currentCountdowns[index] = countdown.copy(
+                                    isRunning = false,
+                                    elapsedTime = 0L
+                                )
+                                countdownsChanged = true
+                                sendNotification(countdown.name)
+                            }
+                        } else if (currentCountdowns[index].elapsedTime != remaining) {
+                            currentCountdowns[index] = countdown.copy(elapsedTime = remaining)
+                            countdownsChanged = true
+                        }
+                    }
+                }
+                if (countdownsChanged) {
+                    _countdowns.value = currentCountdowns
                 }
             }
         }
