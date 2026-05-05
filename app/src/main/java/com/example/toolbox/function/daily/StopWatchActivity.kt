@@ -10,12 +10,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -162,25 +165,24 @@ fun StopwatchTab(
     viewModel: StopWatchViewModel,
     formatTime: (Long) -> String
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Button(
-            onClick = { viewModel.addStopwatch() },
-            modifier = Modifier.fillMaxWidth()
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(16.dp)
         ) {
-            Icon(Icons.Default.Add, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-            Text("添加秒表")
-        }
-
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(stopwatches, key = { stopwatch -> stopwatch.id }) { stopwatch ->
                 StopwatchCard(stopwatch, viewModel, formatTime)
             }
+        }
+
+        FloatingActionButton(
+            onClick = { viewModel.addStopwatch() },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "添加秒表")
         }
     }
 }
@@ -197,7 +199,13 @@ fun StopwatchCard(
 
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        onClick = {
+            val intent = android.content.Intent(context, TimerDetailActivity::class.java)
+            intent.putExtra("timer_id", stopwatch.id)
+            intent.putExtra("timer_type", "stopwatch")
+            context.startActivity(intent)
+        }
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -328,25 +336,24 @@ fun CountdownTab(
     viewModel: StopWatchViewModel,
     formatTime: (Long) -> String
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Button(
-            onClick = { viewModel.addCountdown() },
-            modifier = Modifier.fillMaxWidth()
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(16.dp)
         ) {
-            Icon(Icons.Default.Add, null, modifier = Modifier.size(ButtonDefaults.IconSize))
-            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-            Text("添加倒计时")
-        }
-
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(countdowns, key = { countdown -> countdown.id }) { countdown ->
                 CountdownCard(countdown, viewModel, formatTime)
             }
+        }
+
+        FloatingActionButton(
+            onClick = { viewModel.addCountdown() },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "添加倒计时")
         }
     }
 }
@@ -369,7 +376,13 @@ fun CountdownCard(
 
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        onClick = {
+            val intent = android.content.Intent(context, TimerDetailActivity::class.java)
+            intent.putExtra("timer_id", countdown.id)
+            intent.putExtra("timer_type", "countdown")
+            context.startActivity(intent)
+        }
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(

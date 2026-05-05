@@ -375,6 +375,10 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".function.daily.TimerDetailActivity"
+            android:exported="false" 
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".function.daily.StopWatchActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
