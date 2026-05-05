@@ -47,6 +47,7 @@ data class Message(
     val content: String = "",
     val images: List<String> = emptyList(),
     @SerialName("is_markdown") val isMarkdown: Boolean = false,
+    @SerialName("is_sticker") val isSticker: Boolean = false,
     @SerialName("is_system") val isSystem: Boolean = false,
     val timestamp: String? = null,
     @SerialName("timestamp_display") val timestampDisplay: String? = null,
