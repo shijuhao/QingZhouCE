@@ -180,14 +180,21 @@ fun MultiImageViewer(
                                     if (currentState.scale > 1.001f) {
                                         imageStates[page].value = ImageState()
                                     } else {
-                                        val newScale = 3f
-                                        val maxOffsetX = (screenWidth * newScale - screenWidth) / 2
-                                        val maxOffsetY = (screenHeight * newScale - screenHeight) / 2
+                                        val newScale = 2f
                                         
-                                        val targetX = -(tapOffset.x * newScale - screenWidth / 2).coerceIn(-maxOffsetX, maxOffsetX)
-                                        val targetY = -(tapOffset.y * newScale - screenHeight / 2).coerceIn(-maxOffsetY, maxOffsetY)
+                                        val imageX = (tapOffset.x - currentState.offset.x) / currentState.scale
+                                        val imageY = (tapOffset.y - currentState.offset.y) / currentState.scale
                                         
-                                        imageStates[page].value = ImageState(newScale, Offset(targetX, targetY))
+                                        var newX = tapOffset.x - imageX * newScale
+                                        var newY = tapOffset.y - imageY * newScale
+                                        
+                                        val maxOffsetX = maxOf(0f, (screenWidth * newScale - screenWidth) / 2)
+                                        val maxOffsetY = maxOf(0f, (screenHeight * newScale - screenHeight) / 2)
+                                        
+                                        newX = newX.coerceIn(-maxOffsetX, maxOffsetX)
+                                        newY = newY.coerceIn(-maxOffsetY, maxOffsetY)
+                                        
+                                        imageStates[page].value = ImageState(newScale, Offset(newX, newY))
                                     }
                                 },
                                 onTap = { onDismiss() },

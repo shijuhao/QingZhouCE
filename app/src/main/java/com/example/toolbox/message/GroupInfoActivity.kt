@@ -418,6 +418,7 @@ fun GroupInfoScreen(
                                             SettingsCustomItem {
                                                 Row(
                                                     modifier = Modifier
+                                                        .fillMaxWidth()
                                                         .clickable {
                                                             val intent = Intent(context, UserInfoActivity::class.java)
                                                             intent.putExtra("userId", creator.id)

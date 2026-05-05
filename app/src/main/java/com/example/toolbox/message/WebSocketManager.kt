@@ -13,6 +13,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.net.URISyntaxException
@@ -50,6 +53,9 @@ class WebSocketManager internal constructor() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var scope: CoroutineScope? = null
+    
+    private val _authState = MutableStateFlow(false)
+    val authState: StateFlow<Boolean> = _authState.asStateFlow()
     
     private val observers = mutableListOf<(type: String, chatId: String, chatType: Int, message: Message) -> Unit>()
     
@@ -95,10 +101,11 @@ class WebSocketManager internal constructor() {
                 Log.d("WS", "连接成功")
                 authenticate()
                 heartbeatHandler?.post(heartbeatRunnable)
+                _authState.value = false
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
-                Log.d("WS", "连接断开")
+                _authState.value = false
             }
 
             socket?.on(Socket.EVENT_CONNECT_ERROR) {
@@ -106,7 +113,7 @@ class WebSocketManager internal constructor() {
             }
 
             socket?.on("auth_success") {
-                Log.d("WS", "认证成功")
+                _authState.value = true
             }
 
             socket?.on("auth_error") { args ->
