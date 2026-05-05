@@ -379,6 +379,10 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
+            android:name=".function.daily.WebSocketTestActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToolBox" />
+        <activity
             android:name=".settings.InfoActivity"
             android:exported="true"
             android:theme="@style/Theme.ToolBox" />

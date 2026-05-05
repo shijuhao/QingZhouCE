@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.Web
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.content.edit
@@ -120,6 +121,7 @@ val functionData = listOf(
             FunctionItem("浏览器", "com.example.toolbox.webview.WebViewActivity", Icons.Outlined.Public, "blue"),
             FunctionItem("全屏时钟", "com.example.toolbox.function.daily.FullScreenClockActivity", Icons.Outlined.AccessTime, "green"),
             FunctionItem("秒表", "com.example.toolbox.function.daily.StopWatchActivity", Icons.Outlined.Timer, "orange"),
+            FunctionItem("WebSocket测试", "com.example.toolbox.function.daily.WebSocketTestActivity", Icons.Outlined.Web, "purple"),
             FunctionItem("BMI指数", "com.example.toolbox.function.daily.BMIActivity", Icons.Outlined.Percent, "yellow"),
             FunctionItem("随机抽选", "com.example.toolbox.function.daily.randomChoose.RandomChooseActivity", Icons.Default.Casino, "red"),
             FunctionItem("计分板", "com.example.toolbox.function.daily.MarkBoardActivity", Icons.Default.MarkunreadMailbox, "gray"),
