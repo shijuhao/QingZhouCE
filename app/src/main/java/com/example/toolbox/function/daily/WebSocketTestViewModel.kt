@@ -10,6 +10,22 @@ import okhttp3.*
 import okio.ByteString
 import java.util.concurrent.TimeUnit
 
+// 消息类型
+enum class MessageType {
+    SUCCESS,    // ✅ 成功
+    RECEIVED,   // 📨 收到
+    ERROR,      // ❌ 错误/失败
+    WARNING,    // ⚠️ 警告
+    SENT,       // 📤 发送
+    INFO        // 普通消息
+}
+
+// 消息数据类
+data class WebSocketMessage(
+    val content: String,
+    val type: MessageType
+)
+
 class WebSocketTestViewModel : ViewModel() {
     private var webSocket: WebSocket? = null
     
@@ -18,8 +34,8 @@ class WebSocketTestViewModel : ViewModel() {
     val connectionStatus: StateFlow<String> = _connectionStatus.asStateFlow()
     
     // 消息列表
-    private val _messages = MutableStateFlow<List<String>>(emptyList())
-    val messages: StateFlow<List<String>> = _messages.asStateFlow()
+    private val _messages = MutableStateFlow<List<WebSocketMessage>>(emptyList())
+    val messages: StateFlow<List<WebSocketMessage>> = _messages.asStateFlow()
     
     // 是否已连接
     private val _isConnected = MutableStateFlow(false)
@@ -46,19 +62,19 @@ class WebSocketTestViewModel : ViewModel() {
                 viewModelScope.launch {
                     _isConnected.value = true
                     _connectionStatus.value = "已连接"
-                    addMessage("✅ 连接成功: ${response.code}")
+                    addMessage("连接成功: ${response.code}", MessageType.SUCCESS)
                 }
             }
             
             override fun onMessage(webSocket: WebSocket, text: String) {
                 viewModelScope.launch {
-                    addMessage("📨 收到: $text")
+                    addMessage("收到: $text", MessageType.RECEIVED)
                 }
             }
             
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
                 viewModelScope.launch {
-                    addMessage("📨 收到二进制数据: ${bytes.hex()}")
+                    addMessage("收到二进制数据: ${bytes.hex()}", MessageType.RECEIVED)
                 }
             }
             
@@ -66,7 +82,7 @@ class WebSocketTestViewModel : ViewModel() {
                 viewModelScope.launch {
                     _isConnected.value = false
                     _connectionStatus.value = "关闭中..."
-                    addMessage("⚠️ 关闭中: $code - $reason")
+                    addMessage("关闭中: $code - $reason", MessageType.WARNING)
                 }
             }
             
@@ -74,7 +90,7 @@ class WebSocketTestViewModel : ViewModel() {
                 viewModelScope.launch {
                     _isConnected.value = false
                     _connectionStatus.value = "已断开"
-                    addMessage("❌ 已断开: $code - $reason")
+                    addMessage("已断开: $code - $reason", MessageType.ERROR)
                 }
             }
             
@@ -82,7 +98,7 @@ class WebSocketTestViewModel : ViewModel() {
                 viewModelScope.launch {
                     _isConnected.value = false
                     _connectionStatus.value = "连接失败"
-                    addMessage("❌ 错误: ${t.message}")
+                    addMessage("错误: ${t.message}", MessageType.ERROR)
                 }
             }
         })
@@ -91,12 +107,12 @@ class WebSocketTestViewModel : ViewModel() {
     // 发送消息
     fun sendMessage(message: String) {
         if (!_isConnected.value) {
-            addMessage("⚠️ 未连接，无法发送")
+            addMessage("未连接，无法发送", MessageType.WARNING)
             return
         }
         
         webSocket?.send(message)
-        addMessage("📤 发送: $message")
+        addMessage("发送: $message", MessageType.SENT)
     }
     
     // 断开连接
@@ -112,11 +128,13 @@ class WebSocketTestViewModel : ViewModel() {
         _messages.value = emptyList()
     }
     
-    // 添加消息
-    private fun addMessage(message: String) {
+    private fun addMessage(content: String, type: MessageType) {
         val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
             .format(java.util.Date())
-        _messages.value += "[$timestamp] $message"
+        _messages.value = _messages.value + WebSocketMessage(
+            content = "[$timestamp] $content",
+            type = type
+        )
     }
     
     override fun onCleared() {

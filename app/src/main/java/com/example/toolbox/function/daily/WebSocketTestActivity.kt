@@ -16,8 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,12 +35,9 @@ class WebSocketTestActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ToolBoxTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    WebSocketTestScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        viewModel = viewModel
-                    )
-                }
+                WebSocketTestScreen(
+                    viewModel = viewModel
+                )
             }
         }
     }
@@ -49,7 +46,6 @@ class WebSocketTestActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WebSocketTestScreen(
-    modifier: Modifier = Modifier,
     viewModel: WebSocketTestViewModel
 ) {
     val context = LocalContext.current
@@ -78,18 +74,55 @@ fun WebSocketTestScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            if (isConnected) {
+                Surface(
+                    shadowElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        OutlinedTextField(
+                            value = messageInput,
+                            onValueChange = { messageInput = it },
+                            label = { Text("消息内容") },
+                            placeholder = { Text("输入要发送的消息") },
+                            modifier = Modifier.weight(1f),
+                            maxLines = 3
+                        )
+                        
+                        Button(
+                            onClick = {
+                                if (messageInput.isNotBlank()) {
+                                    viewModel.sendMessage(messageInput)
+                                    messageInput = ""
+                                }
+                            },
+                            enabled = messageInput.isNotBlank()
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Send, null)
+                        }
+                    }
+                }
+            }
         }
     ) { innerPadding ->
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // 连接状态
+            // 连接状态卡片
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isConnected) 
                         MaterialTheme.colorScheme.primaryContainer 
@@ -158,7 +191,8 @@ fun WebSocketTestScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(16.dp)
+                    .padding(16.dp),
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 if (messages.isEmpty()) {
                     Box(
@@ -183,51 +217,30 @@ fun WebSocketTestScreen(
                     }
                 }
             }
-            
-            // 发送消息区域
-            if (isConnected) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    OutlinedTextField(
-                        value = messageInput,
-                        onValueChange = { messageInput = it },
-                        label = { Text("消息内容") },
-                        placeholder = { Text("输入要发送的消息") },
-                        modifier = Modifier.weight(1f),
-                        maxLines = 3
-                    )
-                    
-                    Button(
-                        onClick = {
-                            if (messageInput.isNotBlank()) {
-                                viewModel.sendMessage(messageInput)
-                                messageInput = ""
-                            }
-                        },
-                        enabled = messageInput.isNotBlank()
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, null)
-                    }
-                }
-            }
         }
     }
 }
 
 @Composable
-fun MessageItem(message: String) {
+fun MessageItem(message: WebSocketMessage) {
     val context = LocalContext.current
+    
+    // 根据消息类型选择图标
+    val (icon, iconColor) = when (message.type) {
+        MessageType.SUCCESS -> Icons.Default.CheckCircle to Color(0xFF4CAF50)
+        MessageType.RECEIVED -> Icons.Default.CallReceived to Color(0xFF2196F3)
+        MessageType.ERROR -> Icons.Default.Error to Color(0xFFF44336)
+        MessageType.WARNING -> Icons.Default.Warning to Color(0xFFFF9800)
+        MessageType.SENT -> Icons.Default.CallMade to Color(0xFF4CAF50)
+        MessageType.INFO -> Icons.Default.Info to Color(0xFF9E9E9E)
+    }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -236,17 +249,31 @@ fun MessageItem(message: String) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
+            // 图标
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(20.dp)
+                    .padding(top = 1.dp),
+                tint = iconColor
+            )
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            // 消息内容
             Text(
-                text = message,
+                text = message.content,
                 modifier = Modifier.weight(1f),
                 fontFamily = FontFamily.Monospace,
                 style = MaterialTheme.typography.bodySmall
             )
             
+            // 复制按钮
             IconButton(
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText("WebSocket消息", message)
+                    val clip = ClipData.newPlainText("WebSocket消息", message.content)
                     clipboard.setPrimaryClip(clip)
                     Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
                 }
