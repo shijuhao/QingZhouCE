@@ -78,14 +78,14 @@ fun WebSocketTestScreen(
         bottomBar = {
             if (isConnected) {
                 Surface(
-                    shadowElevation = 8.dp
+                    shadowElevation = ŗ.dp
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.Bottom
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
                             value = messageInput,
@@ -96,7 +96,7 @@ fun WebSocketTestScreen(
                             maxLines = 3
                         )
                         
-                        Button(
+                        IconButton(
                             onClick = {
                                 if (messageInput.isNotBlank()) {
                                     viewModel.sendMessage(messageInput)
@@ -191,7 +191,7 @@ fun WebSocketTestScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(16.dp),
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 if (messages.isEmpty()) {
