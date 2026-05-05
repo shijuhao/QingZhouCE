@@ -129,7 +129,7 @@ fun TimerDetailScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(64.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // 控制按钮
             Row(
@@ -164,7 +164,7 @@ fun TimerDetailScreen(
                                 viewModel.resetCountdown(timer.id)
                             }
                         },
-                        enabled = timer.elapsedTime > 0,
+                        enabled = if (timerType == "stopwatch") timer.elapsedTime > 0 else true,
                         modifier = Modifier.size(64.dp)
                     ) {
                         Icon(
