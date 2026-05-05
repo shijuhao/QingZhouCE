@@ -97,6 +97,9 @@ fun MessageScreen(
     val groupViewModel: GroupViewModel = viewModel(
         factory = GroupViewModelFactory(token)
     )
+    
+    val wsManager = remember { ChatSocketManager.getInstance() }
+    val isAuth by wsManager.authState.collectAsState()
 
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -161,7 +164,7 @@ fun MessageScreen(
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text("会话") },
+                title = { Text(if (isAuth) "会话" else "连接中......") },
                 navigationIcon = {
                     IconButton(onClick = { onMenuClick() }) {
                         Icon(Icons.Default.Menu, contentDescription = "菜单")
