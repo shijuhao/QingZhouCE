@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -82,6 +84,7 @@ fun HomeScreen(
     var functionToFavorite by remember { mutableStateOf<FunctionItem?>(null) }
     
     var favoriteRefreshTrigger by remember { mutableIntStateOf(0) }
+    var favoriteIds by remember { mutableStateOf(FavoriteManager.getFavorites(context).toSet()) }
     
     val viewModel: YiYanViewModel = viewModel()
     val aWordText by viewModel.hitokoto.collectAsState()
@@ -90,30 +93,30 @@ fun HomeScreen(
     val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
     val currentDate = remember { Date() }
 
-    val expandedStateFromVM by mainViewModel?.homeExpandedState?.collectAsState()
-        ?: remember { mutableStateOf(emptyMap()) }
-    
-    val expandedState = remember { mutableStateMapOf<String, Boolean>() }
-    
-    LaunchedEffect(Unit) {
-        if (expandedState.isEmpty()) {
-            if (expandedStateFromVM.isNotEmpty()) {
-                expandedState.putAll(expandedStateFromVM)
-            } else {
-                val loaded = functionData.associate { it.name to 
-                    ExpandedStatePrefs.getExpanded(context, it.name, true) 
-                }.toMutableMap()
-                loaded["我的收藏"] = ExpandedStatePrefs.getExpanded(context, "我的收藏", false)
-                expandedState.putAll(loaded)
-                mainViewModel?.initHomeExpandedState(loaded)
+    val expandedState = rememberSaveable(
+        saver = mapSaver(
+            save = { it.toMap() },
+            restore = { 
+                val map = mutableStateMapOf<String, Boolean>()
+                map.putAll(it)
+                map
             }
-        }
+        )
+    ) {
+        mutableStateMapOf()
     }
     
-    fun syncExpandedState(name: String, expanded: Boolean) {
-        expandedState[name] = expanded
-        ExpandedStatePrefs.saveExpanded(context, name, expanded)
-        mainViewModel?.updateHomeExpanded(name, expanded)
+    var expandedStateInitialized by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!expandedStateInitialized) {
+            val loaded = functionData.associate { it.name to 
+                ExpandedStatePrefs.getExpanded(context, it.name, true) 
+            }.toMutableMap()
+            loaded["我的收藏"] = ExpandedStatePrefs.getExpanded(context, "我的收藏", false)
+            expandedState.putAll(loaded)
+            expandedStateInitialized = true
+        }
     }
 
     val allFunctions = remember {
@@ -221,10 +224,7 @@ fun HomeScreen(
                                         functionToFavorite = it.function
                                         showFavoriteDialog = true
                                     },
-                                    isFavorite = FavoriteManager.isFavorite(
-                                        context,
-                                        searchModel.function.activity
-                                    )
+                                    isFavorite = searchModel.function.activity in favoriteIds
                                 )
                             }
                             item {
@@ -327,7 +327,8 @@ fun HomeScreen(
                     favoriteFunctions = favoriteFunctions,
                     onToggle = {
                         val newState = !(expandedState["我的收藏"] ?: false)
-                        syncExpandedState("我的收藏", newState)
+                        expandedState["我的收藏"] = newState
+                        ExpandedStatePrefs.saveExpanded(context, "我的收藏", newState)
                     },
                     onLongPress = { function ->
                         functionToFavorite = function.function
@@ -344,13 +345,15 @@ fun HomeScreen(
                     isLastCategory = index == functionData.size - 1,
                     onToggle = {
                         val newState = !isExpanded
-                        syncExpandedState(category.name, newState)
+                        expandedState[category.name] = newState
+                        ExpandedStatePrefs.saveExpanded(context, category.name, newState)
                     },
                     context = context,
                     onLongPress = {
                         functionToFavorite = it
                         showFavoriteDialog = true
-                    }
+                    },
+                    favoriteIds = favoriteIds
                 )
             }
 
@@ -383,6 +386,7 @@ fun HomeScreen(
                             } else {
                                 FavoriteManager.addFavorite(context, functionToFavorite!!.activity)
                             }
+                            favoriteIds = FavoriteManager.getFavorites(context).toSet()
                             favoriteRefreshTrigger++
                             showFavoriteDialog = false
                         }
@@ -536,7 +540,8 @@ private fun CategoryCard(
     isLastCategory: Boolean,
     onToggle: () -> Unit,
     context: Context,
-    onLongPress: (FunctionItem) -> Unit
+    onLongPress: (FunctionItem) -> Unit,
+    favoriteIds: Set<String>
 ) {
     val cornerRadius = 24.dp
     val smallRadius = 4.dp
@@ -618,7 +623,7 @@ private fun CategoryCard(
                                     function = item,
                                     modifier = Modifier.weight(1f),
                                     onLongPress = { onLongPress(it) },
-                                    isFavorite = FavoriteManager.isFavorite(context, item.activity)
+                                    isFavorite = item.activity in favoriteIds
                                 )
                             }
                             repeat(3 - rowItems.size) { Spacer(modifier = Modifier.weight(1f)) }
