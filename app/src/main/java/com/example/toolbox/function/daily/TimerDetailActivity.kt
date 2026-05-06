@@ -111,27 +111,26 @@ fun TimerDetailScreen(
                     // 左侧 - 重置
                     Box(modifier = Modifier.size(48.dp)) {
                         if (!timer.isRunning) {
-                            if (timerType == "stopwatch" && timer.elapsedTime > 0 || timerType == "countdown" && timer.elapsedTime > 0) {
-                                IconButton(
-                                    onClick = {
-                                        if (timerType == "stopwatch") {
-                                            viewModel.resetStopwatch(timer.id)
-                                        } else {
-                                            viewModel.resetCountdown(timer.id)
-                                        }
-                                    },
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.RotateLeft,
-                                        contentDescription = "重置",
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                }
+                            IconButton(
+                                onClick = {
+                                    if (timerType == "stopwatch") {
+                                        viewModel.resetStopwatch(timer.id)
+                                    } else {
+                                        viewModel.resetCountdown(timer.id)
+                                    }
+                                },
+                                enabled = if (timerType == "stopwatch") timer.elapsedTime > 0 else true,
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.RotateLeft,
+                                    contentDescription = "重置",
+                                    modifier = Modifier.size(28.dp)
+                                )
                             }
                         }
                     }
-        
+                    
                     // 中间 - 开始/暂停
                     if (timer.isRunning) {
                         FilledIconButton(
@@ -144,31 +143,27 @@ fun TimerDetailScreen(
                             },
                             modifier = Modifier.size(64.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Stop,
-                                contentDescription = "暂停",
-                                modifier = Modifier.size(32.dp)
-                            )
+                            Icon(Icons.Default.Stop, "暂停", modifier = Modifier.size(32.dp))
                         }
-                    } else if (timerType == "stopwatch" || timer.elapsedTime > 0) {
-                        FilledIconButton(
-                            onClick = {
-                                if (timerType == "stopwatch") {
-                                    viewModel.startStopwatch(timer.id)
-                                } else {
-                                    viewModel.startCountdown(timer.id)
-                                }
-                            },
-                            modifier = Modifier.size(64.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                contentDescription = if (timer.elapsedTime == 0L) "开始" else "继续",
-                                modifier = Modifier.size(32.dp)
-                            )
+                    } else {
+                        if (timerType == "stopwatch" || timer.elapsedTime > 0) {
+                            FilledIconButton(
+                                onClick = {
+                                    if (timerType == "stopwatch") {
+                                        viewModel.startStopwatch(timer.id)
+                                    } else {
+                                        viewModel.startCountdown(timer.id)
+                                    }
+                                },
+                                modifier = Modifier.size(64.dp)
+                            ) {
+                                Icon(Icons.Default.PlayArrow, "开始", modifier = Modifier.size(32.dp))
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.size(64.dp))
                         }
                     }
-        
+                    
                     // 右侧 - 计次
                     Box(modifier = Modifier.size(48.dp)) {
                         if (timer.isRunning && timerType == "stopwatch") {
@@ -176,11 +171,7 @@ fun TimerDetailScreen(
                                 onClick = { viewModel.recordLap(timer.id) },
                                 modifier = Modifier.size(48.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = "计次",
-                                    modifier = Modifier.size(28.dp)
-                                )
+                                Icon(Icons.Default.Edit, "计次", modifier = Modifier.size(28.dp))
                             }
                         }
                     }
