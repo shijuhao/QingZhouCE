@@ -76,14 +76,6 @@ fun TimerDetailScreen(
         return
     }
 
-    fun formatTime(millis: Long): String {
-        val totalSeconds = millis / 1000
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        val milliseconds = (millis % 1000) / 10
-        return String.format(java.util.Locale.getDefault(), "%02d:%02d.%02d", minutes, seconds, milliseconds)
-    }
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -113,7 +105,7 @@ fun TimerDetailScreen(
 
                 Text(
                     text = if (timer.elapsedTime <= 0 && !timer.isRunning) "时间到！"
-                    else formatTime(timer.elapsedTime),
+                    else formatTime(timer.elapsedTime, false),
                     fontSize = 52.sp,
                     fontWeight = FontWeight.Bold,
                     color = remainingColor,

@@ -26,6 +26,21 @@ import java.util.concurrent.TimeUnit
 class MainViewModel : ViewModel() {
     private val _showSidebar = MutableStateFlow(true)
     val showSidebar: StateFlow<Boolean> = _showSidebar.asStateFlow()
+    
+    private val _homeExpandedState = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val homeExpandedState: StateFlow<Map<String, Boolean>> = _homeExpandedState.asStateFlow()
+    
+    fun updateHomeExpanded(categoryName: String, isExpanded: Boolean) {
+        _homeExpandedState.update { current ->
+            current.toMutableMap().apply { put(categoryName, isExpanded) }
+        }
+    }
+    
+    fun initHomeExpandedState(state: Map<String, Boolean>) {
+        if (_homeExpandedState.value.isEmpty()) {
+            _homeExpandedState.value = state
+        }
+    }
 
     private val _userInfo = MutableStateFlow(UserInfo())
     val userInfo: StateFlow<UserInfo> = _userInfo

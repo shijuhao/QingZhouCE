@@ -123,14 +123,6 @@ fun Greeting(
         }
     }
 
-    fun formatTime(millis: Long): String {
-        val totalSeconds = millis / 1000
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        val milliseconds = (millis % 1000) / 10
-        return String.format(Locale.getDefault(), "%02d:%02d.%02d", minutes, seconds, milliseconds)
-    }
-
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("秒表 & 倒计时") },
@@ -155,8 +147,8 @@ fun Greeting(
         }
 
         when (viewModel.selectedTab) {
-            0 -> StopwatchTab(stopwatches, viewModel, ::formatTime)
-            1 -> CountdownTab(countdowns, viewModel, ::formatTime)
+            0 -> StopwatchTab(stopwatches, viewModel)
+            1 -> CountdownTab(countdowns, viewModel)
         }
     }
 }
@@ -164,8 +156,7 @@ fun Greeting(
 @Composable
 fun StopwatchTab(
     stopwatches: List<TimerInstance>,
-    viewModel: StopWatchViewModel,
-    formatTime: (Long) -> String
+    viewModel: StopWatchViewModel
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -173,7 +164,7 @@ fun StopwatchTab(
             contentPadding = PaddingValues(16.dp)
         ) {
             items(stopwatches, key = { stopwatch -> stopwatch.id }) { stopwatch ->
-                StopwatchCard(stopwatch, viewModel, formatTime)
+                StopwatchCard(stopwatch, viewModel)
             }
         }
 
@@ -193,8 +184,7 @@ fun StopwatchTab(
 @Composable
 fun StopwatchCard(
     stopwatch: TimerInstance,
-    viewModel: StopWatchViewModel,
-    formatTime: (Long) -> String
+    viewModel: StopWatchViewModel
 ) {
     val context = LocalContext.current
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -354,8 +344,7 @@ fun StopwatchCard(
 @Composable
 fun CountdownTab(
     countdowns: List<TimerInstance>,
-    viewModel: StopWatchViewModel,
-    formatTime: (Long) -> String
+    viewModel: StopWatchViewModel
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -363,7 +352,7 @@ fun CountdownTab(
             contentPadding = PaddingValues(16.dp)
         ) {
             items(countdowns, key = { countdown -> countdown.id }) { countdown ->
-                CountdownCard(countdown, viewModel, formatTime)
+                CountdownCard(countdown, viewModel)
             }
         }
 
@@ -383,8 +372,7 @@ fun CountdownTab(
 @Composable
 fun CountdownCard(
     countdown: TimerInstance,
-    viewModel: StopWatchViewModel,
-    formatTime: (Long) -> String
+    viewModel: StopWatchViewModel
 ) {
     val context = LocalContext.current
     var showEditDialog by remember { mutableStateOf(false) }
@@ -437,7 +425,7 @@ fun CountdownCard(
             }
 
             Text(
-                text = if (countdown.elapsedTime <= 0 && !countdown.isRunning) "时间到！" else formatTime(countdown.elapsedTime),
+                text = if (countdown.elapsedTime <= 0 && !countdown.isRunning) "时间到！" else formatTime(countdown.elapsedTime, false),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp),
@@ -650,5 +638,23 @@ fun NumberPicker(
                 modifier = Modifier.size(24.dp)
             )
         }
+    }
+}
+
+fun formatTime(millis: Long, showMs: Boolean = true): String {
+    val totalSeconds = millis / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    val base = if (hours > 0) {
+        String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+    }
+    return if (showMs) {
+        val ms = (millis % 1000) / 10
+        "$base.${String.format(Locale.getDefault(), "%02d", ms)}"
+    } else {
+        base
     }
 }

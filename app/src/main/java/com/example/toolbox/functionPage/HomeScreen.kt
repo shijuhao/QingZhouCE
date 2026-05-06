@@ -90,16 +90,30 @@ fun HomeScreen(
     val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
     val currentDate = remember { Date() }
 
+    val expandedStateFromVM by mainViewModel?.homeExpandedState?.collectAsState()
+        ?: remember { mutableStateOf(emptyMap()) }
+    
     val expandedState = remember { mutableStateMapOf<String, Boolean>() }
-
+    
     LaunchedEffect(Unit) {
         if (expandedState.isEmpty()) {
-            val loadedState = functionData.associate { category ->
-                category.name to ExpandedStatePrefs.getExpanded(context, category.name, true)
-            }.toMutableMap()
-            loadedState["我的收藏"] = ExpandedStatePrefs.getExpanded(context, "我的收藏", false)
-            expandedState.putAll(loadedState)
+            if (expandedStateFromVM.isNotEmpty()) {
+                expandedState.putAll(expandedStateFromVM)
+            } else {
+                val loaded = functionData.associate { it.name to 
+                    ExpandedStatePrefs.getExpanded(context, it.name, true) 
+                }.toMutableMap()
+                loaded["我的收藏"] = ExpandedStatePrefs.getExpanded(context, "我的收藏", false)
+                expandedState.putAll(loaded)
+                mainViewModel?.initHomeExpandedState(loaded)
+            }
         }
+    }
+    
+    fun syncExpandedState(name: String, expanded: Boolean) {
+        expandedState[name] = expanded
+        ExpandedStatePrefs.saveExpanded(context, name, expanded)
+        mainViewModel?.updateHomeExpanded(name, expanded)
     }
 
     val allFunctions = remember {
@@ -110,11 +124,14 @@ fun HomeScreen(
         }
     }
 
-    val favoriteFunctions by remember(favoriteRefreshTrigger) {
-        derivedStateOf { FavoriteManager.getFavoriteFunctions(context, allFunctions) }
+    val favoriteFunctions by remember {
+        derivedStateOf {
+            val _ = favoriteRefreshTrigger
+            FavoriteManager.getFavoriteFunctions(context, allFunctions)
+        }
     }
 
-    val filteredFunctions = remember(searchText) {
+    val filteredFunctions = remember(searchText, favoriteRefreshTrigger) {
         if (searchText.isBlank()) allFunctions
         else allFunctions.filter {
             it.function.name.contains(searchText, ignoreCase = true) ||
@@ -197,7 +214,7 @@ fun HomeScreen(
                         }
                     ) {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(filteredFunctions) { searchModel ->
+                            items(filteredFunctions, key = { it.function.activity }) { searchModel ->
                                 SearchFunctionItem(
                                     function = searchModel,
                                     modifier = Modifier
@@ -313,8 +330,7 @@ fun HomeScreen(
                     favoriteFunctions = favoriteFunctions,
                     onToggle = {
                         val newState = !(expandedState["我的收藏"] ?: false)
-                        expandedState["我的收藏"] = newState
-                        ExpandedStatePrefs.saveExpanded(context, "我的收藏", newState)
+                        syncExpandedState("我的收藏", newState)
                     },
                     onLongPress = { function ->
                         functionToFavorite = function.function
@@ -331,8 +347,7 @@ fun HomeScreen(
                     isLastCategory = index == functionData.size - 1,
                     onToggle = {
                         val newState = !isExpanded
-                        expandedState[category.name] = newState
-                        ExpandedStatePrefs.saveExpanded(context, category.name, newState)
+                        syncExpandedState(category.name, newState)
                     },
                     context = context,
                     onLongPress = {
