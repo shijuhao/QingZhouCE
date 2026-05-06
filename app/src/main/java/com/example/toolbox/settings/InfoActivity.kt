@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.example.toolbox.R
@@ -469,6 +470,9 @@ fun UpdateDialog(
             TextButton(onClick = onDismiss) {
                 Text("稍后")
             }
-        }
+        },
+        properties = DialogProperties(
+            dismissOnClickOutside = isPreRelease
+        )
     )
 }
