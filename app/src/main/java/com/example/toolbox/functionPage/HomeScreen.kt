@@ -124,11 +124,8 @@ fun HomeScreen(
         }
     }
 
-    val favoriteFunctions by remember {
-        derivedStateOf {
-            val _ = favoriteRefreshTrigger
-            FavoriteManager.getFavoriteFunctions(context, allFunctions)
-        }
+    val favoriteFunctions = remember(favoriteRefreshTrigger, allFunctions) {
+        FavoriteManager.getFavoriteFunctions(context, allFunctions)
     }
 
     val filteredFunctions = remember(searchText, favoriteRefreshTrigger) {
