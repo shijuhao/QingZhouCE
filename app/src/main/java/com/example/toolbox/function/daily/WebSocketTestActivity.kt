@@ -83,7 +83,8 @@ fun WebSocketTestScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(12.dp)
+                            .navigationBarsPadding(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

@@ -89,11 +89,8 @@ class MessageViewModel(
     }
 
     fun refresh() {
-        if (isWebSocketUpdate) {
-            isWebSocketUpdate = false
-            return
-        }
-
+        if (uiState.value.isRefreshing) return
+        isWebSocketUpdate = false
         loadFriends(page = 1, isRefresh = true)
     }
 
