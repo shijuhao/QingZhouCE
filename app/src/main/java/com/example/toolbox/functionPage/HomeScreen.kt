@@ -95,10 +95,12 @@ fun HomeScreen(
 
     val expandedState = rememberSaveable(
         saver = mapSaver(
-            save = { it.toMap() },
-            restore = { 
+            save = { it.toMap() as Map<String, Any?> },
+            restore = {
                 val map = mutableStateMapOf<String, Boolean>()
-                map.putAll(it)
+                it.forEach { (key, value) ->
+                    map[key] = value as? Boolean ?: false
+                }
                 map
             }
         )
