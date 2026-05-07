@@ -95,7 +95,7 @@ fun TimerDetailScreen(
                     .background(
                         brush = Brush.verticalGradient(
                             0.0f to Color.Transparent,
-                            0.6f to MaterialTheme.colorScheme.surface,
+                            0.8f to MaterialTheme.colorScheme.surface,
                             startY = 0f,
                             endY = Float.POSITIVE_INFINITY
                         )
@@ -165,8 +165,8 @@ fun TimerDetailScreen(
                     }
                     
                     // 右侧 - 计次 / +1分钟
-                    Box(modifier = Modifier.size(48.dp)) {
-                        if (timer.isRunning && timerType == "stopwatch") {
+                    if (timer.isRunning && timerType == "stopwatch") {
+                        Box(modifier = Modifier.size(48.dp)) {
                             IconButton(
                                 onClick = { viewModel.recordLap(timer.id) },
                                 modifier = Modifier.size(48.dp)
@@ -177,17 +177,18 @@ fun TimerDetailScreen(
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
-                        } else if (timerType == "countdown") {
-                            TextButton(
-                                onClick = { viewModel.addTimeToCountdown(timer.id, 60_000L) },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Text(
-                                    "+1分钟",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                         }
+                    } else if (timerType == "countdown") {
+                        TextButton(
+                            onClick = { viewModel.addTimeToCountdown(timer.id, 60_000L) }
+                        ) {
+                            Text(
+                                "+1分钟",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.size(48.dp))
                     }
                 }
             }

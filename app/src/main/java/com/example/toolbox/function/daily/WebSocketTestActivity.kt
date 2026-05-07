@@ -91,7 +91,6 @@ fun WebSocketTestScreen(
                         OutlinedTextField(
                             value = messageInput,
                             onValueChange = { messageInput = it },
-                            label = { Text("消息内容") },
                             placeholder = { Text("输入要发送的消息") },
                             modifier = Modifier.weight(1f),
                             maxLines = 3
