@@ -633,7 +633,7 @@ fun Game2048Screen(viewModel: GameViewModel = viewModel()) {
                                     text = "2048",
                                     fontSize = 68.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primaryFixedDim,
+                                    color = MaterialTheme.colorScheme.primary,
                                     textAlign = TextAlign.Center
                                 )
                                 Text(
