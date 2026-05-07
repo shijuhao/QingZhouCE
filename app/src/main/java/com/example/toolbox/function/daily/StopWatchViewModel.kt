@@ -28,6 +28,7 @@ data class TimerInstance(
     var isRunning: Boolean = false,
     var elapsedTime: Long = 0L,
     var targetTime: Long = 0L,
+    var originalTargetTime: Long = 0L,
     var startTime: Long = 0L,
     var pausedAt: Long = 0L, // 暂停时的系统时间戳
     val lapTimes: MutableList<Long> = mutableListOf(),
@@ -159,6 +160,7 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         val newCountdown = TimerInstance(
             name = name,
             targetTime = duration,
+            originalTargetTime = duration,
             elapsedTime = duration,
             type = TimerType.COUNTDOWN
         )
@@ -216,6 +218,7 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
             list[index] = list[index].copy(
                 isRunning = false,
                 elapsedTime = list[index].targetTime,
+                originalTargetTime = duration,
                 startTime = 0L,
                 pausedAt = 0L
             )
