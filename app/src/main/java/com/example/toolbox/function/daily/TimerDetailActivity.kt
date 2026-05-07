@@ -105,11 +105,10 @@ fun TimerDetailScreen(
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // 左侧 - 重置
-                    Box(modifier = Modifier.size(48.dp)) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         if (!timer.isRunning) {
                             IconButton(
                                 onClick = {
@@ -130,23 +129,23 @@ fun TimerDetailScreen(
                             }
                         }
                     }
-                    
+                
                     // 中间 - 开始/暂停
-                    if (timer.isRunning) {
-                        FilledIconButton(
-                            onClick = {
-                                if (timerType == "stopwatch") {
-                                    viewModel.pauseStopwatch(timer.id)
-                                } else {
-                                    viewModel.pauseCountdown(timer.id)
-                                }
-                            },
-                            modifier = Modifier.size(64.dp)
-                        ) {
-                            Icon(Icons.Default.Stop, "暂停", modifier = Modifier.size(32.dp))
-                        }
-                    } else {
-                        if (timerType == "stopwatch" || timer.elapsedTime > 0) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (timer.isRunning) {
+                            FilledIconButton(
+                                onClick = {
+                                    if (timerType == "stopwatch") {
+                                        viewModel.pauseStopwatch(timer.id)
+                                    } else {
+                                        viewModel.pauseCountdown(timer.id)
+                                    }
+                                },
+                                modifier = Modifier.size(64.dp)
+                            ) {
+                                Icon(Icons.Default.Stop, "暂停", modifier = Modifier.size(32.dp))
+                            }
+                        } else if (timerType == "stopwatch" || timer.elapsedTime > 0) {
                             FilledIconButton(
                                 onClick = {
                                     if (timerType == "stopwatch") {
@@ -159,14 +158,12 @@ fun TimerDetailScreen(
                             ) {
                                 Icon(Icons.Default.PlayArrow, "开始", modifier = Modifier.size(32.dp))
                             }
-                        } else {
-                            Spacer(modifier = Modifier.size(64.dp))
                         }
                     }
-                    
+                
                     // 右侧 - 计次 / +1分钟
-                    if (timer.isRunning && timerType == "stopwatch") {
-                        Box(modifier = Modifier.size(48.dp)) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (timer.isRunning && timerType == "stopwatch") {
                             IconButton(
                                 onClick = { viewModel.recordLap(timer.id) },
                                 modifier = Modifier.size(48.dp)
@@ -177,18 +174,16 @@ fun TimerDetailScreen(
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
+                        } else if (timerType == "countdown") {
+                            TextButton(
+                                onClick = { viewModel.addTimeToCountdown(timer.id, 60_000L) }
+                            ) {
+                                Text(
+                                    "+1分钟",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    } else if (timerType == "countdown") {
-                        TextButton(
-                            onClick = { viewModel.addTimeToCountdown(timer.id, 60_000L) }
-                        ) {
-                            Text(
-                                "+1分钟",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.size(48.dp))
                     }
                 }
             }
