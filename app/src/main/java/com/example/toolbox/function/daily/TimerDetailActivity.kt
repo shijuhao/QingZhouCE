@@ -94,10 +94,10 @@ fun TimerDetailScreen(
                     .fillMaxWidth()
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.surface
-                            )
+                            0.0f to Color.Transparent,
+                            0.6f to MaterialTheme.colorScheme.surface,
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
                         )
                     )
                     .navigationBarsPadding()
@@ -164,14 +164,28 @@ fun TimerDetailScreen(
                         }
                     }
                     
-                    // 右侧 - 计次
+                    // 右侧 - 计次 / +1分钟
                     Box(modifier = Modifier.size(48.dp)) {
                         if (timer.isRunning && timerType == "stopwatch") {
                             IconButton(
                                 onClick = { viewModel.recordLap(timer.id) },
                                 modifier = Modifier.size(48.dp)
                             ) {
-                                Icon(Icons.Default.Edit, "计次", modifier = Modifier.size(28.dp))
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "计次",
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        } else if (timerType == "countdown") {
+                            TextButton(
+                                onClick = { viewModel.addTimeToCountdown(timer.id, 60_000L) },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Text(
+                                    "+1分钟",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }

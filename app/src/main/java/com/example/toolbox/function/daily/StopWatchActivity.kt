@@ -440,6 +440,17 @@ fun CountdownCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 if (!countdown.isRunning) {
+                    FilledTonalIconButton(
+                        onClick = { viewModel.resetCountdown(countdown.id) },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.RotateLeft,
+                            contentDescription = "重置",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    
                     if (countdown.elapsedTime > 0) {
                         FilledIconButton(
                             onClick = { viewModel.startCountdown(countdown.id) },
@@ -451,17 +462,6 @@ fun CountdownCard(
                                 modifier = Modifier.size(28.dp)
                             )
                         }
-                    }
-            
-                    FilledTonalIconButton(
-                        onClick = { viewModel.resetCountdown(countdown.id) },
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.RotateLeft,
-                            contentDescription = "重置",
-                            modifier = Modifier.size(28.dp)
-                        )
                     }
                     
                     FilledTonalIconButton(

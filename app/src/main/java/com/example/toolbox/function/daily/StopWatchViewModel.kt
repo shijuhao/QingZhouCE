@@ -260,6 +260,35 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
     
+    // 给倒计时增加时间
+    fun addTimeToCountdown(id: String, additionalMs: Long) {
+        val list = _countdowns.value.toMutableList()
+        val index = list.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val countdown = list[index]
+            if (countdown.isRunning) {
+                // 运行中：增加 targetTime，同时调整 startTime 保证剩余时间正确
+                val newTargetTime = countdown.targetTime + additionalMs
+                val now = System.currentTimeMillis()
+                val elapsed = now - countdown.startTime
+                val newRemaining = (newTargetTime - elapsed).coerceAtLeast(0)
+                list[index] = countdown.copy(
+                    targetTime = newTargetTime,
+                    elapsedTime = newRemaining
+                )
+            } else {
+                // 停止中：直接增加 targetTime 和 elapsedTime
+                val newTargetTime = countdown.targetTime + additionalMs
+                val newRemaining = (countdown.elapsedTime + additionalMs).coerceAtLeast(0)
+                list[index] = countdown.copy(
+                    targetTime = newTargetTime,
+                    elapsedTime = newRemaining
+                )
+            }
+            _countdowns.value = list
+        }
+    }
+    
     // 启动后台监控
     private fun startMonitor() {
         monitorJob?.cancel()
