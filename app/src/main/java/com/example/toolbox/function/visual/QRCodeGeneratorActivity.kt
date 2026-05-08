@@ -117,31 +117,47 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
             errorMessage = "请输入要生成${currentType.name}的内容"
             return
         }
-
+    
         try {
             val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java).apply {
                 put(EncodeHintType.CHARACTER_SET, "UTF-8")
                 put(EncodeHintType.MARGIN, 1)
             }
-
+    
+            val processedText = when (currentType.format) {
+                BarcodeFormat.QR_CODE, BarcodeFormat.AZTEC, BarcodeFormat.PDF_417 -> {
+                    inputText
+                }
+                else -> {
+                    if (!inputText.all { it.code <= 127 }) {
+                        android.util.Base64.encodeToString(
+                            inputText.toByteArray(Charsets.UTF_8),
+                            android.util.Base64.NO_WRAP
+                        )
+                    } else {
+                        inputText
+                    }
+                }
+            }
+    
             val bitMatrix = when (currentType.format) {
                 BarcodeFormat.QR_CODE -> {
-                    QRCodeWriter().encode(inputText, BarcodeFormat.QR_CODE, 512, 512, hints)
+                    QRCodeWriter().encode(processedText, BarcodeFormat.QR_CODE, 512, 512, hints)
                 }
                 BarcodeFormat.DATA_MATRIX -> {
-                    DataMatrixWriter().encode(inputText, BarcodeFormat.DATA_MATRIX, 256, 256, hints)
+                    DataMatrixWriter().encode(processedText, BarcodeFormat.DATA_MATRIX, 256, 256, hints)
                 }
                 BarcodeFormat.AZTEC -> {
-                    AztecWriter().encode(inputText, BarcodeFormat.AZTEC, 256, 256, hints)
+                    AztecWriter().encode(processedText, BarcodeFormat.AZTEC, 256, 256, hints)
                 }
                 BarcodeFormat.PDF_417 -> {
-                    PDF417Writer().encode(inputText, BarcodeFormat.PDF_417, 512, 256, hints)
+                    PDF417Writer().encode(processedText, BarcodeFormat.PDF_417, 512, 256, hints)
                 }
                 BarcodeFormat.CODE_128 -> {
-                    Code128Writer().encode(inputText, BarcodeFormat.CODE_128, 512, 100, hints)
+                    Code128Writer().encode(processedText, BarcodeFormat.CODE_128, 512, 100, hints)
                 }
                 BarcodeFormat.CODE_39 -> {
-                    Code39Writer().encode(inputText, BarcodeFormat.CODE_39, 512, 100, hints)
+                    Code39Writer().encode(processedText, BarcodeFormat.CODE_39, 512, 100, hints)
                 }
                 BarcodeFormat.EAN_13 -> {
                     if (!inputText.matches(Regex("\\d{12,13}"))) {
@@ -157,11 +173,11 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                 }
                 else -> throw IllegalArgumentException("不支持的条码格式")
             }
-
+    
             val width = bitMatrix.width
             val height = bitMatrix.height
             val pixels = IntArray(width * height)
-
+    
             for (y in 0 until height) {
                 for (x in 0 until width) {
                     pixels[y * width + x] = if (bitMatrix[x, y]) {
@@ -171,10 +187,10 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                     }
                 }
             }
-
+    
             qrCodeBitmap = createBitmap(width, height)
             qrCodeBitmap?.setPixels(pixels, 0, width, 0, 0, width, height)
-
+    
         } catch (e: Exception) {
             errorMessage = "生成${currentType.name}失败: ${e.message}"
         }
@@ -272,13 +288,23 @@ fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
                         singleLine = false,
                         maxLines = 5
                     )
-                    if (currentType.is1D) {
-                        Text(
-                            text = "提示：一维码仅支持ASCII字符，不支持中文",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
+                    when {
+                        currentType.is1D -> {
+                            Text(
+                                text = "提示：一维码仅支持ASCII字符，中文等特殊字符将自动编码",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
+                        currentType.format == BarcodeFormat.DATA_MATRIX -> {
+                            Text(
+                                text = "提示：Data Matrix不支持中文，将自动进行编码处理",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
                     }
                 }
             }
