@@ -313,7 +313,22 @@ fun MyApplicationApp() {
             },
         )
     } else {
-        MainContent()
+        MainContent(
+            nestedScrollConnection = nestedScrollConnection,
+            navController = navController,
+            mainViewModel = mainViewModel,
+            drawerState = drawerState,
+            scope = scope,
+            isMainPage = isMainPage,
+            isBottomBarVisible = isBottomBarVisible,
+            visibleAppDestinations = visibleAppDestinations,
+            selectedRoute = selectedRoute,
+            showDialog = showDialog,
+            userId = userId,
+            userName = userName,
+            userAvatar = userAvatar,
+            onUserDialogDismiss = { mainViewModel.changeUserDialogStatus(false) }
+        )
     }
 
     BackHandler(enabled = drawerState.isOpen) {
@@ -475,7 +490,7 @@ fun MainContentNavHost(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val onMenuClick = remember { { scope.launch { drawerState.open() } } }
+    val onMenuClick: () -> Unit = remember { { scope.launch { drawerState.open() } } }
 
     LaunchedEffect(Unit) {
         AuthManager.initialize(context.applicationContext)

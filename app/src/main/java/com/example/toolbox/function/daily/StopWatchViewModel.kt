@@ -215,17 +215,18 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         val list = _countdowns.value.toMutableList()
         val index = list.indexOfFirst { it.id == id }
         if (index != -1) {
+            val original = list[index].originalTargetTime
             list[index] = list[index].copy(
                 isRunning = false,
-                elapsedTime = list[index].targetTime,
-                originalTargetTime = duration,
+                targetTime = original,
+                elapsedTime = original,
                 startTime = 0L,
                 pausedAt = 0L
             )
             _countdowns.value = list
         }
     }
-
+    
     // 删除倒计时
     fun removeCountdown(id: String) {
         _countdowns.value = _countdowns.value.filter { it.id != id }
