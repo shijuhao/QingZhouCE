@@ -94,40 +94,32 @@ fun ToolBoxTheme(
 
     val colorScheme = when {
         shouldUseDynamicColor -> {
-            val dynamicContext = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(dynamicContext) else dynamicLightColorScheme(dynamicContext)
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         else -> {
-            // 使用Color.kt中定义的颜色方案
             if (darkTheme) darkColorSchemeForTheme(colorTheme) else lightColorSchemeForTheme(colorTheme)
         }
     }
 
     val systemUiController = rememberSystemUiController()
     val useDarkIcons = !darkTheme
+    val view = LocalView.current
 
     SideEffect {
-        systemUiController.setStatusBarColor(
-            color = Color.Transparent,
-            darkIcons = useDarkIcons
-        )
-        systemUiController.setNavigationBarColor(
-            color = Color.Transparent,
-            darkIcons = useDarkIcons,
-            navigationBarContrastEnforced = false
-        )
-    }
-
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        val activity = LocalContext.current as Activity
-        SideEffect {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                activity.window.isNavigationBarContrastEnforced = false
-            }
+        systemUiController.run {
+            setStatusBarColor(color = Color.Transparent, darkIcons = useDarkIcons)
+            setNavigationBarColor(
+                color = Color.Transparent,
+                darkIcons = useDarkIcons,
+                navigationBarContrastEnforced = false
+            )
+        }
+        
+        if (!view.isInEditMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            (context as Activity).window.isNavigationBarContrastEnforced = false
         }
     }
-
+    
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,

@@ -5,10 +5,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-// =======================
-// 主题颜色方案生成函数 (包含完整的 Surface Container 定义)
-// =======================
-
 fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
     return when (theme) {
         ColorTheme.PURPLE -> darkColorScheme(
@@ -35,7 +31,6 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFF8C1D18),
             onErrorContainer = Color(0xFFF9DEDC),
             outline = Color(0xFF938F99),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFF141218),
             surfaceBright = Color(0xFF3B383E),
             surfaceContainerLowest = Color(0xFF0F0D13),
@@ -68,7 +63,6 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFF93000A),
             onErrorContainer = Color(0xFFFFDAD6),
             outline = Color(0xFF8E9099),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFF111318),
             surfaceBright = Color(0xFF37393E),
             surfaceContainerLowest = Color(0xFF0C0E13),
@@ -101,7 +95,6 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFF93000A),
             onErrorContainer = Color(0xFFFFDAD6),
             outline = Color(0xFF8B9389),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFF111411),
             surfaceBright = Color(0xFF373A36),
             surfaceContainerLowest = Color(0xFF0C0F0C),
@@ -123,25 +116,24 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             onTertiary = Color(0xFF383016),
             tertiaryContainer = Color(0xFF50462A),
             onTertiaryContainer = Color(0xFFF0E2BC),
-            background = Color(0xFF201A17),
+            background = Color(0xFF1F1915),
             onBackground = Color(0xFFECE0DA),
-            surface = Color(0xFF201A17),
+            surface = Color(0xFF1F1915),
             onSurface = Color(0xFFECE0DA),
-            surfaceVariant = Color(0xFF52443C),
+            surfaceVariant = Color(0xFF52433B),
             onSurfaceVariant = Color(0xFFD7C2B9),
             error = Color(0xFFFFB4AB),
             onError = Color(0xFF690005),
             errorContainer = Color(0xFF93000A),
             onErrorContainer = Color(0xFFFFDAD6),
             outline = Color(0xFFA08D84),
-            // 新增 Surface Container 系列
-            surfaceDim = Color(0xFF18120F),
-            surfaceBright = Color(0xFF3F3733),
-            surfaceContainerLowest = Color(0xFF120D0A),
-            surfaceContainerLow = Color(0xFF201A17),
-            surfaceContainer = Color(0xFF251E1B),
-            surfaceContainerHigh = Color(0xFF2F2825),
-            surfaceContainerHighest = Color(0xFF3B332F)
+            surfaceDim = Color(0xFF17110E),
+            surfaceBright = Color(0xFF3F3632),
+            surfaceContainerLowest = Color(0xFF110C09),
+            surfaceContainerLow = Color(0xFF1F1915),
+            surfaceContainer = Color(0xFF241D19),
+            surfaceContainerHigh = Color(0xFF2E2723),
+            surfaceContainerHighest = Color(0xFF3A322E)
         )
         ColorTheme.RED -> darkColorScheme(
             primary = Color(0xFFFFB4A9),
@@ -167,7 +159,6 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFF93000A),
             onErrorContainer = Color(0xFFFFDAD6),
             outline = Color(0xFFA08C89),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFF181211),
             surfaceBright = Color(0xFF3F3736),
             surfaceContainerLowest = Color(0xFF120D0C),
@@ -177,15 +168,15 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             surfaceContainerHighest = Color(0xFF3B3332)
         )
         ColorTheme.DEEP_PURPLE -> darkColorScheme(
-            primary = Color(0xFFCFBCFF),
-            onPrimary = Color(0xFF381E72),
-            primaryContainer = Color(0xFF4F378A),
-            onPrimaryContainer = Color(0xFFE9DDFF),
-            secondary = Color(0xFFCBC2DB),
-            onSecondary = Color(0xFF332D41),
-            secondaryContainer = Color(0xFF4A4458),
+            primary = Color(0xFFB4A5FF),
+            onPrimary = Color(0xFF2E006D),
+            primaryContainer = Color(0xFF4400B3),
+            onPrimaryContainer = Color(0xFFE8DEFF),
+            secondary = Color(0xFFC7BFE7),
+            onSecondary = Color(0xFF302A40),
+            secondaryContainer = Color(0xFF474060),
             onSecondaryContainer = Color(0xFFE8DEF8),
-            tertiary = Color(0xFFEFB8C8),
+            tertiary = Color(0xFFF0B8C9),
             onTertiary = Color(0xFF4A2532),
             tertiaryContainer = Color(0xFF633B48),
             onTertiaryContainer = Color(0xFFFFD9E3),
@@ -200,7 +191,6 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFF93000A),
             onErrorContainer = Color(0xFFFFDAD6),
             outline = Color(0xFF948F99),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFF141316),
             surfaceBright = Color(0xFF3B383C),
             surfaceContainerLowest = Color(0xFF0F0E11),
@@ -233,7 +223,6 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFF93000A),
             onErrorContainer = Color(0xFFFFDAD6),
             outline = Color(0xFF899294),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFF101415),
             surfaceBright = Color(0xFF363A3B),
             surfaceContainerLowest = Color(0xFF0B0F10),
@@ -243,37 +232,36 @@ fun darkColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             surfaceContainerHighest = Color(0xFF323536)
         )
         ColorTheme.BROWN -> darkColorScheme(
-            primary = Color(0xFFFFB68E),
-            onPrimary = Color(0xFF532200),
-            primaryContainer = Color(0xFF763300),
-            onPrimaryContainer = Color(0xFFFFDBC9),
-            secondary = Color(0xFFE6BEAC),
-            onSecondary = Color(0xFF432A1E),
-            secondaryContainer = Color(0xFF5C4033),
-            onSecondaryContainer = Color(0xFFFFDBC9),
-            tertiary = Color(0xFFCFC992),
-            onTertiary = Color(0xFF363104),
-            tertiaryContainer = Color(0xFF4D4719),
-            onTertiaryContainer = Color(0xFFECE5AB),
-            background = Color(0xFF201A17),
-            onBackground = Color(0xFFEDE0DB),
-            surface = Color(0xFF201A17),
-            onSurface = Color(0xFFEDE0DB),
-            surfaceVariant = Color(0xFF52443C),
-            onSurfaceVariant = Color(0xFFD7C2B9),
+            primary = Color(0xFFDDB492),
+            onPrimary = Color(0xFF3E1A00),
+            primaryContainer = Color(0xFF5A2800),
+            onPrimaryContainer = Color(0xFFFFDCC7),
+            secondary = Color(0xFFD7BCA7),
+            onSecondary = Color(0xFF3A2818),
+            secondaryContainer = Color(0xFF523E2C),
+            onSecondaryContainer = Color(0xFFF4DBC9),
+            tertiary = Color(0xFFC1BB88),
+            onTertiary = Color(0xFF323001),
+            tertiaryContainer = Color(0xFF494617),
+            onTertiaryContainer = Color(0xFFDED7A3),
+            background = Color(0xFF1E1A16),
+            onBackground = Color(0xFFEBE0DB),
+            surface = Color(0xFF1E1A16),
+            onSurface = Color(0xFFEBE0DB),
+            surfaceVariant = Color(0xFF50433A),
+            onSurfaceVariant = Color(0xFFD5C2B7),
             error = Color(0xFFFFB4AB),
             onError = Color(0xFF690005),
             errorContainer = Color(0xFF93000A),
             onErrorContainer = Color(0xFFFFDAD6),
-            outline = Color(0xFFA08D85),
-            // 新增 Surface Container 系列
-            surfaceDim = Color(0xFF18120F),
-            surfaceBright = Color(0xFF3F3733),
-            surfaceContainerLowest = Color(0xFF120D0A),
-            surfaceContainerLow = Color(0xFF201A17),
-            surfaceContainer = Color(0xFF251E1B),
-            surfaceContainerHigh = Color(0xFF2F2825),
-            surfaceContainerHighest = Color(0xFF3B332F)
+            outline = Color(0xFF9E8C84),
+            surfaceDim = Color(0xFF16120E),
+            surfaceBright = Color(0xFF3D3732),
+            surfaceContainerLowest = Color(0xFF110D09),
+            surfaceContainerLow = Color(0xFF1E1A16),
+            surfaceContainer = Color(0xFF231E19),
+            surfaceContainerHigh = Color(0xFF2D2823),
+            surfaceContainerHighest = Color(0xFF38332D)
         )
     }
 }
@@ -304,7 +292,6 @@ fun lightColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFFF9DEDC),
             onErrorContainer = Color(0xFF410E0B),
             outline = Color(0xFF79747E),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFFDED8E1),
             surfaceBright = Color(0xFFFEF7FF),
             surfaceContainerLowest = Color(0xFFFFFFFF),
@@ -337,7 +324,6 @@ fun lightColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFFFFDAD6),
             onErrorContainer = Color(0xFF410002),
             outline = Color(0xFF74777F),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFFD9D9E0),
             surfaceBright = Color(0xFFF9F9FF),
             surfaceContainerLowest = Color(0xFFFFFFFF),
@@ -370,7 +356,6 @@ fun lightColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFFFFDAD6),
             onErrorContainer = Color(0xFF410002),
             outline = Color(0xFF717971),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFFD9DBD8),
             surfaceBright = Color(0xFFF9FBF7),
             surfaceContainerLowest = Color(0xFFFFFFFF),
@@ -392,25 +377,24 @@ fun lightColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             onTertiary = Color(0xFFFFFFFF),
             tertiaryContainer = Color(0xFFF0E2BC),
             onTertiaryContainer = Color(0xFF221B04),
-            background = Color(0xFFFFFBFF),
+            background = Color(0xFFFFF8F5),
             onBackground = Color(0xFF201A17),
-            surface = Color(0xFFFFFBFF),
+            surface = Color(0xFFFFF8F5),
             onSurface = Color(0xFF201A17),
-            surfaceVariant = Color(0xFFF4DED5),
-            onSurfaceVariant = Color(0xFF52443C),
+            surfaceVariant = Color(0xFFF2DDD1),
+            onSurfaceVariant = Color(0xFF51423A),
             error = Color(0xFFBA1A1A),
             onError = Color(0xFFFFFFFF),
             errorContainer = Color(0xFFFFDAD6),
             onErrorContainer = Color(0xFF410002),
-            outline = Color(0xFF85736B),
-            // 新增 Surface Container 系列
-            surfaceDim = Color(0xFFE3D8D3),
-            surfaceBright = Color(0xFFFFF8F6),
+            outline = Color(0xFF83716A),
+            surfaceDim = Color(0xFFE1D6D0),
+            surfaceBright = Color(0xFFFFF8F5),
             surfaceContainerLowest = Color(0xFFFFFFFF),
-            surfaceContainerLow = Color(0xFFFDF2EC),
-            surfaceContainer = Color(0xFFF7ECE7),
-            surfaceContainerHigh = Color(0xFFF1E6E1),
-            surfaceContainerHighest = Color(0xFFEBE1DC)
+            surfaceContainerLow = Color(0xFFFDF1EA),
+            surfaceContainer = Color(0xFFF7EBE4),
+            surfaceContainerHigh = Color(0xFFF1E5DE),
+            surfaceContainerHighest = Color(0xFFEBE0D9)
         )
         ColorTheme.RED -> lightColorScheme(
             primary = Color(0xFFB42523),
@@ -436,7 +420,6 @@ fun lightColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFFFFDAD6),
             onErrorContainer = Color(0xFF410002),
             outline = Color(0xFF857370),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFFE4D7D6),
             surfaceBright = Color(0xFFFFF8F7),
             surfaceContainerLowest = Color(0xFFFFFFFF),
@@ -469,7 +452,6 @@ fun lightColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFFFFDAD6),
             onErrorContainer = Color(0xFF410002),
             outline = Color(0xFF7A757F),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFFDED8E1),
             surfaceBright = Color(0xFFFEF7FF),
             surfaceContainerLowest = Color(0xFFFFFFFF),
@@ -502,7 +484,6 @@ fun lightColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             errorContainer = Color(0xFFFFDAD6),
             onErrorContainer = Color(0xFF410002),
             outline = Color(0xFF6F797A),
-            // 新增 Surface Container 系列
             surfaceDim = Color(0xFFD9DBDC),
             surfaceBright = Color(0xFFF9FBFB),
             surfaceContainerLowest = Color(0xFFFFFFFF),
@@ -524,25 +505,24 @@ fun lightColorSchemeForTheme(theme: ColorTheme): ColorScheme {
             onTertiary = Color(0xFFFFFFFF),
             tertiaryContainer = Color(0xFFECE5AB),
             onTertiaryContainer = Color(0xFF201C00),
-            background = Color(0xFFFFFBFF),
+            background = Color(0xFFFFFBF8),
             onBackground = Color(0xFF201A17),
-            surface = Color(0xFFFFFBFF),
+            surface = Color(0xFFFFFBF8),
             onSurface = Color(0xFF201A17),
-            surfaceVariant = Color(0xFFF4DED5),
-            onSurfaceVariant = Color(0xFF52443C),
+            surfaceVariant = Color(0xFFF3DDD3),
+            onSurfaceVariant = Color(0xFF51423A),
             error = Color(0xFFBA1A1A),
             onError = Color(0xFFFFFFFF),
             errorContainer = Color(0xFFFFDAD6),
             onErrorContainer = Color(0xFF410002),
-            outline = Color(0xFF85736B),
-            // 新增 Surface Container 系列
-            surfaceDim = Color(0xFFE3D8D3),
-            surfaceBright = Color(0xFFFFF8F6),
+            outline = Color(0xFF83716A),
+            surfaceDim = Color(0xFFE2D7D2),
+            surfaceBright = Color(0xFFFFFBF8),
             surfaceContainerLowest = Color(0xFFFFFFFF),
-            surfaceContainerLow = Color(0xFFFDF2EC),
-            surfaceContainer = Color(0xFFF7ECE7),
-            surfaceContainerHigh = Color(0xFFF1E6E1),
-            surfaceContainerHighest = Color(0xFFEBE1DC)
+            surfaceContainerLow = Color(0xFFFCF3EC),
+            surfaceContainer = Color(0xFFF6EDE6),
+            surfaceContainerHigh = Color(0xFFF0E7E0),
+            surfaceContainerHighest = Color(0xFFEAE2DB)
         )
     }
 }
