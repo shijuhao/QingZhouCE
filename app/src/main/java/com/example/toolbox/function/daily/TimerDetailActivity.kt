@@ -180,7 +180,7 @@ fun TimerDetailScreen(
                             ) {
                                 Text(
                                     "+1分钟",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
