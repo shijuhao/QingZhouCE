@@ -406,7 +406,7 @@ private fun MainContent(
     visibleAppDestinations: List<AppDestinations>,
     selectedRoute: String?,
     showDialog: Boolean,
-    userId: String,
+    userId: Int,
     userName: String,
     userAvatar: String,
     onUserDialogDismiss: () -> Unit
