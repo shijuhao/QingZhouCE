@@ -238,6 +238,7 @@ class StopWatchViewModel(application: Application) : AndroidViewModel(applicatio
         if (index != -1 && !list[index].isRunning) {
             list[index] = list[index].copy(
                 targetTime = duration,
+                originalTargetTime = duration,
                 elapsedTime = duration
             )
             _countdowns.value = list
