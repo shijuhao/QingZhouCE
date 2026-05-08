@@ -209,9 +209,8 @@ fun MyApplicationApp() {
     
     val isMainPage by remember(currentRoute) {
         derivedStateOf {
-            val allRoutes = visibleAppDestinations.map { it.route } + 
-                            TopLevelDestinations.entries.map { it.route }
-            currentRoute in allRoutes
+            val mainRoutes = visibleAppDestinations.map { it.route }
+            currentRoute in mainRoutes
         }
     }
     
