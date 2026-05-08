@@ -175,20 +175,6 @@ fun MyApplicationApp() {
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
 
-    val mainRoutes = remember(showChat) {
-        AppDestinations.entries
-            .filter { item ->
-                when (item) {
-                    AppDestinations.CHAT -> showChat
-                    else -> true
-                }
-            }
-            .map { it.route }
-    }
-    val isMainPage by remember(currentRoute, mainRoutes) {
-        derivedStateOf { currentRoute in mainRoutes }
-    }
-
     var isBottomBarVisible by remember { mutableStateOf(true) }
 
     val userInfo by mainViewModel.userInfo.collectAsState()
@@ -217,19 +203,25 @@ fun MyApplicationApp() {
     }
 
     val visibleAppDestinations = remember(showChat) {
-        AppDestinations.entries.filter { item ->
-            when (item) {
-                AppDestinations.CHAT -> showChat
-                else -> true
-            }
+        if (showChat) AppDestinations.entries.toList()
+        else AppDestinations.entries.filter { it != AppDestinations.CHAT }
+    }
+    
+    val isMainPage by remember(currentRoute) {
+        derivedStateOf {
+            val allRoutes = visibleAppDestinations.map { it.route } + 
+                            TopLevelDestinations.entries.map { it.route }
+            currentRoute in allRoutes
         }
     }
     
-    val selectedRoute by remember(currentDestination, visibleAppDestinations) {
+    val allDestinations = remember(visibleAppDestinations) {
+        visibleAppDestinations.map { it as NavDestination } + 
+        TopLevelDestinations.entries.map { it as NavDestination }
+    }
+    
+    val selectedRoute by remember(currentDestination, allDestinations) {
         derivedStateOf {
-            val allDestinations: List<NavDestination> = 
-                visibleAppDestinations.map { it as NavDestination } + 
-                TopLevelDestinations.entries.map { it as NavDestination }
             allDestinations.find { item ->
                 currentDestination?.hierarchy?.any { it.route == item.route } == true
             }?.route
@@ -249,84 +241,6 @@ fun MyApplicationApp() {
         )
     }
     
-    val mainContent = @Composable {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .nestedScroll(nestedScrollConnection)
-        ) {
-            MainContentNavHost(
-                navController = navController,
-                mainViewModel = mainViewModel,
-                drawerState = drawerState,
-                scope = scope,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            if (isMainPage) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    AnimatedVisibility(
-                        visible = isBottomBarVisible,
-                        enter = slideInVertically { it },
-                        exit = slideOutVertically { it }
-                    ) {
-                        Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
-                            NavigationBar {
-                                visibleAppDestinations.forEach { item ->
-                                    val isSelected = item.route == selectedRoute
-                            
-                                    NavigationBarItem(
-                                        icon = {
-                                            Crossfade(targetState = isSelected) { selected ->
-                                                Icon(
-                                                    imageVector = if (selected) item.icon else item.iconOutlined,
-                                                    contentDescription = null
-                                                )
-                                            }
-                                        },
-                                        label = {
-                                            AnimatedVisibility(
-                                                visible = isSelected,
-                                                enter = fadeIn(animationSpec = tween(200)) +
-                                                        scaleIn(initialScale = 0.5f, animationSpec = tween(200)),
-                                                exit = fadeOut(animationSpec = tween(150)) +
-                                                        scaleOut(targetScale = 0.5f, animationSpec = tween(150))
-                                            ) {
-                                                Text(item.label)
-                                            }
-                                        },
-                                        selected = isSelected,
-                                        onClick = {
-                                            navController.navigate(item.route) {
-                                                popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = true
-                                                }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            UserBottomSheet(
-                show = showDialog,
-                userId = userId,
-                userName = userName,
-                userAvatar = userAvatar,
-                onDismiss = { mainViewModel.changeUserDialogStatus(false) }
-            )
-        }
-    }
-
     if (showSidebar) {
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -352,13 +266,7 @@ fun MyApplicationApp() {
                                 selected = item.route == selectedRoute,
                                 icon = { Icon(item.icon, contentDescription = null) },
                                 onClick = {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
+                                    navController.navigateToTopLevel(item.route)
                                     scope.launch { drawerState.close() }
                                 },
                                 modifier = Modifier.padding(horizontal = 12.dp)
@@ -375,13 +283,7 @@ fun MyApplicationApp() {
                                 selected = item.route == selectedRoute,
                                 icon = { Icon(item.icon, contentDescription = null) },
                                 onClick = {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
+                                    navController.navigateToTopLevel(item.route)
                                     scope.launch { drawerState.close() }
                                 },
                                 modifier = Modifier.padding(horizontal = 12.dp)
@@ -391,10 +293,27 @@ fun MyApplicationApp() {
                 }
             },
             gesturesEnabled = true,
-            content = { mainContent() }
+            content = {
+                MainContent(
+                    nestedScrollConnection = nestedScrollConnection,
+                    navController = navController,
+                    mainViewModel = mainViewModel,
+                    drawerState = drawerState,
+                    scope = scope,
+                    isMainPage = isMainPage,
+                    isBottomBarVisible = isBottomBarVisible,
+                    visibleAppDestinations = visibleAppDestinations,
+                    selectedRoute = selectedRoute,
+                    showDialog = showDialog,
+                    userId = userId,
+                    userName = userName,
+                    userAvatar = userAvatar,
+                    onUserDialogDismiss = { mainViewModel.changeUserDialogStatus(false) }
+                )
+            },
         )
     } else {
-        mainContent()
+        MainContent()
     }
 
     BackHandler(enabled = drawerState.isOpen) {
@@ -409,33 +328,24 @@ fun MyApplicationApp() {
         val currentRoute = currentDestination?.route ?: return@BackHandler
         val defaultStartRoute = getStartDestination(context)
     
-        val isSecondary = currentRoute == AppDestinations.CHAT.route ||
-                          currentRoute == AppDestinations.RESOURCE.route ||
-                          currentRoute == AppDestinations.PROFILE.route
+        val secondaryRoutes = setOf(AppDestinations.CHAT.route, AppDestinations.RESOURCE.route, AppDestinations.PROFILE.route)
+        val isSecondary = currentRoute in secondaryRoutes
     
         if (isSecondary) {
-            navController.navigate(AppDestinations.HOME.route) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
-                launchSingleTop = true
-                restoreState = true
-            }
+            navController.navigateToTopLevel(AppDestinations.HOME.route)
             return@BackHandler
         }
     
-        val isTopLevel = currentRoute == AppDestinations.HOME.route ||
-                         currentRoute == TopLevelDestinations.LFCommunity.route ||
-                         currentRoute == TopLevelDestinations.YHBotMaker.route
+        val topLevelRoutes = setOf(
+            AppDestinations.HOME.route,
+            TopLevelDestinations.LFCommunity.route,
+            TopLevelDestinations.YHBotMaker.route
+        )
+        val isTopLevel = currentRoute in topLevelRoutes
+
         if (!isTopLevel) {
             if (!navController.popBackStack()) {
-                navController.navigate(defaultStartRoute) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
+                navController.navigateToTopLevel(defaultStartRoute)
             }
             return@BackHandler
         }
@@ -454,14 +364,105 @@ fun MyApplicationApp() {
                 }
             }
         } else {
-            navController.navigate(defaultStartRoute) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
+            navController.navigateToTopLevel(defaultStartRoute)
+        }
+    }
+}
+
+fun androidx.navigation.NavHostController.navigateToTopLevel(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+@Composable
+private fun MainContent(
+    nestedScrollConnection: NestedScrollConnection,
+    navController: androidx.navigation.NavHostController,
+    mainViewModel: MainViewModel,
+    drawerState: DrawerState,
+    scope: CoroutineScope,
+    isMainPage: Boolean,
+    isBottomBarVisible: Boolean,
+    visibleAppDestinations: List<AppDestinations>,
+    selectedRoute: String?,
+    showDialog: Boolean,
+    userId: String,
+    userName: String,
+    userAvatar: String,
+    onUserDialogDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .nestedScroll(nestedScrollConnection)
+    ) {
+        MainContentNavHost(
+            navController = navController,
+            mainViewModel = mainViewModel,
+            drawerState = drawerState,
+            scope = scope,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        if (isMainPage) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                AnimatedVisibility(
+                    visible = isBottomBarVisible,
+                    enter = slideInVertically { it },
+                    exit = slideOutVertically { it }
+                ) {
+                    Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
+                        NavigationBar {
+                            visibleAppDestinations.forEach { item ->
+                                val isSelected = item.route == selectedRoute
+                                NavigationBarItem(
+                                    icon = {
+                                        Crossfade(targetState = isSelected) { selected ->
+                                            Icon(
+                                                imageVector = if (selected) item.icon else item.iconOutlined,
+                                                contentDescription = null
+                                            )
+                                        }
+                                    },
+                                    label = {
+                                        AnimatedVisibility(
+                                            visible = isSelected,
+                                            enter = fadeIn(animationSpec = tween(200)) +
+                                                    scaleIn(initialScale = 0.5f, animationSpec = tween(200)),
+                                            exit = fadeOut(animationSpec = tween(150)) +
+                                                    scaleOut(targetScale = 0.5f, animationSpec = tween(150))
+                                        ) {
+                                            Text(item.label)
+                                        }
+                                    },
+                                    selected = isSelected,
+                                    onClick = {
+                                        navController.navigateToTopLevel(item.route)
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
-                launchSingleTop = true
-                restoreState = true
             }
         }
+
+        UserBottomSheet(
+            show = showDialog,
+            userId = userId,
+            userName = userName,
+            userAvatar = userAvatar,
+            onDismiss = onUserDialogDismiss
+        )
     }
 }
 
@@ -474,6 +475,7 @@ fun MainContentNavHost(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val onMenuClick = remember { { scope.launch { drawerState.open() } } }
 
     LaunchedEffect(Unit) {
         AuthManager.initialize(context.applicationContext)
@@ -491,49 +493,37 @@ fun MainContentNavHost(
     ) {
         composable(AppDestinations.HOME.route) {
             HomeScreen(
-                onMenuClick = {
-                    scope.launch { drawerState.open() }
-                },
+                onMenuClick = onMenuClick,
                 mainViewModel = mainViewModel
             )
         }
         composable(AppDestinations.CHAT.route) {
             MessageScreen(
-                onMenuClick = {
-                    scope.launch { drawerState.open() }
-                },
+                onMenuClick = onMenuClick,
                 mainViewModel = mainViewModel
             )
         }
         composable(AppDestinations.RESOURCE.route) {
             ResourceLibScreen(
-                onMenuClick = {
-                    scope.launch { drawerState.open() }
-                },
+                onMenuClick = onMenuClick,
                 mainViewModel = mainViewModel
             )
         }
         composable(AppDestinations.PROFILE.route) {
             ProfileScreen(
-                onMenuClick = {
-                    scope.launch { drawerState.open() }
-                },
+                onMenuClick = onMenuClick,
                 mainViewModel = mainViewModel
             )
         }
         composable(TopLevelDestinations.LFCommunity.route) {
             ProfileScreen_LF(
-                onMenuClick = {
-                    scope.launch { drawerState.open() }
-                }
+                onMenuClick = onMenuClick,
             )
         }
         composable(TopLevelDestinations.YHBotMaker.route) {
             BotManagerScreen(
                 isMain = true,
-                onMenuClick = {
-                    scope.launch { drawerState.open() }
-                }
+                onMenuClick = onMenuClick,
             )
         }
     }
