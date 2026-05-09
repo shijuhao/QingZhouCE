@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 class HistoryBookmarkActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,18 +80,27 @@ fun HistoryBookmarkScreen(onBackClick: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("浏览记录与书签") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+            Column {
+                TopAppBar(
+                    title = { Text("浏览记录与书签") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        }
+                    },
+                    actions = {
+                        if (selectedTab == 0 && historyList.isNotEmpty()) {
+                            IconButton(onClick = {
+                                historyManager.clearHistory()
+                                historyList = emptyList()
+                            }) {
+                                Icon(Icons.Default.Clear, contentDescription = "清空历史")
+                            }
+                        }
                     }
-                }
-            )
-        },
-        bottomBar = {
-            BottomAppBar {
-                SecondaryTabRow(selectedTabIndex = selectedTab, modifier = Modifier.fillMaxWidth()) {
+                )
+                
+                SecondaryTabRow(selectedTabIndex = selectedTab) {
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
@@ -116,16 +124,14 @@ fun HistoryBookmarkScreen(onBackClick: () -> Unit) {
                     onItemClick = { url ->
                         val intent = Intent(context, WebViewActivity::class.java).apply {
                             putExtra("url", url)
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         }
                         context.startActivity(intent)
+                        (context as? ComponentActivity)?.finish()
                     },
                     onDeleteItem = { item ->
                         historyManager.deleteHistoryItem(item)
                         historyList = historyManager.getHistory()
-                    },
-                    onClearAll = {
-                        historyManager.clearHistory()
-                        historyList = emptyList()
                     },
                     isBookmarked = { url -> bookmarkManager.isBookmarked(url) },
                     onToggleBookmark = { title, url ->
@@ -142,8 +148,10 @@ fun HistoryBookmarkScreen(onBackClick: () -> Unit) {
                     onItemClick = { url ->
                         val intent = Intent(context, WebViewActivity::class.java).apply {
                             putExtra("url", url)
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         }
                         context.startActivity(intent)
+                        (context as? ComponentActivity)?.finish()
                     },
                     onDeleteItem = { item ->
                         bookmarkManager.removeBookmark(item)
@@ -160,35 +168,23 @@ fun HistoryTab(
     historyList: List<Bookmark>,
     onItemClick: (String) -> Unit,
     onDeleteItem: (Bookmark) -> Unit,
-    onClearAll: () -> Unit,
     isBookmarked: (String) -> Boolean,
     onToggleBookmark: (String, String) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            horizontalArrangement = Arrangement.End
-        ) {
-            IconButton(onClick = onClearAll) {
-                Icon(Icons.Default.Clear, contentDescription = "清空历史")
-            }
+    if (historyList.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("暂无浏览历史", style = MaterialTheme.typography.bodyLarge)
         }
-
-        if (historyList.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("暂无浏览历史", style = MaterialTheme.typography.bodyLarge)
-            }
-        } else {
-            LazyColumn {
-                items(historyList) { item ->
-                    HistoryItem(
-                        bookmark = item,
-                        onClick = { onItemClick(item.url) },
-                        onDelete = { onDeleteItem(item) },
-                        isBookmarked = isBookmarked(item.url),
-                        onToggleBookmark = { onToggleBookmark(item.title, item.url) }
-                    )
-                }
+    } else {
+        LazyColumn {
+            items(historyList) { item ->
+                HistoryItem(
+                    bookmark = item,
+                    onClick = { onItemClick(item.url) },
+                    onDelete = { onDeleteItem(item) },
+                    isBookmarked = isBookmarked(item.url),
+                    onToggleBookmark = { onToggleBookmark(item.title, item.url) }
+                )
             }
         }
     }
@@ -259,7 +255,7 @@ fun HistoryItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                    text = SimpleDateFormat("yyyy-MM-dd HH:mm", LocalLocale.current.platformLocale)
                         .format(Date(bookmark.timeAdded)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)

@@ -386,7 +386,6 @@ fun HomeScreen(
                 Column {
                     ListItem(
                         headlineContent = { Text("创建快捷方式") },
-                        supportingContent = { Text("将功能添加到桌面") },
                         leadingContent = {
                             Icon(
                                 Icons.Default.AddToHomeScreen,
@@ -407,9 +406,6 @@ fun HomeScreen(
                                 if (isFavorite) "取消收藏" else "添加到收藏",
                                 color = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                             )
-                        },
-                        supportingContent = {
-                            Text(if (isFavorite) "从收藏列表移除" else "方便下次快速找到")
                         },
                         leadingContent = {
                             Icon(
