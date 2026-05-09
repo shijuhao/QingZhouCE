@@ -4,6 +4,7 @@ package com.example.toolbox.functionPage
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
@@ -371,37 +372,74 @@ fun HomeScreen(
 
     if (showFavoriteDialog && functionToFavorite != null) {
         val isFavorite = FavoriteManager.isFavorite(context, functionToFavorite!!.activity)
+        val function = functionToFavorite!!
+    
         AlertDialog(
-            onDismissRequest = { showFavoriteDialog = false },
-            title = { Text(text = if (isFavorite) "取消收藏" else "添加到收藏") },
-            text = { Text(text = "功能：${functionToFavorite!!.name}") },
-            confirmButton = {
-                Text(
-                    text = if (isFavorite) "取消收藏" else "收藏",
-                    modifier = Modifier
-                        .clickable {
+            onDismissRequest = {
+                showFavoriteDialog = false
+                functionToFavorite = null
+            },
+            title = {
+                Text(text = function.name)
+            },
+            text = {
+                Column {
+                    ListItem(
+                        headlineContent = { Text("创建快捷方式") },
+                        supportingContent = { Text("将功能添加到桌面") },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.AddToHomeScreen,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            createShortcut(context, function)
+                            showFavoriteDialog = false
+                            functionToFavorite = null
+                        }
+                    )
+    
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                if (isFavorite) "取消收藏" else "添加到收藏",
+                                color = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        supportingContent = {
+                            Text(if (isFavorite) "从收藏列表移除" else "方便下次快速找到")
+                        },
+                        leadingContent = {
+                            Icon(
+                                if (isFavorite) Icons.Default.HeartBroken else Icons.Default.FavoriteBorder,
+                                contentDescription = null,
+                                tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier.clickable {
                             if (isFavorite) {
-                                FavoriteManager.removeFavorite(
-                                    context,
-                                    functionToFavorite!!.activity
-                                )
+                                FavoriteManager.removeFavorite(context, function.activity)
                             } else {
-                                FavoriteManager.addFavorite(context, functionToFavorite!!.activity)
+                                FavoriteManager.addFavorite(context, function.activity)
                             }
                             favoriteIds = FavoriteManager.getFavorites(context).toSet()
                             favoriteRefreshTrigger++
                             showFavoriteDialog = false
+                            functionToFavorite = null
                         }
-                        .padding(16.dp)
-                )
+                    )
+                }
             },
+            confirmButton = {},
             dismissButton = {
-                Text(
-                    text = "取消",
-                    modifier = Modifier
-                        .clickable { showFavoriteDialog = false }
-                        .padding(16.dp)
-                )
+                TextButton(onClick = {
+                    showFavoriteDialog = false
+                    functionToFavorite = null
+                }) {
+                    Text("取消")
+                }
             }
         )
     }
@@ -635,5 +673,35 @@ private fun CategoryCard(
                 }
             }
         }
+    }
+}
+
+private fun createShortcut(context: Context, function: FunctionItem) {
+    try {
+        val targetClass = Class.forName(function.activity)
+        val targetIntent = Intent(context, targetClass).apply {
+            action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+        }
+
+        val shortcutIntent = Intent("com.android.launcher.action.INSTALL_SHORTCUT").apply {
+            putExtra(Intent.EXTRA_SHORTCUT_INTENT, targetIntent)
+            putExtra(Intent.EXTRA_SHORTCUT_NAME, function.name)
+            putExtra(
+                Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
+                Intent.ShortcutIconResource(context, R.mipmap.ic_launcher)
+            )
+            putExtra("duplicate", false)
+        }
+
+        context.sendBroadcast(shortcutIntent)
+        Toast.makeText(context, "已创建快捷方式", Toast.LENGTH_SHORT).show()
+    } catch (e: ClassNotFoundException) {
+        e.printStackTrace()
+        Toast.makeText(context, "创建失败：功能不可用", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "创建快捷方式失败", Toast.LENGTH_SHORT).show()
     }
 }
