@@ -690,7 +690,7 @@ private fun createShortcut(context: Context, function: FunctionItem) {
             putExtra(Intent.EXTRA_SHORTCUT_NAME, function.name)
             putExtra(
                 Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
-                Intent.ShortcutIconResource(context, R.mipmap.ic_launcher)
+                Intent.ShortcutIconResource.fromContext(context, R.mipmap.ic_launcher)
             )
             putExtra("duplicate", false)
         }
