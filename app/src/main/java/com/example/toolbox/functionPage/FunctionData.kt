@@ -132,7 +132,7 @@ val functionData = listOf(
         icon = Icons.Default.Style.asIcon,
         iconColorName = "green",
         functions = listOf(
-            FunctionItem("条码生成", "com.example.toolbox.function.visual.QRCodeGeneratorActivity", Icons.Filled.QrCode, "purple"),
+            FunctionItem("条码生成", "com.example.toolbox.function.visual.BarcodeGeneratorActivity", Icons.Filled.QrCode, "purple"),
             FunctionItem("防OCR", "com.example.toolbox.function.visual.AntiOCRActivity", Icons.Outlined.HideImage, "blue"),
             FunctionItem("图片取色器", "com.example.toolbox.function.visual.ImageGetColorActivity", Icons.Outlined.Image, "yellow"),
             FunctionItem("MD3 配色参考", "com.example.toolbox.function.visual.MDColorSchemeActivity", Icons.Outlined.Style, "green"),

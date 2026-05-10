@@ -68,7 +68,7 @@ import com.google.zxing.pdf417.PDF417Writer
 import com.google.zxing.aztec.AztecWriter
 import java.util.EnumMap
 
-class QRCodeGeneratorActivity : ComponentActivity() {
+class BarcodeGeneratorActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
