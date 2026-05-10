@@ -233,6 +233,7 @@ data class GroupInfo(
     val description: String = "",
     @SerialName("is_private") val isPrivate: Boolean = false,
     @SerialName("join_verification") val joinVerification: Boolean = false,
+    @SerialName("share_enabled") val shareEnabled: Boolean = false,
     @SerialName("members_count") val membersCount: Int = 0,
     val status: Int = 0,
     @SerialName("created_at") val createdAt: String = "",
