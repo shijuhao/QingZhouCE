@@ -97,8 +97,19 @@
             android:theme="@style/Theme.ToolBox" />
         <activity
             android:name=".message.GroupInfoActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ToolBox" />
+            android:exported="true"
+            android:theme="@style/Theme.ToolBox">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="group"
+                    android:scheme="qz" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".message.GroupMembersActivity"
             android:exported="false"

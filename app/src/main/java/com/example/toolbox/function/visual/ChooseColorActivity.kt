@@ -3,7 +3,6 @@ package com.example.toolbox.function.visual
 import android.app.Activity
 import android.content.Context
 import android.graphics.Color as AndroidColor
-import androidx.compose.ui.graphics.asImageBitmap
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -14,8 +13,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,19 +32,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import com.example.toolbox.ui.theme.ToolBoxTheme
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.set
 
 class ChooseColorActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,42 +68,15 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
     var blue by remember { mutableIntStateOf(255) }
     var alpha by remember { mutableIntStateOf(255) }
 
-    var rectSize by remember { mutableStateOf(IntSize(0, 0)) }
-
     var hue by remember { mutableFloatStateOf(0f) }
     var saturation by remember { mutableFloatStateOf(0f) }
     var value by remember { mutableFloatStateOf(1f) }
 
     var hexColorA by remember { mutableStateOf("#FFFFFF") }
-    var hexColor = remember(red, green, blue, alpha) {
-        if (alpha == 255) {
-            hexColorA
-        } else {
-            "#%02X%02X%02X%02X".format(alpha, red, green, blue)
-        }
-    }
+    var hexColor by remember { mutableStateOf("#FFFFFF") }
     var rgbText by remember { mutableStateOf("RGB(255, 255, 255)") }
     var argbText by remember { mutableStateOf("ARGB(255, 255, 255, 255)") }
     var errorMessage by remember { mutableStateOf("") }
-
-    val gradientBitmap = remember {
-        val width = 256
-        val height = 256
-        createBitmap(width, height)
-    }
-
-    LaunchedEffect(hue) {
-        val width = 256
-        val height = 256
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                val s = x / (width - 1f)
-                val v = 1f - y / (height - 1f)
-                val color = AndroidColor.HSVToColor(floatArrayOf(hue, s, v))
-                gradientBitmap[x, y] = color
-            }
-        }
-    }
 
     val hsv = FloatArray(3)
     AndroidColor.RGBToHSV(255, 255, 255, hsv)
@@ -131,6 +101,7 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
         value = newHsv[2]
 
         hexColorA = String.format("#%02X%02X%02X", red, green, blue)
+        hexColor = if (alpha == 255) hexColorA else String.format("#%02X%02X%02X%02X", alpha, red, green, blue)
         rgbText = "RGB($red, $green, $blue)"
         argbText = "ARGB($alpha, $red, $green, $blue)"
     }
@@ -147,6 +118,7 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
         blue = AndroidColor.blue(rgb)
 
         hexColorA = String.format("#%02X%02X%02X", red, green, blue)
+        hexColor = if (alpha == 255) hexColorA else String.format("#%02X%02X%02X%02X", alpha, red, green, blue)
         rgbText = "RGB($red, $green, $blue)"
         argbText = "ARGB($alpha, $red, $green, $blue)"
     }
@@ -232,129 +204,123 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            Card {
-                Row(
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(250.dp)
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Text("HSV 圆盘选择", style = MaterialTheme.typography.titleMedium)
+                    
+                    // HSV 圆盘
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outline,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .onGloballyPositioned { coordinates ->
-                                rectSize = coordinates.size
-                            }
-                            .pointerInput(rectSize) {
-                                detectDragGestures(
-                                    onDrag = { change, _ ->
-                                        val pos = change.position
-                                        if (rectSize.width > 0 && rectSize.height > 0) {
-                                            val newSaturation =
-                                                (pos.x / rectSize.width).coerceIn(0f, 1f)
-                                            val newValue =
-                                                1f - (pos.y / rectSize.height).coerceIn(0f, 1f)
-                                            updateFromHsv(hue, newSaturation, newValue, alpha)
-                                        }
-                                        change.consume()
-                                    }
-                                )
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, _ ->
+                                    val size = this.size
+                                    val center = Offset(size.width / 2f, size.height / 2f)
+                                    val offset = change.position - center
+                                    
+                                    // 计算角度和距离
+                                    val angle = Math.toDegrees(
+                                        kotlin.math.atan2(offset.y.toDouble(), offset.x.toDouble())
+                                    ).toFloat()
+                                    val distance = kotlin.math.sqrt(
+                                        offset.x * offset.x + offset.y * offset.y
+                                    )
+                                    val maxRadius = kotlin.math.min(size.width, size.height) / 2f
+                                    
+                                    // 更新色相（角度）
+                                    val newHue = (angle + 360) % 360
+                                    
+                                    // 更新饱和度（距离中心的距离）
+                                    val newSaturation = (distance / maxRadius).coerceIn(0f, 1f)
+                                    
+                                    updateFromHsv(newHue, newSaturation, value, alpha)
+                                    change.consume()
+                                }
                             }
                     ) {
                         Canvas(modifier = Modifier.matchParentSize()) {
-                            val w = size.width
-                            val h = size.height
-                            if (w <= 0 || h <= 0) return@Canvas
-
-                            drawImage(
-                                image = gradientBitmap.asImageBitmap(),
-                                dstSize = IntSize(w.toInt(), h.toInt())
+                            val radius = kotlin.math.min(size.width, size.height) / 2f
+                            val center = Offset(size.width / 2f, size.height / 2f)
+                            
+                            // 如果明度为0，直接绘制黑色背景
+                            if (value <= 0.01f) {
+                                drawCircle(
+                                    color = ComposeColor.Black,
+                                    center = center,
+                                    radius = radius
+                                )
+                            } else {
+                                // 使用径向渐变绘制HSV圆盘（高性能）
+                                // 先绘制色相环作为背景
+                                for (i in 0 until 360 step 2) {
+                                    drawArc(
+                                        color = ComposeColor(
+                                            AndroidColor.HSVToColor(floatArrayOf(i.toFloat(), 1f, value))
+                                        ),
+                                        startAngle = i.toFloat(),
+                                        sweepAngle = 4f,
+                                        useCenter = true,
+                                        topLeft = center - Offset(radius, radius),
+                                        size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2)
+                                    )
+                                }
+                                
+                                // 再绘制从白到透明的径向渐变（模拟饱和度）
+                                drawCircle(
+                                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                        colors = listOf(
+                                            ComposeColor.White,
+                                            ComposeColor.Transparent
+                                        ),
+                                        center = center,
+                                        radius = radius
+                                    ),
+                                    center = center,
+                                    radius = radius
+                                )
+                            }
+                            
+                            // 绘制饱和度指示器
+                            val indicatorAngle = Math.toRadians(hue.toDouble()).toFloat()
+                            val indicatorDistance = saturation * radius
+                            val indicatorPos = center + Offset(
+                                kotlin.math.cos(indicatorAngle) * indicatorDistance,
+                                kotlin.math.sin(indicatorAngle) * indicatorDistance
                             )
-
-                            val indicatorX = saturation * w
-                            val indicatorY = (1f - value) * h
+                            
                             drawCircle(
                                 color = ComposeColor.White,
-                                radius = 8f,
-                                center = Offset(indicatorX, indicatorY),
-                                style = Stroke(width = 2f)
+                                radius = 10f,
+                                center = indicatorPos
                             )
                             drawCircle(
                                 color = ComposeColor.Black,
-                                radius = 6f,
-                                center = Offset(indicatorX, indicatorY),
-                                style = Stroke(width = 2f)
+                                radius = 8f,
+                                center = indicatorPos
                             )
                         }
                     }
-
-                    Box(
-                        modifier = Modifier
-                            .width(40.dp)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outline,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .pointerInput(Unit) { // key 设为 Unit，因为不需要重置手势
-                                detectDragGestures(
-                                    onDrag = { change, _ ->
-                                        val pos = change.position
-                                        val size = this.size
-                                        // 色相 = 360 * (y / height)
-                                        val newHue = (pos.y / size.height).coerceIn(0f, 1f) * 360f
-                                        updateFromHsv(newHue, saturation, value, alpha)
-                                        change.consume()
-                                    }
-                                )
-                            }
-                    ) {
-                        Canvas(modifier = Modifier.matchParentSize()) {
-                            val w = size.width
-                            val h = size.height
-                            val colors = (0..360 step 10).map { angle ->
-                                ComposeColor(
-                                    AndroidColor.HSVToColor(
-                                        floatArrayOf(
-                                            angle.toFloat(),
-                                            1f,
-                                            1f
-                                        )
-                                    )
-                                )
-                            }
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    colors = colors,
-                                    startY = 0f,
-                                    endY = h
-                                ),
-                                size = size
-                            )
-                            val indicatorY = (hue / 360f) * h
-                            drawRect(
-                                color = ComposeColor.White,
-                                topLeft = Offset(0f, indicatorY - 4f),
-                                size = androidx.compose.ui.geometry.Size(w, 8f),
-                                style = Stroke(width = 2f)
-                            )
-                            drawRect(
-                                color = ComposeColor.Black,
-                                topLeft = Offset(0f, indicatorY - 3f),
-                                size = androidx.compose.ui.geometry.Size(w, 6f),
-                                style = Stroke(width = 2f)
-                            )
-                        }
+                    
+                    // 明度滑块
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("明度: ${(value * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
+                        Slider(
+                            value = value,
+                            onValueChange = { newValue ->
+                                updateFromHsv(hue, saturation, newValue, alpha)
+                            },
+                            valueRange = 0f..1f
+                        )
                     }
                 }
             }
@@ -452,13 +418,29 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
                     OutlinedTextField(
                         value = hexColor,
                         onValueChange = {
+                            // 只更新文本，不立即验证
                             hexColor = it
-                            parseHexColor(it)
+                            errorMessage = "" // 清除错误提示
                         },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("例如: #FF5733") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-                        singleLine = true
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Ascii,
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                // 按回车时才验证
+                                parseHexColor(hexColor)
+                            }
+                        ),
+                        singleLine = true,
+                        isError = errorMessage.isNotEmpty(),
+                        supportingText = {
+                            if (errorMessage.isNotEmpty()) {
+                                Text(errorMessage, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
                     )
                 }
             }

@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CallMade
+import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
@@ -228,10 +230,10 @@ fun MessageItem(message: WebSocketMessage) {
     // 根据消息类型选择图标
     val (icon, iconColor) = when (message.type) {
         MessageType.SUCCESS -> Icons.Default.CheckCircle to Color(0xFF4CAF50)
-        MessageType.RECEIVED -> Icons.Default.CallReceived to Color(0xFF2196F3)
+        MessageType.RECEIVED -> Icons.AutoMirrored.Filled.CallReceived to Color(0xFF2196F3)
         MessageType.ERROR -> Icons.Default.Error to Color(0xFFF44336)
         MessageType.WARNING -> Icons.Default.Warning to Color(0xFFFF9800)
-        MessageType.SENT -> Icons.Default.CallMade to Color(0xFF4CAF50)
+        MessageType.SENT -> Icons.AutoMirrored.Filled.CallMade to Color(0xFF4CAF50)
         MessageType.INFO -> Icons.Default.Info to Color(0xFF9E9E9E)
     }
     

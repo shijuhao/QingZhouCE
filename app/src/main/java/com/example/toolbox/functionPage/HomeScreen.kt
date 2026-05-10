@@ -20,19 +20,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -54,6 +52,7 @@ import com.example.toolbox.utils.UserAvatar
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 
 object ExpandedStatePrefs {
     private const val PREFS_NAME = "functionCategory_expanded"
@@ -388,7 +387,7 @@ fun HomeScreen(
                         headlineContent = { Text("创建快捷方式") },
                         leadingContent = {
                             Icon(
-                                Icons.Default.AddToHomeScreen,
+                                Icons.AutoMirrored.Filled.AddToHomeScreen,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -672,6 +671,7 @@ private fun CategoryCard(
     }
 }
 
+@Suppress("DEPRECATION")
 private fun createShortcut(context: Context, function: FunctionItem) {
     try {
         val targetClass = Class.forName(function.activity)
@@ -681,23 +681,72 @@ private fun createShortcut(context: Context, function: FunctionItem) {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
         }
 
-        val shortcutIntent = Intent("com.android.launcher.action.INSTALL_SHORTCUT").apply {
-            putExtra(Intent.EXTRA_SHORTCUT_INTENT, targetIntent)
-            putExtra(Intent.EXTRA_SHORTCUT_NAME, function.name)
-            putExtra(
-                Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
-                Intent.ShortcutIconResource.fromContext(context, R.mipmap.ic_launcher)
-            )
-            putExtra("duplicate", false)
-        }
+        val composeColor = IconColorMap.getColor(function.iconColorName)
+            ?: androidx.compose.ui.graphics.Color(0xFF2196F3)
+        val iconColor = android.graphics.Color.argb(
+            (composeColor.alpha * 255).toInt(),
+            (composeColor.red * 255).toInt(),
+            (composeColor.green * 255).toInt(),
+            (composeColor.blue * 255).toInt()
+        )
+        val size = 192
+        val bitmap = createBitmap(size, size)
+        val canvas = android.graphics.Canvas(bitmap)
 
-        context.sendBroadcast(shortcutIntent)
-        Toast.makeText(context, "已创建快捷方式", Toast.LENGTH_SHORT).show()
+        val paint = android.graphics.Paint().apply {
+            color = iconColor
+            style = android.graphics.Paint.Style.FILL
+            isAntiAlias = true
+        }
+        val radius = size * 0.2f
+        canvas.drawRoundRect(0f, 0f, size.toFloat(), size.toFloat(), radius, radius, paint)
+
+        val textPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.WHITE
+            textSize = size * 0.5f
+            textAlign = android.graphics.Paint.Align.CENTER
+            isAntiAlias = true
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        val firstChar = function.name.firstOrNull()?.toString() ?: "?"
+        val metrics = textPaint.fontMetrics
+        val y = size / 2f - (metrics.ascent + metrics.descent) / 2f
+        canvas.drawText(firstChar, size / 2f, y, textPaint)
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val shortcutManager = context.getSystemService(android.content.pm.ShortcutManager::class.java)
+            
+            if (shortcutManager != null && shortcutManager.isRequestPinShortcutSupported) {
+                val icon = android.graphics.drawable.Icon.createWithBitmap(bitmap)
+                
+                val pinShortcutInfo = android.content.pm.ShortcutInfo.Builder(context, function.activity)
+                    .setShortLabel(function.name)
+                    .setLongLabel(function.name)
+                    .setIcon(icon)
+                    .setIntent(targetIntent)
+                    .build()
+
+                shortcutManager.requestPinShortcut(pinShortcutInfo, null)
+                Toast.makeText(context, "请确认添加快捷方式", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(context, "当前启动器不支持快捷方式", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            val shortcutIntent = Intent("com.android.launcher.action.INSTALL_SHORTCUT").apply {
+                putExtra(Intent.EXTRA_SHORTCUT_INTENT, targetIntent)
+                putExtra(Intent.EXTRA_SHORTCUT_NAME, function.name)
+                putExtra(Intent.EXTRA_SHORTCUT_ICON, bitmap)
+                putExtra("duplicate", false)
+            }
+            
+            context.sendBroadcast(shortcutIntent)
+            Toast.makeText(context, "已创建快捷方式", Toast.LENGTH_SHORT).show()
+        }
     } catch (e: ClassNotFoundException) {
         e.printStackTrace()
         Toast.makeText(context, "创建失败：功能不可用", Toast.LENGTH_SHORT).show()
     } catch (e: Exception) {
         e.printStackTrace()
-        Toast.makeText(context, "创建快捷方式失败", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "创建快捷方式失败: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }

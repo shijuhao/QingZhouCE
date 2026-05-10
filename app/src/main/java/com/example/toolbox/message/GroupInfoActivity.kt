@@ -1,11 +1,13 @@
 package com.example.toolbox.message
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,8 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.DateRange
@@ -28,11 +32,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,6 +56,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -57,6 +68,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +85,7 @@ import com.example.toolbox.ApiAddress
 import com.example.toolbox.TokenManager
 import com.example.toolbox.data.GroupInfo
 import com.example.toolbox.community.UserInfoActivity
+import com.example.toolbox.community.uploadImage
 import com.example.toolbox.settings.SettingsGroup
 import com.example.toolbox.settings.SettingsItemCell
 import com.example.toolbox.settings.SettingsCustomItem
@@ -80,13 +93,19 @@ import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.core.graphics.toColorInt
+import kotlinx.coroutines.launch
 
 class GroupInfoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
-        val groupId = intent.getIntExtra("group_id", -1)
+
+        val shareKey = intent.data?.getQueryParameter("key")
+        val groupId = if (shareKey != null) {
+            -1
+        } else {
+            intent.getIntExtra("group_id", -1)
+        }
         
         val initialGroupInfo = if (intent.hasExtra("group_name")) {
             GroupInfo(
@@ -105,7 +124,9 @@ class GroupInfoActivity : ComponentActivity() {
             ToolBoxTheme {
                 val token = TokenManager.get(this)
                 val viewModel: GroupInfoViewModel = viewModel(
-                    factory = token?.let { GroupInfoViewModelFactory(it, groupId, initialGroupInfo) }
+                    factory = token?.let { 
+                        GroupInfoViewModelFactory(it, groupId, initialGroupInfo, shareKey) 
+                    }
                 )
                 GroupInfoScreen(
                     viewModel = viewModel,
@@ -124,6 +145,43 @@ fun GroupInfoScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    // 图片选择器
+    val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            // 上传图片
+            scope.launch {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    if (inputStream != null) {
+                        val tempFile = java.io.File(context.cacheDir, "group_avatar_${System.currentTimeMillis()}.jpg")
+                        java.io.FileOutputStream(tempFile).use { output ->
+                            inputStream.copyTo(output)
+                        }
+                        val token = TokenManager.get(context) ?: ""
+                        val imageUrl = uploadImage(
+                            filePath = tempFile.absolutePath,
+                            token = token,
+                            status = 1,
+                            onProgress = { /* 可以显示进度 */ }
+                        )
+                        if (imageUrl != null) {
+                            viewModel.updateEditingAvatarUrl(imageUrl)
+                            Toast.makeText(context, "头像上传成功", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "头像上传失败", Toast.LENGTH_SHORT).show()
+                        }
+                        tempFile.delete()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "图片读取失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.toastMessage.collect { message ->
@@ -230,6 +288,177 @@ fun GroupInfoScreen(
         )
     }
 
+    if (uiState.showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.hideEditDialog() },
+            title = { Text("编辑群信息") },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    // 头像选择区域
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                            if (uiState.editingAvatarUrl.isNotEmpty()) {
+                                AsyncImage(
+                                    model = if (uiState.editingAvatarUrl.startsWith("http")) uiState.editingAvatarUrl
+                                        else "${ApiAddress}uploads/${uiState.editingAvatarUrl}",
+                                    contentDescription = "群头像预览",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(CircleShape)
+                                )
+                            } else {
+                                Icon(Icons.Default.Add, contentDescription = "选择头像")
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        OutlinedTextField(
+                            value = uiState.editingName,
+                            onValueChange = { viewModel.updateEditingName(it) },
+                            label = { Text("群名称") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    OutlinedTextField(
+                        value = uiState.editingDescription,
+                        onValueChange = { viewModel.updateEditingDescription(it) },
+                        label = { Text("群简介") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // 进群审核开关
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable { viewModel.updateEditingJoinVerification(!uiState.editingJoinVerification) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VerifiedUser,
+                            contentDescription = "进群审核",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "进群审核",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "新成员加入需要管理员审核",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = uiState.editingJoinVerification,
+                            onCheckedChange = null,
+                            thumbContent = {
+                                Icon(
+                                    imageVector = if (uiState.editingJoinVerification) Icons.Default.Check else Icons.Default.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                    tint = if (uiState.editingJoinVerification) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHighest
+                                    }
+                                )
+                            }
+                        )
+                    }
+                    
+                    // 允许分享开关
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable { viewModel.updateEditingShareEnabled(!uiState.editingShareEnabled) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "允许分享",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "允许分享",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "允许成员生成分享链接邀请他人加入",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = uiState.editingShareEnabled,
+                            onCheckedChange = null,
+                            thumbContent = {
+                                Icon(
+                                    imageVector = if (uiState.editingShareEnabled) Icons.Default.Check else Icons.Default.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                    tint = if (uiState.editingShareEnabled) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHighest
+                                    }
+                                )
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.editGroupInfo(
+                            name = uiState.editingName,
+                            description = uiState.editingDescription,
+                            avatarUrl = uiState.editingAvatarUrl,
+                            joinVerification = uiState.editingJoinVerification,
+                            shareEnabled = uiState.editingShareEnabled
+                        )
+                        viewModel.hideEditDialog()
+                    },
+                    enabled = !uiState.isEditing
+                ) {
+                    if (uiState.isEditing) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    } else {
+                        Text("保存")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.hideEditDialog() }) { Text("取消") }
+            }
+        )
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -253,34 +482,87 @@ fun GroupInfoScreen(
                         }
                     }
                     var showMenu by remember { mutableStateOf(false) }
+                    var showShareDialog by remember { mutableStateOf(false) }
+                    
                     if (uiState.isJoined) {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "更多")
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            if (uiState.myRole == 2) {
-                                DropdownMenuItem(
-                                    text = { Text("解散群聊") },
-                                    onClick = {
-                                        showMenu = false
-                                        viewModel.showDissolveDialog()
-                                    },
-                                    leadingIcon = { Icon(Icons.Default.Delete, null) }
-                                )
-                            } else {
-                                DropdownMenuItem(
-                                    text = { Text("退出群聊") },
-                                    onClick = {
-                                        showMenu = false
-                                        viewModel.showLeaveDialog()
-                                    },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, null) }
-                                )
+                        // 如果是群主或管理员，显示编辑按钮
+                        if (uiState.myRole > 0) {
+                            IconButton(onClick = { viewModel.showEditDialog() }) {
+                                Icon(Icons.Default.Edit, contentDescription = "编辑群信息")
                             }
                         }
+
+                        IconButton(onClick = { showShareDialog = true }) {
+                            Icon(Icons.Default.Share, contentDescription = "分享群聊")
+                        }
+
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                if (uiState.myRole == 2) {
+                                    DropdownMenuItem(
+                                        text = { Text("解散群聊") },
+                                        onClick = {
+                                            showMenu = false
+                                            viewModel.showDissolveDialog()
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Delete, null) }
+                                    )
+                                } else {
+                                    DropdownMenuItem(
+                                        text = { Text("退出群聊") },
+                                        onClick = {
+                                            showMenu = false
+                                            viewModel.showLeaveDialog()
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.ExitToApp,
+                                                null
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (showShareDialog && uiState.group != null) {
+                        AlertDialog(
+                            onDismissRequest = { showShareDialog = false },
+                            title = { Text("分享群聊") },
+                            text = {
+                                Column {
+                                    Text("生成分享链接邀请他人加入群聊")
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(
+                                        onClick = {
+                                            viewModel.createShareLink(expireHours = 0) { shareUrl ->
+                                                showShareDialog = false
+                                                // 分享链接
+                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                    type = "text/plain"
+                                                    putExtra(Intent.EXTRA_TEXT, shareUrl)
+                                                }
+                                                context.startActivity(Intent.createChooser(shareIntent, "分享群聊链接"))
+                                            }
+                                        }
+                                    ) {
+                                        Text("生成分享链接")
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showShareDialog = false }) {
+                                    Text("取消")
+                                }
+                            }
+                        )
                     }
                 }
             )

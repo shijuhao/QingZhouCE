@@ -91,6 +91,21 @@ class WebViewActivity : ComponentActivity() {
             }
         }
     }
+    
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        
+        // 获取新的URL并加载
+        val newUrl = intent.getStringExtra(EXTRA_URL)
+        if (!newUrl.isNullOrEmpty()) {
+            // 通过广播或者其他方式通知WebView加载新URL
+            // 但由于WebView在Composable中，我们需要一个更简单的方法
+            // 直接finish并重新启动（虽然不理想，但是最可靠的方式）
+            finish()
+            startActivity(intent)
+        }
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")

@@ -75,7 +75,7 @@ class BarcodeGeneratorActivity : ComponentActivity() {
         setContent {
             ToolBoxTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    QRCodeGeneratorScreen(
+                    BarcodeGeneratorScreen(
                         modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
                     )
                 }
@@ -86,7 +86,7 @@ class BarcodeGeneratorActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QRCodeGeneratorScreen(modifier: Modifier = Modifier) {
+fun BarcodeGeneratorScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
     data class BarcodeType(val name: String, val format: BarcodeFormat, val is1D: Boolean)
