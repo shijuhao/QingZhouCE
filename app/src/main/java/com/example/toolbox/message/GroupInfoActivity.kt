@@ -165,7 +165,7 @@ fun GroupInfoScreen(
                         val imageUrl = uploadImage(
                             filePath = tempFile.absolutePath,
                             token = token,
-                            status = 1,
+                            status = 3,
                             onProgress = { /* 可以显示进度 */ }
                         )
                         if (imageUrl != null) {
