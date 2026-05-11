@@ -81,7 +81,7 @@ object MarkdownRenderer {
                         }
                 ) {
                     AsyncImage(
-                        data = imageUrl,
+                        model = imageUrl,
                         contentDescription = altText.ifEmpty { null },
                         modifier = Modifier.fillMaxWidth(),
                         contentScale = ContentScale.FillWidth
