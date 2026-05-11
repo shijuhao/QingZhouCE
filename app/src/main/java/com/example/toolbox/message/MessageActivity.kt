@@ -852,10 +852,9 @@ fun MessageBubble(
                                     AsyncImage(
                                         model = imageUrl,
                                         contentDescription = null,
-                                        contentScale = ContentScale.Crop,
+                                        contentScale = ContentScale.FillWidth,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(150.dp)
                                             .clip(RoundedCornerShape(8.dp))
                                             .clickable { onImageClick(message.images, index) }
                                     )
@@ -873,7 +872,10 @@ fun MessageBubble(
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Row(modifier = Modifier.padding(8.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(8.dp)
+                                    ) {
                                         Box(
                                             modifier = Modifier
                                                 .width(3.dp)

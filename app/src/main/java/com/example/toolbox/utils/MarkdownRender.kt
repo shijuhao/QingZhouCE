@@ -2,6 +2,7 @@ package com.example.toolbox.utils
 
 import android.content.Intent
 import android.util.Log
+import android.webkit.WebView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import com.example.toolbox.webview.WebViewActivity
 import com.mikepenz.markdown.coil3.Coil3ImageTransformerImpl
 import com.mikepenz.markdown.compose.components.markdownComponents
@@ -41,6 +43,14 @@ object MarkdownRenderer {
         onImageClick: ((String, String) -> Unit)? = null
     ) {
         val context = LocalContext.current
+        
+        val userAgent = remember { 
+            try {
+                WebView(context).settings.userAgentString
+            } catch (e: Exception) {
+                "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36"
+            }
+        }
 
         val customUriHandler = remember(onLinkClick) {
             object : UriHandler {
@@ -81,7 +91,10 @@ object MarkdownRenderer {
                         }
                 ) {
                     AsyncImage(
-                        model = imageUrl,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(imageUrl)
+                            .setHeader("User-Agent", userAgent)
+                            .build(),
                         contentDescription = altText.ifEmpty { null },
                         modifier = Modifier.fillMaxWidth(),
                         contentScale = ContentScale.FillWidth
