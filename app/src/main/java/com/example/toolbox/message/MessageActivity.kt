@@ -579,7 +579,7 @@ fun MessageDetailScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = repliedMessage.content.take(50) + if (repliedMessage.content.length > 50) "..." else "",
+                                    text = repliedMessage.content ?: "消息",
                                     fontSize = 12.sp,
                                     maxLines = 1,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -961,18 +961,16 @@ fun MessageBubble(
                         )
                     }
                     
-                    if (message.content.isNotBlank()) {
-                        DropdownMenuItem(
-                            text = { Text("引用") },
-                            onClick = {
-                                showMenu = false
-                                onReply()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.FormatQuote, null, Modifier.size(18.dp))
-                            }
-                        )
-                    }
+                    DropdownMenuItem(
+                        text = { Text("引用") },
+                        onClick = {
+                            showMenu = false
+                            onReply()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.FormatQuote, null, Modifier.size(18.dp))
+                        }
+                    )
                     
                     if (isMine || isAdmin) {
                         DropdownMenuItem(
