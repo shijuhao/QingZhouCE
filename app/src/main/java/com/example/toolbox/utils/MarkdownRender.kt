@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
+import coil3.request.addInterceptor
 import coil3.request.ImageRequest
 import com.example.toolbox.webview.WebViewActivity
 import com.mikepenz.markdown.coil3.Coil3ImageTransformerImpl
@@ -91,9 +92,14 @@ object MarkdownRenderer {
                         }
                 ) {
                     AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
+                        model = ImageRequest.Builder(context)
                             .data(imageUrl)
-                            .setHeader("User-Agent", userAgent)
+                            .addInterceptor { chain ->
+                                val request = chain.request.newBuilder()
+                                    .addHeader("User-Agent", userAgent)
+                                    .build()
+                                chain.proceed(request)
+                            }
                             .build(),
                         contentDescription = altText.ifEmpty { null },
                         modifier = Modifier.fillMaxWidth(),
