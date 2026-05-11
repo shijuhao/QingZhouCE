@@ -835,7 +835,6 @@ fun MessageBubble(
                             if (message.content.isNotBlank()) {
                                 if (message.isMarkdown) {
                                     MarkdownRenderer.Render(
-                                        modifier = Modifier.fillMaxWidth(),
                                         content = message.content
                                     )
                                 } else {
@@ -870,7 +869,6 @@ fun MessageBubble(
                                 val ref = message.quoteMsgInfo
                                 Surface(
                                     modifier = Modifier
-                                        .fillMaxWidth()
                                         .padding(bottom = 4.dp),
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     shape = RoundedCornerShape(8.dp)

@@ -10,32 +10,25 @@ class HistoryManager(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("webview_history", Context.MODE_PRIVATE)
 
     companion object {
-        private const val MAX_HISTORY_SIZE = 100
         private const val KEY_HISTORY = "history_list"
     }
 
-    fun addToHistory(title: String, url: String) {
-        if (url.startsWith("about:") || url.isEmpty()) return
-
+    fun addToHistory(title: String, url: String): Bookmark? {
+        if (url.startsWith("about:") || url.isEmpty()) return null
+    
         val history = getHistory().toMutableList()
-
-        // 如果已存在相同URL，移除旧记录
+    
         history.removeAll { it.url == url }
-
-        // 添加新记录
+    
         val newEntry = Bookmark(
             title = title.ifEmpty { url },
             url = url,
             timeAdded = System.currentTimeMillis()
         )
         history.add(0, newEntry)
-
-        // 限制历史记录数量
-        if (history.size > MAX_HISTORY_SIZE) {
-            history.removeAt(history.size - 1)
-        }
-
+        
         saveHistory(history)
+        return newEntry
     }
 
     fun getHistory(): List<Bookmark> {
@@ -46,6 +39,15 @@ class HistoryManager(private val context: Context) {
             AppJson.json.decodeFromString<List<Bookmark>>(json)
         } catch (_: SerializationException) {
             emptyList()
+        }
+    }
+    
+    fun updateHistoryTitle(id: Long, title: String) {
+        val history = getHistory().toMutableList()
+        val index = history.indexOfFirst { it.id == id }
+        if (index != -1 && title.isNotEmpty()) {
+            history[index] = history[index].copy(title = title)
+            saveHistory(history)
         }
     }
 

@@ -52,6 +52,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import androidx.compose.ui.platform.LocalLocale
 
+data class HistoryGroup(
+    val label: String,
+    val items: List<Bookmark>
+)
+
 class HistoryBookmarkActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +67,40 @@ class HistoryBookmarkActivity : ComponentActivity() {
             }
         }
     }
+}
+
+fun groupHistoryByTime(history: List<Bookmark>): List<HistoryGroup> {
+    val now = System.currentTimeMillis()
+    val calendar = java.util.Calendar.getInstance()
+
+    // 今天 0 点
+    calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+    calendar.set(java.util.Calendar.MINUTE, 0)
+    calendar.set(java.util.Calendar.SECOND, 0)
+    calendar.set(java.util.Calendar.MILLISECOND, 0)
+    val todayStart = calendar.timeInMillis
+
+    // 昨天 0 点
+    val yesterdayStart = todayStart - 24 * 60 * 60 * 1000L
+    // 7 天前 0 点
+    val weekStart = todayStart - 7 * 24 * 60 * 60 * 1000L
+    // 30 天前 0 点
+    val monthStart = todayStart - 30L * 24 * 60 * 60 * 1000L
+
+    val grouped = LinkedHashMap<String, MutableList<Bookmark>>()
+
+    for (item in history) {
+        val label = when {
+            item.timeAdded >= todayStart -> "今天"
+            item.timeAdded >= yesterdayStart -> "昨天"
+            item.timeAdded >= weekStart -> "7 天内"
+            item.timeAdded >= monthStart -> "30 天内"
+            else -> "更早"
+        }
+        grouped.getOrPut(label) { mutableListOf() }.add(item)
+    }
+
+    return grouped.map { (label, items) -> HistoryGroup(label, items) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -141,6 +180,7 @@ fun HistoryBookmarkScreen(onBackClick: () -> Unit) {
                             bookmarkManager.addBookmark(title, url)
                         }
                         bookmarksList = bookmarkManager.getBookmarks()
+                        historyList = historyManager.getHistory()
                     }
                 )
                 1 -> BookmarksTab(
@@ -176,15 +216,35 @@ fun HistoryTab(
             Text("暂无浏览历史", style = MaterialTheme.typography.bodyLarge)
         }
     } else {
+        val groups = remember(historyList) { groupHistoryByTime(historyList) }
+
         LazyColumn {
-            items(historyList) { item ->
-                HistoryItem(
-                    bookmark = item,
-                    onClick = { onItemClick(item.url) },
-                    onDelete = { onDeleteItem(item) },
-                    isBookmarked = isBookmarked(item.url),
-                    onToggleBookmark = { onToggleBookmark(item.title, item.url) }
-                )
+            groups.forEach { group ->
+                item(key = "header_${group.label}") {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 1.dp
+                    ) {
+                        Text(
+                            text = group.label,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                items(group.items, key = { it.id }) { item ->
+                    val bookmarked = isBookmarked(item.url)
+                    HistoryItem(
+                        bookmark = item,
+                        onClick = { onItemClick(item.url) },
+                        onDelete = { onDeleteItem(item) },
+                        isBookmarked = bookmarked,
+                        onToggleBookmark = { onToggleBookmark(item.title, item.url) }
+                    )
+                }
             }
         }
     }
@@ -223,6 +283,21 @@ fun HistoryItem(
     isBookmarked: Boolean,
     onToggleBookmark: () -> Unit
 ) {
+    val calendar = java.util.Calendar.getInstance().apply {
+        set(java.util.Calendar.HOUR_OF_DAY, 0)
+        set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0)
+        set(java.util.Calendar.MILLISECOND, 0)
+    }
+    val todayStart = calendar.timeInMillis
+    val yesterdayStart = todayStart - 24 * 60 * 60 * 1000L
+    
+    val timeText = when {
+        bookmark.timeAdded >= todayStart -> "今天 " + SimpleDateFormat("HH:mm", LocalLocale.current.platformLocale).format(Date(bookmark.timeAdded))
+        bookmark.timeAdded >= yesterdayStart -> "昨天 " + SimpleDateFormat("HH:mm", LocalLocale.current.platformLocale).format(Date(bookmark.timeAdded))
+        else -> SimpleDateFormat("yyyy-MM-dd HH:mm", LocalLocale.current.platformLocale).format(Date(bookmark.timeAdded))
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         tonalElevation = 1.dp
@@ -255,8 +330,7 @@ fun HistoryItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = SimpleDateFormat("yyyy-MM-dd HH:mm", LocalLocale.current.platformLocale)
-                        .format(Date(bookmark.timeAdded)),
+                    text = timeText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )

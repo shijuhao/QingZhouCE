@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -118,6 +119,8 @@ fun WebViewScreen(
     onLanzouLoginSuccess: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
+    
+    var isCurrentUrlBookmarked by remember { mutableStateOf(false) }
 
     // 使用数据类合并状态，减少重组
     data class WebViewUiState(
@@ -183,19 +186,26 @@ fun WebViewScreen(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("添加到书签") },
+                                text = { Text(if (isCurrentUrlBookmarked) "已添加书签" else "添加到书签") },
                                 onClick = {
                                     showMenu = false
                                     val bookmarkManager = BookmarkManager(context)
-                                    if (bookmarkManager.addBookmark(uiState.title, uiState.url)) {
-                                        Toast.makeText(context, "已添加到书签", Toast.LENGTH_SHORT).show()
+                                    if (isCurrentUrlBookmarked) {
+                                        bookmarkManager.removeBookmarkByUrl(uiState.url)
+                                        isCurrentUrlBookmarked = false
+                                        Toast.makeText(context, "已取消书签", Toast.LENGTH_SHORT).show()
                                     } else {
-                                        Toast.makeText(context, "该书签已存在", Toast.LENGTH_SHORT).show()
+                                        if (bookmarkManager.addBookmark(uiState.title, uiState.url)) {
+                                            isCurrentUrlBookmarked = true
+                                            Toast.makeText(context, "已添加到书签", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "该书签已存在", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.BookmarkBorder,
+                                        if (isCurrentUrlBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                                         null,
                                         Modifier.size(18.dp)
                                     )
@@ -309,7 +319,8 @@ fun WebViewScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
 
-                        // WebView 基础设置
+                        var currentHistoryId: Long? = null
+
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
                         settings.loadWithOverviewMode = true
@@ -324,8 +335,12 @@ fun WebViewScreen(
                             }
 
                             override fun onReceivedTitle(view: WebView?, newTitle: String?) {
-                                newTitle?.let {
-                                    uiState = uiState.copy(title = it)
+                                newTitle?.let { title ->
+                                    uiState = uiState.copy(title = title)
+                                    currentHistoryId?.let { id ->
+                                        val historyManager = HistoryManager(context)
+                                        historyManager.updateHistoryTitle(id, title)
+                                    }
                                 }
                             }
                         }
@@ -334,7 +349,7 @@ fun WebViewScreen(
                             override fun shouldOverrideUrlLoading(
                                 view: WebView?,
                                 request: WebResourceRequest?
-                            ) = false // 让 WebView 自行处理
+                            ) = false
 
                             override fun onPageStarted(
                                 view: WebView?,
@@ -347,17 +362,27 @@ fun WebViewScreen(
                                     canGoForward = view?.canGoForward() ?: false
                                 )
                                 val historyManager = HistoryManager(context)
-                                historyManager.addToHistory(view?.title ?: "", urlStr ?: "")
+                                val entry = historyManager.addToHistory(view?.title ?: "", urlStr ?: "")
+                                currentHistoryId = entry?.id
+                                
+                                isCurrentUrlBookmarked = BookmarkManager(context).isBookmarked(urlStr ?: "")
                             }
 
                             override fun onPageFinished(view: WebView?, urlStr: String?) {
+                                val finalTitle = view?.title ?: uiState.title
+
                                 uiState = uiState.copy(
                                     url = urlStr ?: uiState.url,
-                                    title = view?.title ?: uiState.title,
+                                    title = finalTitle,
                                     canGoBack = view?.canGoBack() ?: false,
                                     canGoForward = view?.canGoForward() ?: false,
-                                    progress = 1.0f // 确保进度条隐藏
+                                    progress = 1.0f
                                 )
+                                
+                                currentHistoryId?.let { id ->
+                                    val historyManager = HistoryManager(context)
+                                    historyManager.updateHistoryTitle(id, finalTitle)
+                                }
 
                                 if (isLanzouLoginMode && !handledLanzouLogin) {
                                     val currentUrl = urlStr.orEmpty()
@@ -371,6 +396,8 @@ fun WebViewScreen(
                                         }
                                     }
                                 }
+                                
+                                isCurrentUrlBookmarked = BookmarkManager(context).isBookmarked(urlStr ?: uiState.url)
                             }
                         }
 
@@ -406,7 +433,6 @@ fun WebViewScreen(
                             }
                         }
 
-                        // 加载初始 URL
                         loadUrl(initialUrl)
                         webView = this
                     }
