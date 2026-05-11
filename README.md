@@ -94,7 +94,7 @@
 | 方式 | 账号 |
 |:---|:---|
 | 📨 邮箱 | juhaoluoye@outlook.com |
-| ☁️ 云湖 | 3671941 |
+| ☁️ 云湖群聊 | ![点击加入](https://yhfx.jwznb.com/share?key=j3yOUb5XMON3&ts=1778474622) |
 
 ---
 
