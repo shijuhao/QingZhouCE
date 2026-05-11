@@ -272,7 +272,12 @@ data class GroupInfoUiState(
     val editingAvatarUrl: String = "",
     val editingJoinVerification: Boolean = false,
     val editingShareEnabled: Boolean = false,
-    val isEditing: Boolean = false
+    val isEditing: Boolean = false,
+    
+    // 分享链接相关
+    val shareUrl: String = "",
+    val shareKey: String = "",
+    val isGeneratingShare: Boolean = false
 )
 
 // GroupInfoViewModel for GroupInfoActivity
@@ -979,10 +984,12 @@ class GroupInfoViewModel(
     fun updateEditingShareEnabled(enabled: Boolean) { _uiState.update { it.copy(editingShareEnabled = enabled) } }
     
     // 创建分享链接
-    fun createShareLink(expireHours: Int = 0, onSuccess: (String) -> Unit) {
+    fun createShareLink(expireHours: Int = 0, onSuccess: ((String) -> Unit)? = null) {
         val group = _uiState.value.group ?: return
         
         viewModelScope.launch {
+            _uiState.update { it.copy(isGeneratingShare = true) }
+            
             try {
                 val url = "${ApiAddress}group/create_share"
                 val requestBody = buildJsonObject {
@@ -994,7 +1001,7 @@ class GroupInfoViewModel(
                     .header("x-access-token", token)
                     .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
                     .build()
-
+    
                 val result = withContext(Dispatchers.IO) {
                     val response = client.newCall(request).execute()
                     val responseBody = response.body.string()
@@ -1003,8 +1010,9 @@ class GroupInfoViewModel(
                             val jsonElement = Json.parseToJsonElement(responseBody)
                             val success = jsonElement.jsonObject["success"]?.jsonPrimitive?.booleanOrNull ?: false
                             if (success) {
-                                val shareUrl = jsonElement.jsonObject["share_url"]?.jsonPrimitive?.content
-                                Result.success(shareUrl)
+                                val shareUrl = jsonElement.jsonObject["share_url"]?.jsonPrimitive?.content ?: ""
+                                val shareKey = jsonElement.jsonObject["share_key"]?.jsonPrimitive?.content ?: ""
+                                Result.success(Pair(shareUrl, shareKey))
                             } else {
                                 val message = jsonElement.jsonObject["message"]?.jsonPrimitive?.content ?: "创建失败"
                                 Result.failure(Exception(message))
@@ -1016,22 +1024,31 @@ class GroupInfoViewModel(
                         Result.failure(Exception("请求失败: ${response.code}"))
                     }
                 }
-
+    
                 result.fold(
-                    onSuccess = { shareUrl ->
-                        if (shareUrl != null) {
-                            _toastMessage.emit("分享链接创建成功")
-                            onSuccess(shareUrl)
-                        }
+                    onSuccess = { (shareUrl, shareKey) ->
+                        _uiState.update { it.copy(
+                            shareUrl = shareUrl,
+                            shareKey = shareKey,
+                            isGeneratingShare = false
+                        ) }
+                        onSuccess?.invoke(shareUrl)
                     },
                     onFailure = { exception ->
+                        _uiState.update { it.copy(isGeneratingShare = false) }
                         _toastMessage.emit(exception.message ?: "创建分享链接失败")
                     }
                 )
             } catch (e: Exception) {
+                _uiState.update { it.copy(isGeneratingShare = false) }
                 _toastMessage.emit(e.message ?: "创建分享链接失败")
             }
         }
+    }
+    
+    // 清除分享链接
+    fun clearShareLinks() {
+        _uiState.update { it.copy(shareUrl = "", shareKey = "") }
     }
     
     // 删除标签

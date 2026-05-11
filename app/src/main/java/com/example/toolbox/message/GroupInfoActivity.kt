@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
@@ -50,6 +51,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -492,7 +494,9 @@ fun GroupInfoScreen(
                             }
                         }
 
-                        IconButton(onClick = { showShareDialog = true }) {
+                        IconButton(onClick = { 
+                            showShareDialog = true
+                        }) {
                             Icon(Icons.Default.Share, contentDescription = "分享群聊")
                         }
 
@@ -533,33 +537,83 @@ fun GroupInfoScreen(
                     }
 
                     if (showShareDialog && uiState.group != null) {
+                        val group = uiState.group!!
+                        
+                        LaunchedEffect(Unit) {
+                            viewModel.createShareLink(expireHours = 0) {  }
+                        }
+                        
                         AlertDialog(
-                            onDismissRequest = { showShareDialog = false },
+                            onDismissRequest = { 
+                                showShareDialog = false
+                                viewModel.clearShareLinks()
+                            },
                             title = { Text("分享群聊") },
                             text = {
-                                Column {
-                                    Text("生成分享链接邀请他人加入群聊")
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Button(
-                                        onClick = {
-                                            viewModel.createShareLink(expireHours = 0) { shareUrl ->
-                                                showShareDialog = false
-                                                // 分享链接
-                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                    type = "text/plain"
-                                                    putExtra(Intent.EXTRA_TEXT, shareUrl)
-                                                }
-                                                context.startActivity(Intent.createChooser(shareIntent, "分享群聊链接"))
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    // 外链
+                                    Text(
+                                        "外链",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    OutlinedTextField(
+                                        value = uiState.shareUrl,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        trailingIcon = {
+                                            IconButton(onClick = {
+                                                val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                                                clipboard?.setPrimaryClip(
+                                                    android.content.ClipData.newPlainText("share_url", uiState.shareUrl)
+                                                )
+                                                Toast.makeText(context, "链接已复制", Toast.LENGTH_SHORT).show()
+                                            }) {
+                                                Icon(Icons.Default.ContentCopy, contentDescription = "复制外链")
                                             }
-                                        }
-                                    ) {
-                                        Text("生成分享链接")
+                                        },
+                                        singleLine = true
+                                    )
+                                    
+                                    // 内链（URL Scheme）
+                                    Text(
+                                        "内链",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    val internalUrl = "qz://group?key=${uiState.shareKey}"
+                                    OutlinedTextField(
+                                        value = internalUrl,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        trailingIcon = {
+                                            IconButton(onClick = {
+                                                val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                                                clipboard?.setPrimaryClip(
+                                                    android.content.ClipData.newPlainText("share_url", internalUrl)
+                                                )
+                                                Toast.makeText(context, "链接已复制", Toast.LENGTH_SHORT).show()
+                                            }) {
+                                                Icon(Icons.Default.ContentCopy, contentDescription = "复制内链")
+                                            }
+                                        },
+                                        singleLine = true
+                                    )
+                                    
+                                    if (uiState.isGeneratingShare) {
+                                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                                     }
                                 }
                             },
-                            confirmButton = {
-                                TextButton(onClick = { showShareDialog = false }) {
-                                    Text("取消")
+                            confirmButton = {},
+                            dismissButton = {
+                                TextButton(onClick = { 
+                                    showShareDialog = false
+                                    viewModel.clearShareLinks()
+                                }) {
+                                    Text("关闭")
                                 }
                             }
                         )
