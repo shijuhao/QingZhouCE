@@ -101,6 +101,7 @@ import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -579,9 +580,10 @@ fun MessageDetailScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = repliedMessage.content ?: "消息",
+                                    text = if(repliedMessage.content.isEmpty()) "消息" else repliedMessage.content,
                                     fontSize = 12.sp,
                                     maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -892,9 +894,10 @@ fun MessageBubble(
                                             )
                                             if (ref.content.isNotBlank()) {
                                                 Text(
-                                                    text = ref.content.take(100) + if (ref.content.length > 100) "..." else "",
+                                                    text = ref.content,
                                                     fontSize = 12.sp,
                                                     maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
