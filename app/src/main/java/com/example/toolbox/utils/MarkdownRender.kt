@@ -48,19 +48,30 @@ object MarkdownRenderer {
                     if (onLinkClick != null) {
                         onLinkClick(uri)
                     } else {
-                        try {
-                            val intent = Intent(context, WebViewActivity::class.java).apply {
-                                putExtra(WebViewActivity.EXTRA_URL, uri)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        val isHttp = uri.startsWith("http://") || uri.startsWith("https://")
+                        
+                        if (isHttp) {
+                            try {
+                                val intent = Intent(context, WebViewActivity::class.java).apply {
+                                    putExtra(WebViewActivity.EXTRA_URL, uri)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, uri.toUri())
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                }
                             }
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            runCatching {
+                        } else {
+                            try {
                                 context.startActivity(
                                     Intent(Intent.ACTION_VIEW, uri.toUri())
                                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 )
-                            }
+                            } catch (_: Exception) {}
                         }
                     }
                 }
