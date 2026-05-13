@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WebAsset
 import androidx.compose.material3.BottomAppBar
@@ -48,6 +49,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -135,6 +138,10 @@ fun WebViewScreen(
     var webView: WebView? by remember { mutableStateOf(null) }
     var showMenu by remember { mutableStateOf(false) }
     var handledLanzouLogin by remember { mutableStateOf(false) }
+    
+    var showSchemeDialog by remember { mutableStateOf(false) }
+    var pendingSchemeUrl by remember { mutableStateOf("") }
+    var pendingSchemeAppName by remember { mutableStateOf("") }
 
     // 处理物理返回键：如果 WebView 可后退则后退，否则关闭 Activity
     BackHandler(enabled = webView?.canGoBack() == true) {
@@ -149,6 +156,43 @@ fun WebViewScreen(
             webView?.destroy()
             webView = null
         }
+    }
+    
+    if (showSchemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showSchemeDialog = false },
+            icon = {
+                Icon(Icons.Default.OpenInNew, contentDescription = null)
+            },
+            title = { Text("跳转应用") },
+            text = {
+                Text(
+                    if (pendingSchemeAppName.isNotBlank())
+                        "即将离开浏览器打开「${pendingSchemeAppName}」\n\n$pendingSchemeUrl"
+                    else
+                        "即将离开浏览器打开：$pendingSchemeUrl"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSchemeDialog = false
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, pendingSchemeUrl.toUri())
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "无法打开链接", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Text("允许")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSchemeDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -349,7 +393,35 @@ fun WebViewScreen(
                             override fun shouldOverrideUrlLoading(
                                 view: WebView?,
                                 request: WebResourceRequest?
-                            ) = false
+                            ): Boolean {
+                                val url = request?.url?.toString() ?: return false
+                            
+                                if (url.startsWith("http://") || url.startsWith("https://")) {
+                                    return false
+                                }
+
+                                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                                val resolved = try {
+                                    context.packageManager.resolveActivity(intent, 0)
+                                } catch (_: Exception) {
+                                    null
+                                }
+
+                                if (resolved != null) {
+                                    val appName = try {
+                                        resolved.loadLabel(context.packageManager).toString()
+                                    } catch (_: Exception) {
+                                        ""
+                                    }
+                                    pendingSchemeUrl = url
+                                    pendingSchemeAppName = appName
+                                    showSchemeDialog = true
+                                } else {
+                                    Toast.makeText(context, "没有应用能打开此链接", Toast.LENGTH_SHORT).show()
+                                }
+                            
+                                return true
+                            }
 
                             override fun onPageStarted(
                                 view: WebView?,
