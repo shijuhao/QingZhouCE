@@ -100,6 +100,13 @@ import kotlinx.coroutines.launch
 class GroupInfoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        if (TokenManager.get(this) == null) {
+            Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+        
         enableEdgeToEdge()
 
         val shareKey = intent.data?.getQueryParameter("key")
