@@ -143,12 +143,10 @@ fun WebViewScreen(
     var pendingSchemeUrl by remember { mutableStateOf("") }
     var pendingSchemeAppName by remember { mutableStateOf("") }
 
-    // 处理物理返回键：如果 WebView 可后退则后退，否则关闭 Activity
     BackHandler(enabled = webView?.canGoBack() == true) {
         webView?.goBack()
     }
 
-    // 在 Composable 销毁时释放 WebView 资源，避免内存泄漏
     DisposableEffect(Unit) {
         onDispose {
             webView?.stopLoading()
@@ -311,7 +309,6 @@ fun WebViewScreen(
                         titleContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
-                // 进度条：仅在 progress < 1.0f 时显示（即加载未完成）
                 if (uiState.progress < 1.0f) {
                     LinearProgressIndicator(
                         progress = { uiState.progress },
@@ -474,7 +471,6 @@ fun WebViewScreen(
                         }
 
                         setDownloadListener { downloadUrl, _, contentDisposition, mimetype, _ ->
-                            // 检查外部存储状态
                             if (Environment.getExternalStorageState() != Environment.MEDIA_MOUNTED) {
                                 Toast.makeText(ctx, "外部存储不可用", Toast.LENGTH_LONG).show()
                                 return@setDownloadListener

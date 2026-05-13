@@ -124,6 +124,12 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
+import java.util.concurrent.TimeUnit
+
+private val httpClient = OkHttpClient.Builder()
+    .connectTimeout(30, TimeUnit.SECONDS)
+    .readTimeout(30, TimeUnit.SECONDS)
+    .build()
 
 class UserInfoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -165,7 +171,6 @@ class UserInfoActivity : ComponentActivity() {
 fun UserInfoScreen(userId: Int) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val coroutineScope = rememberCoroutineScope()
 
     // 状态管理
     var userInfo by remember { mutableStateOf<UserInfo?>(null) }
@@ -220,12 +225,27 @@ fun UserInfoScreen(userId: Int) {
 
     // 初始化加载数据
     LaunchedEffect(Unit) {
-        loadUserInfo(context, userId) { info, msgs, res ->
-            userInfo = info
+        val token = TokenManager.get(context) ?: return@LaunchedEffect
+    
+        // 用户信息先加载
+        val info = withContext(Dispatchers.IO) {
+            fetchUserInfo(token, userId)
+        }
+        userInfo = info
+        info?.let { isFollowing = it.isFollowed }
+        isLoading = false
+    
+        scope.launch {
+            val msgs = withContext(Dispatchers.IO) {
+                info?.let { getUserMessages(token, it.userId) } ?: emptyList()
+            }
             messages = msgs
+        }
+        scope.launch {
+            val res = withContext(Dispatchers.IO) {
+                info?.let { getUserResources(token, it.userId) } ?: emptyList()
+            }
             resources = res
-            isLoading = false
-            info?.let { isFollowing = it.isFollowed }
         }
     }
 
@@ -313,13 +333,27 @@ fun UserInfoScreen(userId: Int) {
     val onRefresh: () -> Unit = {
         isRefreshing = true
         scope.launch {
-            loadUserInfo(context, userId) { info, msgs, res ->
-                userInfo = info
-                messages = msgs
-                resources = res
-                isRefreshing = false
-                info?.let { isFollowing = it.isFollowed }
+            val token = TokenManager.get(context) ?: return@launch
+    
+            val info = withContext(Dispatchers.IO) {
+                fetchUserInfo(token, userId)
             }
+            userInfo = info
+            info?.let { isFollowing = it.isFollowed }
+    
+            val msgsJob = scope.launch {
+                messages = withContext(Dispatchers.IO) {
+                    info?.let { getUserMessages(token, it.userId) } ?: emptyList()
+                }
+            }
+            val resJob = scope.launch {
+                resources = withContext(Dispatchers.IO) {
+                    info?.let { getUserResources(token, it.userId) } ?: emptyList()
+                }
+            }
+            msgsJob.join()
+            resJob.join()
+            isRefreshing = false
         }
     }
 
@@ -343,7 +377,7 @@ fun UserInfoScreen(userId: Int) {
                         isAdjusting = true
                         val targetScroll =
                             isScrolling.firstVisibleItemScrollOffset + (threshold - headerBottom)
-                        coroutineScope.launch {
+                        scope.launch {
                             isScrolling.scrollToItem(0, targetScroll)
                             isAdjusting = false
                         }
@@ -353,7 +387,7 @@ fun UserInfoScreen(userId: Int) {
                         isAdjusting = true
                         val targetScroll =
                             isScrolling.firstVisibleItemScrollOffset - (headerBottom - threshold)
-                        coroutineScope.launch {
+                        scope.launch {
                             isScrolling.scrollToItem(0, targetScroll)
                             isAdjusting = false
                         }
@@ -374,49 +408,8 @@ fun UserInfoScreen(userId: Int) {
                     .fillMaxSize()
             ) {
                 if (isLoading && !isRefreshing) {
-                    var showText by remember { mutableStateOf(false) }
-                    
-                    LaunchedEffect(Unit) {
-                        delay(5000)
-                        showText = true
-                    }
-                    
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            ContainedLoadingIndicator()
-                            
-                            if (showText) {
-                                val tipText by remember { mutableStateOf(
-                                    listOf(
-                                        "马上就好！",
-                                        "正在拼命加载中...",
-                                        "客官请稍候~",
-                                        "马上马上！",
-                                        "再等一下下~",
-                                        "快了快了！"
-                                    )
-                                ) }
-                                var currentTipIndex by remember { mutableStateOf(0) }
-                                
-                                LaunchedEffect(showText) {
-                                    if (showText) {
-                                        while (true) {
-                                            delay(3000)
-                                            currentTipIndex = (currentTipIndex + 1) % tipText.size
-                                        }
-                                    }
-                                }
-                                
-                                Text(
-                                    text = tipText[currentTipIndex],
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
+                        ContainedLoadingIndicator()
                     }
                 } else {
                     LazyColumn(
@@ -527,35 +520,31 @@ fun UserInfoScreen(userId: Int) {
                                         message = userMessage,
                                         onLikeClick = {
                                             scope.launch {
-                                                val token =
-                                                    TokenManager.get(context) ?: return@launch
-                                                val client = OkHttpClient()
+                                                val token = TokenManager.get(context) ?: return@launch
+                                                    
+                                                try {
+                                                    val (newIsLiked, newLikeCount) = toggleLike(
+                                                        httpClient,
+                                                        token,
+                                                        userMessage.id,
+                                                        userMessage.is_liked,
+                                                        userMessage.likeCount
+                                                    )
 
-                                                coroutineScope.launch {
-                                                    try {
-                                                        val (newIsLiked, newLikeCount) = toggleLike(
-                                                            client,
-                                                            token,
-                                                            userMessage.id,
-                                                            userMessage.is_liked,
-                                                            userMessage.likeCount
-                                                        )
-
-                                                        messages = messages.map {
-                                                            if (it.id == userMessage.id) {
-                                                                it.copy(
-                                                                    is_liked = newIsLiked,
-                                                                    likeCount = newLikeCount
-                                                                )
-                                                            } else it
-                                                        }
-                                                    } catch (e: Exception) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            e.message ?: "操作失败",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
+                                                    messages = messages.map {
+                                                        if (it.id == userMessage.id) {
+                                                            it.copy(
+                                                                is_liked = newIsLiked,
+                                                                likeCount = newLikeCount
+                                                            )
+                                                        } else it
                                                     }
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        e.message ?: "操作失败",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             }
                                         },
@@ -605,7 +594,7 @@ fun UserInfoScreen(userId: Int) {
                                         .padding(16.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                    ContainedLoadingIndicator(modifier = Modifier.size(32.dp))
                                 }
                             }
                         }
@@ -1139,21 +1128,20 @@ suspend fun loadUserInfo(
     onResult: (UserInfo?, List<UserMessage>, List<ResourceItem>) -> Unit
 ) {
     withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
         val token = TokenManager.get(context)
 
         try {
             // 获取用户信息
-            val userInfo = token?.let { fetchUserInfo(client, it, userId) }
+            val userInfo = token?.let { fetchUserInfo(it, userId) }
 
             // 获取用户帖子
             val messages = userInfo?.let {
-                getUserMessages(client, token, it.userId)
+                getUserMessages(token, it.userId)
             } ?: emptyList()
 
             // 获取用户资源
             val resources = userInfo?.let {
-                getUserResources(client, token, it.userId)
+                getUserResources(token, it.userId)
             } ?: emptyList()
 
             withContext(Dispatchers.Main) {
@@ -1169,7 +1157,6 @@ suspend fun loadUserInfo(
 }
 
 private suspend fun fetchUserInfo(
-    client: OkHttpClient,
     token: String,
     userId: Int
 ): UserInfo? {
@@ -1185,7 +1172,7 @@ private suspend fun fetchUserInfo(
                 .addHeader("x-access-token", token)
                 .build()
 
-            val response = client.newCall(request).execute()
+            val response = httpClient.newCall(request).execute()
 
             if (response.isSuccessful) {
                 val json = JSONObject(response.body.string())
@@ -1223,7 +1210,6 @@ private suspend fun fetchUserInfo(
 }
 
 private suspend fun getUserMessages(
-    client: OkHttpClient,
     token: String,
     userId: Int,
     page: Int = 1
@@ -1241,7 +1227,7 @@ private suspend fun getUserMessages(
             .addHeader("x-access-token", token)
             .build()
 
-        val response = client.newCall(request).execute()
+        val response = httpClient.newCall(request).execute()
 
         if (!response.isSuccessful) return@withContext emptyList()
 
@@ -1329,10 +1315,9 @@ suspend fun loadNextPage(
     page: Int,
     onResult: (List<UserMessage>) -> Unit
 ) {
-    val client = OkHttpClient()
     val token = TokenManager.get(context)
 
-    val msgs = token?.let { getUserMessages(client, it, userId, page + 1) }
+    val msgs = token?.let { getUserMessages(it, userId, page + 1) }
     msgs?.let { onResult(it) }
 }
 
@@ -1342,7 +1327,6 @@ private suspend fun performBanUser(
     hours: Int
 ): Boolean {
     return withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
         val token = TokenManager.get(context) ?: return@withContext false
         try {
             val request = Request.Builder()
@@ -1355,7 +1339,7 @@ private suspend fun performBanUser(
                 )
                 .addHeader("x-access-token", token)
                 .build()
-            val response = client.newCall(request).execute()
+            val response = httpClient.newCall(request).execute()
             response.isSuccessful
         } catch (_: Exception) {
             false
@@ -1369,7 +1353,6 @@ private suspend fun performReportUser(
     reason: String
 ): Boolean {
     return withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
         val token = TokenManager.get(context) ?: return@withContext false
         try {
             val request = Request.Builder()
@@ -1384,7 +1367,7 @@ private suspend fun performReportUser(
                 .addHeader("x-access-token", token)
                 .build()
 
-            val response = client.newCall(request).execute()
+            val response = httpClient.newCall(request).execute()
             val responseData = response.body.string()
 
             withContext(Dispatchers.Main) {
@@ -1407,7 +1390,6 @@ private suspend fun performReportUser(
 }
 
 private suspend fun getUserResources(
-    client: OkHttpClient,
     token: String,
     userId: Int
 ): List<ResourceItem> = withContext(Dispatchers.IO) {
@@ -1422,7 +1404,7 @@ private suspend fun getUserResources(
             .addHeader("x-access-token", token)
             .build()
 
-        val response = client.newCall(request).execute()
+        val response = httpClient.newCall(request).execute()
 
         if (response.isSuccessful) {
             try {
@@ -1447,7 +1429,6 @@ private suspend fun toggleFollow(
     onResult: (Boolean) -> Unit
 ) {
     withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
         val token = TokenManager.get(context)
 
         try {
@@ -1463,7 +1444,7 @@ private suspend fun toggleFollow(
             }
                 ?.build()
 
-            val response = request?.let { client.newCall(it) }?.execute()
+            val response = request?.let { httpClient.newCall(it) }?.execute()
 
             withContext(Dispatchers.Main) {
                 response?.let { onResult(it.isSuccessful) }
