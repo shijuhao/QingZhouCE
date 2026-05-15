@@ -19,24 +19,27 @@ import androidx.compose.ui.unit.dp
 import com.example.toolbox.function.yunhu.yhbotmaker.toast
 import androidx.core.content.edit
 import com.example.toolbox.AppJson
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
-// 数据类
+@Serializable
 data class AutoReply(
     val key: String,
     val reply: String,
-    val type: String
+    val type: String  // text, markdown, html
 )
 
+@Serializable
 data class QuickCommand(
     val id: Int,
-    val did: String
+    val code: String  // Lua 代码片段
 )
 
+@Serializable
 data class CommandData(
-    @SerialName("自动回复")
+    @SerialName("autoReplies")
     val autoReplies: List<AutoReply> = emptyList(),
-    @SerialName("快捷命令")
+    @SerialName("quickCommands")
     val quickCommands: List<QuickCommand> = emptyList()
 )
 
@@ -104,10 +107,8 @@ fun QuickCommandManagerDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 内容区域
                 when (selectedTab) {
                     0 -> {
-                        // 自动回复列表
                         if (data.autoReplies.isEmpty()) {
                             Box(
                                 modifier = Modifier
@@ -123,41 +124,23 @@ fun QuickCommandManagerDialog(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 itemsIndexed(data.autoReplies) { index, item ->
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text("关键词: ${item.key}", style = MaterialTheme.typography.bodyMedium)
-                                                Text("回复: ${item.reply} (${item.type})", style = MaterialTheme.typography.bodySmall)
-                                            }
-                                            IconButton(onClick = {
-                                                editingAutoReply = item
-                                                autoReplyIndex = index
-                                                showAutoReplyDialog = true
-                                            }) {
-                                                Icon(Icons.Default.Edit, null)
-                                            }
-                                            IconButton(onClick = {
-                                                data = data.copy(autoReplies = data.autoReplies.toMutableList().apply { removeAt(index) })
-                                                manager.save(data)
-                                            }) {
-                                                Icon(Icons.Default.Delete, null)
-                                            }
+                                    AutoReplyCard(
+                                        item = item,
+                                        onEdit = {
+                                            editingAutoReply = item
+                                            autoReplyIndex = index
+                                            showAutoReplyDialog = true
+                                        },
+                                        onDelete = {
+                                            data = data.copy(autoReplies = data.autoReplies.toMutableList().apply { removeAt(index) })
+                                            manager.save(data)
                                         }
-                                    }
+                                    )
                                 }
                             }
                         }
                     }
                     1 -> {
-                        // 快捷命令列表
                         if (data.quickCommands.isEmpty()) {
                             Box(
                                 modifier = Modifier
@@ -173,35 +156,18 @@ fun QuickCommandManagerDialog(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 itemsIndexed(data.quickCommands) { index, item ->
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text("命令ID: ${item.id}", style = MaterialTheme.typography.bodyMedium)
-                                                Text("代码: ${item.did.take(20)}${if (item.did.length > 20) "..." else ""}", style = MaterialTheme.typography.bodySmall)
-                                            }
-                                            IconButton(onClick = {
-                                                editingQuickCommand = item
-                                                quickCommandIndex = index
-                                                showQuickCommandDialog = true
-                                            }) {
-                                                Icon(Icons.Default.Edit, null)
-                                            }
-                                            IconButton(onClick = {
-                                                data = data.copy(quickCommands = data.quickCommands.toMutableList().apply { removeAt(index) })
-                                                manager.save(data)
-                                            }) {
-                                                Icon(Icons.Default.Delete, null)
-                                            }
+                                    QuickCommandCard(
+                                        item = item,
+                                        onEdit = {
+                                            editingQuickCommand = item
+                                            quickCommandIndex = index
+                                            showQuickCommandDialog = true
+                                        },
+                                        onDelete = {
+                                            data = data.copy(quickCommands = data.quickCommands.toMutableList().apply { removeAt(index) })
+                                            manager.save(data)
                                         }
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -210,7 +176,6 @@ fun QuickCommandManagerDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 底部添加按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -245,7 +210,6 @@ fun QuickCommandManagerDialog(
         }
     )
 
-    // 自动回复编辑对话框
     if (showAutoReplyDialog) {
         AutoReplyDialog(
             initial = editingAutoReply,
@@ -264,7 +228,6 @@ fun QuickCommandManagerDialog(
         )
     }
 
-    // 快捷命令编辑对话框
     if (showQuickCommandDialog) {
         QuickCommandDialog(
             initial = editingQuickCommand,
@@ -281,6 +244,66 @@ fun QuickCommandManagerDialog(
                 showQuickCommandDialog = false
             }
         )
+    }
+}
+
+@Composable
+fun AutoReplyCard(
+    item: AutoReply,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("关键词: ${item.key}", style = MaterialTheme.typography.bodyMedium)
+                Text("回复: ${item.reply} (${item.type})", style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, null)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null)
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickCommandCard(
+    item: QuickCommand,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("命令ID: ${item.id}", style = MaterialTheme.typography.bodyMedium)
+                Text("代码: ${item.code.take(30)}${if (item.code.length > 30) "..." else ""}", style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, null)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null)
+            }
+        }
     }
 }
 
@@ -364,7 +387,7 @@ fun QuickCommandDialog(
     onConfirm: (QuickCommand) -> Unit
 ) {
     var id by remember { mutableStateOf(initial?.id?.toString() ?: "") }
-    var did by remember { mutableStateOf(initial?.did ?: "") }
+    var code by remember { mutableStateOf(initial?.code ?: "") }
     val context = LocalContext.current
 
     AlertDialog(
@@ -380,11 +403,16 @@ fun QuickCommandDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = did,
-                    onValueChange = { did = it },
-                    label = { Text("执行代码") },
+                    value = code,
+                    onValueChange = { code = it },
+                    label = { Text("执行代码 (Lua)") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
+                )
+                Text(
+                    text = "提示：代码中可以使用 event 变量获取事件数据",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
@@ -396,11 +424,11 @@ fun QuickCommandDialog(
                         toast(context, "命令ID必须为数字")
                         return@TextButton
                     }
-                    if (did.isBlank()) {
+                    if (code.isBlank()) {
                         toast(context, "代码不能为空")
                         return@TextButton
                     }
-                    onConfirm(QuickCommand(idInt, did))
+                    onConfirm(QuickCommand(idInt, code))
                 }
             ) {
                 Text("确定")
