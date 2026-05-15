@@ -2,7 +2,6 @@
 
 package com.example.toolbox.function.yunhu.yhbotmaker.runtime
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -101,7 +100,7 @@ data class ChatMessage(
     val buttonAction: (() -> Unit)? = null
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BotRuntimeScreen(
     token: String,

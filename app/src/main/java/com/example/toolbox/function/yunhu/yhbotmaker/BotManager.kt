@@ -181,7 +181,7 @@ fun BotManagerScreen(
                 ) {
                     itemsIndexed(
                         items = model.bots,
-                        key = { index, bot -> "${index}_${bot.id}_${bot.index}_$refreshKey" }
+                        key = { index, bot -> "${index}_${bot.index}_$refreshKey" }
                     ) { pos, bot ->
                         BotCard(
                             bot = bot,
