@@ -711,12 +711,7 @@ fun BotRuntimeScreen(
                         if (isWsConnected) {
                             BotWebSocketManagerSingleton.disconnect(token)
                         } else {
-                            BotWebSocketManagerSingleton.getInstance(
-                                token = token,
-                                onEvent = onEventCallback,
-                                onStatusChanged = onStatusChangedCallback,
-                                onError = onErrorCallback
-                            )
+                            BotWebSocketManagerSingleton.connect(token)
                         }
                     },
                     containerColor = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary

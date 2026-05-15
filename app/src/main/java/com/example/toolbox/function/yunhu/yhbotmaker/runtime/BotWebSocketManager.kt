@@ -29,6 +29,17 @@ object BotWebSocketManagerSingleton {
         }
     }
     
+    fun connect(token: String) {
+        val instance = managers[token]
+        if (instance == null) {
+            val newInstance = BotWebSocketInstance(token, {}, {}, {})
+            managers[token] = newInstance
+            newInstance.connect()
+        } else {
+            instance.connect()
+        }
+    }
+    
     fun disconnect(token: String) {
         managers.remove(token)?.disconnect()
     }
