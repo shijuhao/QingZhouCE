@@ -1,15 +1,16 @@
 package com.example.toolbox.function.yunhu.yhbotmaker.runtime
 
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
 import android.util.Log
 import com.example.toolbox.AppJson
-import io.socket.client.IO
-import io.socket.client.Socket
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
-import java.net.URI
+import okhttp3.*
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.ConcurrentHashMap
 
 object BotWebSocketManagerSingleton {
@@ -41,9 +42,20 @@ class BotWebSocketInstance(
     private var onStatusChanged: (Boolean) -> Unit,
     private var onError: (String) -> Unit
 ) {
-    private var socket: Socket? = null
-    private var isConnected = false
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val client = OkHttpClient.Builder()
+        .pingInterval(30, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+    
+    private var webSocket: WebSocket? = null
+    @Volatile private var isConnected = false
+    private var isManualDisconnect = false
+    
+    private var reconnectJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    private val mainHandler = Handler(Looper.getMainLooper())
     
     fun updateCallbacks(
         onEvent: (JsonObject) -> Unit,
@@ -53,82 +65,78 @@ class BotWebSocketInstance(
         this.onEvent = onEvent
         this.onStatusChanged = onStatusChanged
         this.onError = onError
-        // 同步当前连接状态
         onStatusChanged(isConnected)
     }
     
     fun connect() {
-        if (socket?.connected() == true) {
+        if (webSocket != null) {
             return
         }
         
-        try {
-            val opts = IO.Options().apply {
-                transports = arrayOf("websocket")
-                reconnection = true
-                reconnectionAttempts = 20
-                reconnectionDelay = 1000
-                reconnectionDelayMax = 30000
-                timeout = 10000
-            }
-            
-            val uri = URI("wss://ws.jwzhd.com/subscribe?token=$token")
-            socket = IO.socket(uri, opts)
-            
-            socket?.on(Socket.EVENT_CONNECT) {
+        isManualDisconnect = false
+        
+        val request = Request.Builder()
+            .url("wss://ws.jwzhd.com/subscribe?token=$token")
+            .build()
+        
+        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
                 isConnected = true
                 Log.d("BotWS-$token", "Connected")
-                scope.launch(Dispatchers.Main) {
-                    onStatusChanged(true)
+                mainHandler.post { onStatusChanged(true) }
+            }
+            
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val json = AppJson.json.parseToJsonElement(text).jsonObject
+                    mainHandler.post { onEvent(json) }
+                } catch (e: Exception) {
+                    Log.e("BotWS-$token", "Parse error", e)
+                    mainHandler.post { onError("解析消息失败: ${e.message}") }
                 }
             }
             
-            socket?.on(Socket.EVENT_DISCONNECT) {
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 isConnected = false
-                Log.d("BotWS-$token", "Disconnected")
-                scope.launch(Dispatchers.Main) {
-                    onStatusChanged(false)
-                }
+                Log.d("BotWS-$token", "Closed: $code $reason")
+                mainHandler.post { onStatusChanged(false) }
+                scheduleReconnect()
             }
             
-            socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 isConnected = false
-                val error = args.firstOrNull()?.toString() ?: "Unknown"
-                Log.e("BotWS-$token", "Connect error: $error")
-                scope.launch(Dispatchers.Main) {
-                    onError("连接错误: $error")
-                }
+                Log.e("BotWS-$token", "Failure", t)
+                mainHandler.post { onStatusChanged(false) }
+                scheduleReconnect()
             }
-            
-            socket?.on(Socket.EVENT_MESSAGE) { args ->
-                args.firstOrNull()?.let { data ->
-                    try {
-                        val jsonStr = data.toString()
-                        val json = AppJson.json.parseToJsonElement(jsonStr).jsonObject
-                        scope.launch(Dispatchers.Main) {
-                            onEvent(json)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("BotWS-$token", "Parse error", e)
-                    }
-                }
-            }
-            
-            socket?.connect()
-            
-        } catch (e: Exception) {
-            Log.e("BotWS-$token", "Connect exception", e)
-            onError("连接异常: ${e.message}")
+        })
+    }
+    
+    private fun scheduleReconnect() {
+        if (isManualDisconnect) return
+        
+        reconnectJob?.cancel()
+        reconnectJob = scope.launch {
+            delay(3000)
+            reconnect()
         }
     }
     
-    fun disconnect() {
-        socket?.disconnect()
-        socket?.off()
-        socket = null
-        isConnected = false
-        onStatusChanged(false)
+    private fun reconnect() {
+        if (isConnected || isManualDisconnect) return
+        webSocket?.close(1000, "Reconnecting")
+        webSocket = null
+        connect()
     }
     
-    fun isConnected(): Boolean = socket?.connected() ?: false
+    fun disconnect() {
+        isManualDisconnect = true
+        reconnectJob?.cancel()
+        webSocket?.close(1000, "Manual disconnect")
+        webSocket = null
+        isConnected = false
+        mainHandler.post { onStatusChanged(false) }
+    }
+    
+    fun isConnected(): Boolean = isConnected
 }
