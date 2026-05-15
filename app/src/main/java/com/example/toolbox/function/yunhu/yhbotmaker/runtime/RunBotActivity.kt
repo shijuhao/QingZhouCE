@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,9 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.example.toolbox.function.yunhu.yhbotmaker.toast
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.launch
@@ -40,7 +39,6 @@ import java.util.*
 import androidx.core.content.edit
 import com.example.toolbox.AppJson
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.contentOrNull
@@ -48,18 +46,34 @@ import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import okhttp3.OkHttpClient
-import okhttp3.Request
+
+private fun jsonObjectToMap(jsonObject: JsonObject): Map<String, Any> {
+    val result = mutableMapOf<String, Any>()
+    jsonObject.forEach { (key, element) ->
+        result[key] = jsonElementToAny(element)
+    }
+    return result
+}
+
+private fun jsonElementToAny(element: JsonElement): Any {
+    return when {
+        element is JsonObject -> jsonObjectToMap(element)
+        element is JsonArray -> element.map { jsonElementToAny(it) }
+        element.jsonPrimitive.isString -> element.jsonPrimitive.content
+        element.jsonPrimitive.booleanOrNull != null -> element.jsonPrimitive.boolean
+        element.jsonPrimitive.intOrNull != null -> element.jsonPrimitive.int
+        element.jsonPrimitive.longOrNull != null -> element.jsonPrimitive.long
+        element.jsonPrimitive.doubleOrNull != null -> element.jsonPrimitive.double
+        else -> element.toString()
+    }
+}
 
 class RunBotActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // 获取传入的机器人参数
         val token = intent.getStringExtra("token") ?: ""
-        val chatId = intent.getStringExtra("id") ?: ""
-        val chatType = intent.getStringExtra("type") ?: "user"
         val botName = intent.getStringExtra("name") ?: "Bot"
         val index = intent.getIntExtra("index", 0)
 
@@ -67,8 +81,6 @@ class RunBotActivity : ComponentActivity() {
             ToolBoxTheme {
                 BotRuntimeScreen(
                     token = token,
-                    chatId = chatId,
-                    chatType = chatType,
                     botName = botName,
                     index = index,
                     onBack = { finish() }
@@ -96,8 +108,6 @@ data class ChatMessage(
 @Composable
 fun BotRuntimeScreen(
     token: String,
-    chatId: String,
-    chatType: String,
     botName: String,
     index: Int,
     onBack: () -> Unit
@@ -105,58 +115,39 @@ fun BotRuntimeScreen(
     val context = LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    
+    var isBlackout by remember { mutableStateOf(false) }
 
     var showQuickCommandManager by remember { mutableStateOf(false) }
     var showHelpDialog by remember { mutableStateOf(false) }
     var showSendDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
+    
+    var isWsConnected by remember { mutableStateOf(false) }
+    var currentLoopCode by remember { mutableStateOf(prefs.getString("code$index", "") ?: "") }
 
-    // 示例消息数据
     val messages = remember {
         mutableStateListOf<ChatMessage>().apply {
             add(
                 ChatMessage(
-                    type = 2,
-                    text = "点击按钮测试",
-                    time = "12:01",
-                    buttonText = "说明文档",
+                    type = 1,
+                    text = "🤖 机器人 [$botName] 已启动\n等待 WebSocket 连接...",
+                    time = timeFormat.format(Date()),
                     iconColor = Color.Cyan
                 )
             )
         }
     }
-
-    // 在 messages 定义后添加
+    
     val listState = rememberLazyListState()
 
-// 监听消息数量变化自动滚动
     LaunchedEffect(messages.size) {
-        val lastIndex = listState.layoutInfo.totalItemsCount - 1
-        val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-        if (lastVisibleIndex == lastIndex && lastIndex >= 0) {
-            delay(100) // 等待布局稳定
-            listState.animateScrollToItem(lastIndex)
-        }
-    }
-
-    val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
-
-    var requestInterval by remember { mutableStateOf("") }
-
-    LaunchedEffect(Unit) {
-        requestInterval = prefs.getString("shilv$index", "2000") ?: "2000"
-    }
-
-    fun saveRequestInterval() {
-        val value = requestInterval.toIntOrNull()
-        if (value != null) {
-            prefs.edit { putString("shilv$index", value.toString()) }
-            toast(context, "已保存")
-        } else {
-            toast(context, "请输入数字")
-            // 恢复原值
-            requestInterval = prefs.getString("shilv$index", "2000") ?: "2000"
+        if (messages.isNotEmpty()) {
+            delay(50)
+            listState.animateScrollToItem(messages.size - 1)
         }
     }
 
@@ -171,27 +162,13 @@ fun BotRuntimeScreen(
         codeContent = TextFieldValue(prefs.getString(key, "") ?: "")
     }
 
-    fun saveCode(type: String) {
+    fun saveCode(type: String, code: String) {
         val key = if (type == "start") "code-start$index" else "code$index"
-        prefs.edit { putString(key, codeContent.text) }
+        prefs.edit { putString(key, code) }
+        if (type == "loop") {
+            currentLoopCode = code
+        }
         toast(context, "已保存")
-    }
-
-    // 在 BotRuntimeScreen 组合函数内添加状态
-    var isRunning by remember { mutableStateOf(false) }
-    var pollingJob by remember { mutableStateOf<Job?>(null) }
-
-
-    // 使用 SharedPreferences 持久化存储已处理消息ID
-    val processedMsgIds = remember {
-        mutableStateOf(
-            prefs.getStringSet("processed_msgs_$index", emptySet())?.toMutableSet() ?: mutableSetOf()
-        )
-    }
-
-    // 添加保存函数
-    fun saveProcessedIds() {
-        prefs.edit { putStringSet("processed_msgs_$index", processedMsgIds.value) }
     }
 
     val symbols = listOf(
@@ -218,15 +195,10 @@ fun BotRuntimeScreen(
         ":",
         ";"
     )
-
-    // 时间格式化
-    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-
+    
     val luaEngine = remember {
         LuaEngine(
             token = token,
-            chatId = chatId,
-            chatType = chatType,
             onPrint = { msg, type ->
                 messages.add(
                     ChatMessage(
@@ -246,116 +218,94 @@ fun BotRuntimeScreen(
             }
         )
     }
-
-    @SuppressLint("UseKtx")
-    fun startPolling() {
-        if (isRunning) return
-        isRunning = true
-        prefs.edit { putBoolean("stop_${index + 1}", false) }
-
-        pollingJob = scope.launch(Dispatchers.IO) {
-            val interval = requestInterval.toIntOrNull() ?: 2000
-            val client = OkHttpClient()
-
-            val startupCode = prefs.getString("code-start$index", "") ?: ""
-            withContext(Dispatchers.Main) {
-                luaEngine.runStartupCode(startupCode)
+    
+    val wsManager = remember {
+        BotWebSocketManager(
+            token = token,
+            onEvent = { eventJson ->
+                val eventType = eventJson["header"]?.jsonObject
+                    ?.get("eventType")?.jsonPrimitive?.contentOrNull ?: "unknown"
+                
+                messages.add(
+                    ChatMessage(
+                        type = 1,
+                        text = "📨 [$eventType]\n${eventJson.toString().take(300)}",
+                        time = timeFormat.format(Date()),
+                        iconColor = Color.Cyan
+                    )
+                )
+                
+                if (currentLoopCode.isNotBlank()) {
+                    val eventMap = jsonObjectToMap(eventJson)
+                    luaEngine.runEventCode(currentLoopCode, eventMap)
+                }
+            },
+            onStatusChanged = { connected ->
+                isWsConnected = connected
+                messages.add(
+                    ChatMessage(
+                        type = 1,
+                        text = if (connected) "🔌 WebSocket 已连接" else "⚠️ WebSocket 已断开",
+                        time = timeFormat.format(Date()),
+                        iconColor = if (connected) Color.Green else Color.Red
+                    )
+                )
+            },
+            onError = { error ->
+                messages.add(
+                    ChatMessage(
+                        type = 1,
+                        text = "❌ WebSocket 错误: $error",
+                        time = timeFormat.format(Date()),
+                        iconColor = Color.Red
+                    )
+                )
             }
-
-            while (isRunning) {
-                // 检查是否被外部停止
-                if (prefs.getBoolean("stop_${index + 1}", false)) {
-                    withContext(Dispatchers.Main) { isRunning = false }
-                    break
-                }
-
-                // 每次循环都从 prefs 读取最新的循环代码
-                val currentLoopCode = prefs.getString("code$index", "") ?: ""
-
-                try {
-                    val url = "https://chat-go.jwzhd.com/open-apis/v1/bot/messages?token=$token&chat-id=$chatId&chat-type=$chatType&before=10"
-                    val request = Request.Builder().url(url).build()
-                    client.newCall(request).execute().use { response ->
-                        if (response.isSuccessful) {
-                            val body = response.body.string()
-                            val json = try {
-                                AppJson.json.parseToJsonElement(body).jsonObject
-                            } catch (_: Exception) {
-                                return@launch
-                            }
-
-                            if (json["code"]?.jsonPrimitive?.double == 1.0) {
-                                val data = json["data"]?.jsonObject
-                                val list = data?.get("list")?.jsonArray?.map { it.jsonObject } ?: emptyList()
-                                val recentMsgs = list.take(5)
-                                for (msg in recentMsgs.reversed()) {
-                                    val msgId = msg["msgId"]?.jsonPrimitive?.contentOrNull ?: continue
-                                    if (processedMsgIds.value.contains(msgId)) continue
-
-                                    processedMsgIds.value.add(msgId)
-                                    saveProcessedIds()
-
-                                    withContext(Dispatchers.Main) {
-                                        luaEngine.runLoopCode(currentLoopCode, msg)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        messages.add(
-                            ChatMessage(
-                                type = 1,
-                                text = "轮询错误: ${e.message}",
-                                time = timeFormat.format(Date()),
-                                iconColor = Color.Red
-                            )
-                        )
-                    }
-                }
-                delay(interval.toLong())
+        )
+    }
+    
+    LaunchedEffect(isWsConnected) {
+        if (isWsConnected) {
+            val startupCode = prefs.getString("code-start$index", "") ?: ""
+            if (startupCode.isNotBlank()) {
+                messages.add(
+                    ChatMessage(
+                        type = 1,
+                        text = "📝 正在执行启动代码...",
+                        time = timeFormat.format(Date()),
+                        iconColor = Color.Yellow
+                    )
+                )
+                luaEngine.runStartupCode(startupCode)
             }
         }
     }
 
-    fun stopPolling() {
-        isRunning = false
-        pollingJob?.cancel()
-        pollingJob = null
-        prefs.edit { putBoolean("stop_${index + 1}", true) }
-        messages.add(
-            ChatMessage(
-                type = 1,
-                text = "机器人已停止",
-                time = timeFormat.format(Date()),
-                iconColor = Color.Yellow
-            )
-        )
+    LaunchedEffect(Unit) {
+        wsManager.connect()
     }
 
-// 在界面退出时停止轮询
     BackHandler {
-        stopPolling()
+        wsManager.disconnect()
         onBack()
     }
 
-    fun performSend(content: String, contentType: String) {
+    fun performSend(recvId: String, recvType: String, content: String, contentType: String) {
         val tempId = System.currentTimeMillis()
         messages.add(
             ChatMessage(
                 id = tempId,
                 type = 1,
-                text = "发送中: $content",
+                text = "发送中 → $recvId ($recvType): $content",
                 time = timeFormat.format(Date()),
                 iconColor = Color.Gray
             )
         )
-
+    
         val api = YunHuApiService(token)
         api.sendMessage(
-            recvId = chatId,
-            recvType = chatType,
+            recvId = recvId,
+            recvType = recvType,
             contentType = contentType,
             content = content,
             onSuccess = { _, _ ->
@@ -364,7 +314,7 @@ fun BotRuntimeScreen(
                     messages.add(
                         ChatMessage(
                             type = 1,
-                            text = content,
+                            text = "✅ → $recvId: $content",
                             time = timeFormat.format(Date()),
                             iconColor = Color.Green
                         )
@@ -378,7 +328,7 @@ fun BotRuntimeScreen(
                     messages.add(
                         ChatMessage(
                             type = 1,
-                            text = "发送失败: $errorMsg",
+                            text = "❌ 发送失败: $errorMsg",
                             time = timeFormat.format(Date()),
                             iconColor = Color.Red
                         )
@@ -389,12 +339,11 @@ fun BotRuntimeScreen(
         )
     }
 
-    // 发送对话框
     if (showSendDialog) {
         SendMessageDialog(
             onDismiss = { showSendDialog = false },
-            onSend = { content, contentType ->
-                performSend(content, contentType)
+            onSend = { recvId, recvType, content, contentType ->
+                performSend(recvId, recvType, content, contentType)
             }
         )
     }
@@ -424,7 +373,7 @@ fun BotRuntimeScreen(
                             showCodeEditor = true
                         }
                     ) {
-                        Text("循环监听代码")
+                        Text("事件处理代码 (WebSocket事件触发)")  // 改这里
                     }
                 }
             },
@@ -448,9 +397,8 @@ fun BotRuntimeScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                // 标题
                 Text(
-                    text = if (currentCodeType == "start") "编辑功能代码" else "编辑循环监听代码",
+                    text = if (currentCodeType == "start") "编辑功能代码" else "编辑事件处理代码",
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -512,7 +460,7 @@ fun BotRuntimeScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            saveCode(currentCodeType)
+                            saveCode(currentCodeType, codeContent.text)
                             showCodeEditor = false
                         }
                     ) {
@@ -578,49 +526,14 @@ fun BotRuntimeScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    HorizontalDivider()
+                    
+                    Text(
+                        if (isWsConnected) "● WebSocket 已连接" else "○ WebSocket 未连接",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isWsConnected) Color.Green else Color.Red
+                    )
 
-                    // 循环间隔设置卡片
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp)
-                        ) {
-                            Text(
-                                text = "请求间隔 (ms/次)",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedTextField(
-                                    value = requestInterval,
-                                    onValueChange = { requestInterval = it },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    shape = MaterialTheme.shapes.small,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                                    )
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Button(
-                                    onClick = { saveRequestInterval() },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                                ) {
-                                    Text("保存")
-                                }
-                            }
-                        }
-                    }
+                    HorizontalDivider()
 
                     // 菜单项列表
                     NavigationDrawerItem(
@@ -666,6 +579,13 @@ fun BotRuntimeScreen(
             topBar = {
                 TopAppBar(
                     title = { Text("YHBot - $botName") },
+                    subtitle = {
+                        Text(
+                            text = if (isWsConnected) "● 在线" else "○ 离线",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isWsConnected) Color.Green else Color.Red
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
@@ -681,17 +601,17 @@ fun BotRuntimeScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = {
-                        if (isRunning) {
-                            stopPolling()
+                        if (isWsConnected) {
+                            wsManager.disconnect()
                         } else {
-                            startPolling()
+                            wsManager.connect()
                         }
                     },
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 ) {
                     Icon(
-                        if (isRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = if (isRunning) "停止" else "启动"
+                        if (isWsConnected) Icons.Default.Close else Icons.Default.Sync,
+                        contentDescription = if (isWsConnected) "断开" else "连接"
                     )
                 }
             }
@@ -716,13 +636,33 @@ fun BotRuntimeScreen(
                     }
                 }
 
-                // 底部操作栏
                 BottomActionBar(
                     onSendClick = { showSendDialog = true },
-                    onClearClick = {
-                        messages.clear()
-                    }
+                    onClearClick = { messages.clear() },
+                    onFullscreenClick = { isBlackout = true }
                 )
+            }
+        }
+        
+        if (isBlackout) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .zIndex(100f),
+                contentAlignment = Alignment.Center
+            ) {
+                IconButton(
+                    onClick = { isBlackout = false },
+                    modifier = Modifier.size(120.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lightbulb,
+                        contentDescription = "关闭黑屏",
+                        tint = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
@@ -796,7 +736,8 @@ fun MessageItemWithButton(message: ChatMessage) {
 @Composable
 fun BottomActionBar(
     onSendClick: () -> Unit,
-    onClearClick: () -> Unit
+    onClearClick: () -> Unit,
+    onFullscreenClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -809,14 +750,11 @@ fun BottomActionBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /* 打开设置 */ }) {
-                Icon(Icons.Default.Settings, contentDescription = "设置")
-            }
             IconButton(onClick = onSendClick) {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "发送")
             }
-            IconButton(onClick = { /* 切换全屏模式 */ }) {
-                Icon(Icons.Default.Fullscreen, contentDescription = "全屏")
+            IconButton(onClick = onFullscreenClick) {
+                Icon(Icons.Default.Lightbulb, contentDescription = "黑屏模式")
             }
             IconButton(onClick = onClearClick) {
                 Icon(Icons.Default.Delete, "清空日志")

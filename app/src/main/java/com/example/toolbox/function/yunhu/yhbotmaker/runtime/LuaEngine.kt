@@ -12,8 +12,6 @@ import org.luaj.vm2.lib.jse.*
 
 class LuaEngine(
     token: String,
-    private val chatId: String,
-    private val chatType: String,
     private val onPrint: (message: String, type: Int) -> Unit
 ) {
     private val httpClient = OkHttpClient()
@@ -59,17 +57,25 @@ class LuaEngine(
             }
         })
 
-        // sendText
-        globals.set("sendText", object : OneArgFunction() {
-            override fun call(arg: LuaValue): LuaValue {
-                val content = arg.tojstring()
+        // sendText - 需要三个参数: recvId, recvType, content
+        globals.set("sendText", object : VarArgFunction() {
+            override fun invoke(args: Varargs): LuaValue {
+                val n = args.narg()
+                if (n < 3) {
+                    onPrint("❌ sendText 需要3个参数: recvId, recvType, content", 2)
+                    return NIL
+                }
+                val recvId = args.arg(1).tojstring()
+                val recvType = args.arg(2).tojstring()
+                val content = args.arg(3).tojstring()
+                
                 apiService.sendMessage(
-                    recvId = chatId,
-                    recvType = chatType,
+                    recvId = recvId,
+                    recvType = recvType,
                     contentType = "text",
                     content = content,
                     onSuccess = { _, _ ->
-                        onPrint("✅ 消息发送成功: $content", 1)
+                        onPrint("✅ 消息发送成功 → $recvId ($recvType): $content", 1)
                     },
                     onError = { err ->
                         onPrint("❌ 发送失败: $err", 2)
@@ -78,38 +84,54 @@ class LuaEngine(
                 return NIL
             }
         })
-
+        
         // sendMarkdown
-        globals.set("sendMarkdown", object : OneArgFunction() {
-            override fun call(arg: LuaValue): LuaValue {
-                val content = arg.tojstring()
+        globals.set("sendMarkdown", object : VarArgFunction() {
+            override fun invoke(args: Varargs): LuaValue {
+                val n = args.narg()
+                if (n < 3) {
+                    onPrint("❌ sendMarkdown 需要3个参数: recvId, recvType, content", 2)
+                    return NIL
+                }
+                val recvId = args.arg(1).tojstring()
+                val recvType = args.arg(2).tojstring()
+                val content = args.arg(3).tojstring()
+                
                 apiService.sendMessage(
-                    recvId = chatId,
-                    recvType = chatType,
+                    recvId = recvId,
+                    recvType = recvType,
                     contentType = "markdown",
                     content = content,
                     onSuccess = { _, _ ->
-                        onPrint("✅ MD发送成功", 1)
+                        onPrint("✅ Markdown发送成功 → $recvId ($recvType)", 1)
                     },
                     onError = { err ->
-                        onPrint("❌ MD发送失败: $err", 2)
+                        onPrint("❌ Markdown发送失败: $err", 2)
                     }
                 )
                 return NIL
             }
         })
-
+        
         // sendHTML
-        globals.set("sendHTML", object : OneArgFunction() {
-            override fun call(arg: LuaValue): LuaValue {
-                val content = arg.tojstring()
+        globals.set("sendHTML", object : VarArgFunction() {
+            override fun invoke(args: Varargs): LuaValue {
+                val n = args.narg()
+                if (n < 3) {
+                    onPrint("❌ sendHTML 需要3个参数: recvId, recvType, content", 2)
+                    return NIL
+                }
+                val recvId = args.arg(1).tojstring()
+                val recvType = args.arg(2).tojstring()
+                val content = args.arg(3).tojstring()
+                
                 apiService.sendMessage(
-                    recvId = chatId,
-                    recvType = chatType,
+                    recvId = recvId,
+                    recvType = recvType,
                     contentType = "html",
                     content = content,
                     onSuccess = { _, _ ->
-                        onPrint("✅ HTML发送成功", 1)
+                        onPrint("✅ HTML发送成功 → $recvId ($recvType)", 1)
                     },
                     onError = { err ->
                         onPrint("❌ HTML发送失败: $err", 2)
@@ -119,10 +141,18 @@ class LuaEngine(
             }
         })
 
-        // recallMessage
-        globals.set("recallMessage", object : OneArgFunction() {
-            override fun call(arg: LuaValue): LuaValue {
-                val msgId = arg.tojstring()
+        // recallMessage - 需要三个参数: chatId, chatType, msgId
+        globals.set("recallMessage", object : VarArgFunction() {
+            override fun invoke(args: Varargs): LuaValue {
+                val n = args.narg()
+                if (n < 3) {
+                    onPrint("❌ recallMessage 需要3个参数: chatId, chatType, msgId", 2)
+                    return NIL
+                }
+                val chatId = args.arg(1).tojstring()
+                val chatType = args.arg(2).tojstring()
+                val msgId = args.arg(3).tojstring()
+                
                 apiService.recallMessage(
                     chatId = chatId,
                     chatType = chatType,
@@ -329,6 +359,45 @@ class LuaEngine(
         } catch (e: Exception) {
             onPrint("❌ 循环代码错误: ${e.message}", 2)
             false
+        }
+    }
+    
+    fun runEventCode(code: String, event: Map<String, Any>): Boolean {
+        return try {
+            val luaTable = convertToLuaTable(event)
+            globals.set("event", luaTable)
+            globals.load(code).call()
+            true
+        } catch (e: Exception) {
+            onPrint("❌ 事件代码错误: ${e.message}", 2)
+            false
+        }
+    }
+    
+    private fun convertToLuaTable(data: Any?): LuaValue {
+        return when (data) {
+            null -> LuaValue.NIL
+            is String -> LuaValue.valueOf(data)
+            is Int -> LuaValue.valueOf(data)
+            is Long -> LuaValue.valueOf(data.toInt())
+            is Double -> LuaValue.valueOf(data)
+            is Float -> LuaValue.valueOf(data.toDouble())
+            is Boolean -> LuaValue.valueOf(data)
+            is Map<*, *> -> {
+                val table = LuaTable()
+                (data as Map<String, Any>).forEach { (k, v) ->
+                    table.set(k, convertToLuaTable(v))
+                }
+                table
+            }
+            is List<*> -> {
+                val table = LuaTable()
+                data.forEachIndexed { index, item ->
+                    table.set(index + 1, convertToLuaTable(item))
+                }
+                table
+            }
+            else -> LuaValue.valueOf(data.toString())
         }
     }
 }

@@ -47,8 +47,6 @@ import kotlinx.serialization.SerializationException
 
 @Serializable
 data class Bot(
-    val id: String,
-    val type: String,
     val token: String,
     val name: String,
     var index: Int = 0
@@ -101,8 +99,8 @@ class BotModel(application: Application) : AndroidViewModel(application) {
         bots = bots.toMutableList().apply { removeAt(pos) }
         save()
         (pos + 1).let { idx ->
-            listOf("stop_$idx", "avatar_$idx", "chelper_$idx", "code_$idx", "code-start_$idx", "shilv_$idx")
-                .forEach { key -> prefs.edit { remove(key) } }
+            listOf("stop_$idx", "avatar_$idx", "chelper_$idx", "code_$idx", "code-start_$idx")
+               .forEach { key -> prefs.edit { remove(key) } }
         }
     }
 
@@ -147,8 +145,6 @@ fun BotManagerScreen(
         onBotDetail ?: { bot ->
             context.startActivity(Intent(context, RunBotActivity::class.java).apply {
                 putExtra("token", bot.token)
-                putExtra("id", bot.id)
-                putExtra("type", bot.type)
                 putExtra("name", bot.name)
                 putExtra("index", bot.index)
             })
@@ -287,7 +283,7 @@ fun BotCard(
             Column(Modifier.weight(1f)) {
                 Text(bot.name, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "对话：${bot.id} (${bot.type})",
+                    "Token: ${bot.token.take(10)}...",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -311,7 +307,6 @@ fun BotCard(
     }
 }
 
-// ==================== 编辑对话框 ====================
 @Composable
 fun EditDialog(
     initial: Bot?,
@@ -321,8 +316,6 @@ fun EditDialog(
 ) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var token by remember { mutableStateOf(initial?.token ?: "") }
-    var id by remember { mutableStateOf(initial?.id ?: "") }
-    var type by remember { mutableStateOf(initial?.type ?: "user") }
     var avatarUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
 
@@ -396,38 +389,15 @@ fun EditDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = id,
-                    onValueChange = { id = it },
-                    label = { Text("目标ID") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("类型：")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    FilterChip(
-                        selected = type == "user",
-                        onClick = { type = "user" },
-                        label = { Text("user") }
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    FilterChip(
-                        selected = type == "group",
-                        onClick = { type = "group" },
-                        label = { Text("group") }
-                    )
-                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
                     when {
-                        name.isBlank() || token.isBlank() || id.isBlank() -> toast(context, "请填写完整")
-                        id.length < 7 -> toast(context, "非法ID")
+                        name.isBlank() || token.isBlank() -> toast(context, "请填写完整")
                         else -> {
-                            val bot = Bot(id, type, token, name)
+                            val bot = Bot(token, name)
                             onConfirm(bot, avatarUri)
                         }
                     }
