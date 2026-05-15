@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.toolbox.function.yunhu.yhbotmaker.toast
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.launch
@@ -114,6 +115,9 @@ fun BotRuntimeScreen(
     val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     
+    val viewModel: BotRuntimeViewModel = viewModel()
+    val messagesState by viewModel.messages.collectAsState()
+    
     var isBlackout by remember { mutableStateOf(false) }
 
     var showQuickCommandManager by remember { mutableStateOf(false) }
@@ -125,9 +129,9 @@ fun BotRuntimeScreen(
     var isWsConnected by remember { mutableStateOf(false) }
     var currentLoopCode by remember { mutableStateOf(prefs.getString("code$index", "") ?: "") }
 
-    val messages = remember {
-        mutableStateListOf<ChatMessage>().apply {
-            add(
+    LaunchedEffect(Unit) {
+        if (messagesState.isEmpty()) {
+            viewModel.addMessage(
                 ChatMessage(
                     type = 1,
                     text = "🤖 机器人 [$botName] 已启动\n等待 WebSocket 连接...",
@@ -140,10 +144,10 @@ fun BotRuntimeScreen(
     
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
+    LaunchedEffect(messagesState.size) {
+        if (messagesState.isNotEmpty()) {
             delay(50)
-            listState.animateScrollToItem(messages.size - 1)
+            listState.animateScrollToItem(messagesState.size - 1)
         }
     }
 
@@ -196,7 +200,7 @@ fun BotRuntimeScreen(
         LuaEngine(
             token = token,
             onPrint = { msg, type ->
-                messages.add(
+                viewModel.addMessage(
                     ChatMessage(
                         type = 1,
                         text = msg,
@@ -215,48 +219,148 @@ fun BotRuntimeScreen(
         )
     }
     
-    val wsManager = remember {
-        BotWebSocketManager(
-            token = token,
-            onEvent = { eventJson ->
-                val eventType = eventJson["header"]?.jsonObject
-                    ?.get("eventType")?.jsonPrimitive?.contentOrNull ?: "unknown"
+    val onEventCallback: (JsonObject) -> Unit = { eventJson ->
+        val eventType = eventJson["header"]?.jsonObject
+            ?.get("eventType")?.jsonPrimitive?.contentOrNull ?: "unknown"
+        
+        viewModel.addMessage(
+            ChatMessage(
+                type = 1,
+                text = "📨 [$eventType]\n${eventJson.toString().take(300)}",
+                time = timeFormat.format(Date()),
+                iconColor = Color.Cyan
+            )
+        )
+        
+        // ========== 自动回复和快捷命令处理 ==========
+        val helperKey = "chelper$index"
+        val helperJson = prefs.getString(helperKey, "") ?: ""
+        
+        if (helperJson.isNotBlank()) {
+            try {
+                val commandData = AppJson.json.decodeFromString<CommandData>(helperJson)
                 
-                messages.add(
-                    ChatMessage(
-                        type = 1,
-                        text = "📨 [$eventType]\n${eventJson.toString().take(300)}",
-                        time = timeFormat.format(Date()),
-                        iconColor = Color.Cyan
-                    )
-                )
-                
-                if (currentLoopCode.isNotBlank()) {
-                    val eventMap = jsonObjectToMap(eventJson)
-                    luaEngine.runEventCode(currentLoopCode, eventMap)
+                // 处理普通消息（自动回复）
+                if (eventType == "message.receive.normal") {
+                    val eventObj = eventJson["event"]?.jsonObject
+                    val messageObj = eventObj?.get("message")?.jsonObject
+                    val contentObj = messageObj?.get("content")?.jsonObject
+                    val text = contentObj?.get("text")?.jsonPrimitive?.content ?: ""
+                    val senderObj = eventObj?.get("sender")?.jsonObject
+                    val senderId = senderObj?.get("senderId")?.jsonPrimitive?.content ?: ""
+                    val chatObj = eventObj?.get("chat")?.jsonObject
+                    val chatType = chatObj?.get("chatType")?.jsonPrimitive?.content ?: "user"
+                    
+                    for (autoReply in commandData.autoReplies) {
+                        if (text.contains(autoReply.key)) {
+                            val api = YunHuApiService(token)
+                            api.sendMessage(
+                                recvId = senderId,
+                                recvType = chatType,
+                                contentType = autoReply.type,
+                                content = autoReply.reply,
+                                onSuccess = { _, _ ->
+                                    viewModel.addMessage(
+                                        ChatMessage(
+                                            type = 1,
+                                            text = "🤖 自动回复: ${autoReply.reply}",
+                                            time = timeFormat.format(Date()),
+                                            iconColor = Color.Green
+                                        )
+                                    )
+                                },
+                                onError = { err ->
+                                    viewModel.addMessage(
+                                        ChatMessage(
+                                            type = 1,
+                                            text = "❌ 自动回复失败: $err",
+                                            time = timeFormat.format(Date()),
+                                            iconColor = Color.Red
+                                        )
+                                    )
+                                }
+                            )
+                            break
+                        }
+                    }
                 }
-            },
-            onStatusChanged = { connected ->
-                isWsConnected = connected
-                messages.add(
-                    ChatMessage(
-                        type = 1,
-                        text = if (connected) "🔌 WebSocket 已连接" else "⚠️ WebSocket 已断开",
-                        time = timeFormat.format(Date()),
-                        iconColor = if (connected) Color.Green else Color.Red
-                    )
-                )
-            },
-            onError = { error ->
-                messages.add(
-                    ChatMessage(
-                        type = 1,
-                        text = "❌ WebSocket 错误: $error",
-                        time = timeFormat.format(Date()),
-                        iconColor = Color.Red
-                    )
-                )
+                
+                // 处理指令消息（快捷命令）
+                if (eventType == "message.receive.instruction") {
+                    val eventObj = eventJson["event"]?.jsonObject
+                    val messageObj = eventObj?.get("message")?.jsonObject
+                    val commandId = messageObj?.get("commandId")?.jsonPrimitive?.intOrNull ?: 0
+                    
+                    for (quickCmd in commandData.quickCommands) {
+                        if (quickCmd.id == commandId) {
+                            // 执行快捷命令的 Lua 代码
+                            try {
+                                val eventMap = jsonObjectToMap(eventJson)
+                                luaEngine.runEventCode(quickCmd.code, eventMap)
+                                viewModel.addMessage(
+                                    ChatMessage(
+                                        type = 1,
+                                        text = "⚡ 执行快捷命令: $commandId",
+                                        time = timeFormat.format(Date()),
+                                        iconColor = Color.Cyan
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                viewModel.addMessage(
+                                    ChatMessage(
+                                        type = 1,
+                                        text = "❌ 快捷命令执行失败: ${e.message}",
+                                        time = timeFormat.format(Date()),
+                                        iconColor = Color.Red
+                                    )
+                                )
+                            }
+                            break
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // 解析失败，忽略
             }
+        }
+        // ========== 自动回复和快捷命令处理结束 ==========
+        
+        if (currentLoopCode.isNotBlank()) {
+            val eventMap = jsonObjectToMap(eventJson)
+            luaEngine.runEventCode(currentLoopCode, eventMap)
+        }
+    }
+    
+    val onStatusChangedCallback: (Boolean) -> Unit = { connected ->
+        isWsConnected = connected
+        prefs.edit { putBoolean("stop_${index + 1}", !connected) }
+        viewModel.addMessage(
+            ChatMessage(
+                type = 1,
+                text = if (connected) "🔌 WebSocket 已连接" else "⚠️ WebSocket 已断开",
+                time = timeFormat.format(Date()),
+                iconColor = if (connected) Color.Green else Color.Red
+            )
+        )
+    }
+    
+    val onErrorCallback: (String) -> Unit = { error ->
+        viewModel.addMessage(
+            ChatMessage(
+                type = 1,
+                text = "❌ WebSocket 错误: $error",
+                time = timeFormat.format(Date()),
+                iconColor = Color.Red
+            )
+        )
+    }
+    
+    val wsManager = remember {
+        BotWebSocketManagerSingleton.getInstance(
+            token = token,
+            onEvent = onEventCallback,
+            onStatusChanged = onStatusChangedCallback,
+            onError = onErrorCallback
         )
     }
     
@@ -264,7 +368,7 @@ fun BotRuntimeScreen(
         if (isWsConnected) {
             val startupCode = prefs.getString("code-start$index", "") ?: ""
             if (startupCode.isNotBlank()) {
-                messages.add(
+                viewModel.addMessage(
                     ChatMessage(
                         type = 1,
                         text = "📝 正在执行启动代码...",
@@ -277,18 +381,13 @@ fun BotRuntimeScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        wsManager.connect()
-    }
-
     BackHandler {
-        wsManager.disconnect()
         onBack()
     }
 
     fun performSend(recvId: String, recvType: String, content: String, contentType: String) {
         val tempId = System.currentTimeMillis()
-        messages.add(
+        viewModel.addMessage(
             ChatMessage(
                 id = tempId,
                 type = 1,
@@ -306,8 +405,12 @@ fun BotRuntimeScreen(
             content = content,
             onSuccess = { _, _ ->
                 scope.launch(Dispatchers.Main) {
-                    messages.removeAll { it.id == tempId }
-                    messages.add(
+                    // 移除发送中的消息
+                    val newMessages = viewModel.messages.value.filter { it.id != tempId }
+                    viewModel.clearMessages()
+                    newMessages.forEach { viewModel.addMessage(it) }
+                    
+                    viewModel.addMessage(
                         ChatMessage(
                             type = 1,
                             text = "✅ → $recvId: $content",
@@ -320,8 +423,11 @@ fun BotRuntimeScreen(
             },
             onError = { errorMsg ->
                 scope.launch(Dispatchers.Main) {
-                    messages.removeAll { it.id == tempId }
-                    messages.add(
+                    val newMessages = viewModel.messages.value.filter { it.id != tempId }
+                    viewModel.clearMessages()
+                    newMessages.forEach { viewModel.addMessage(it) }
+                    
+                    viewModel.addMessage(
                         ChatMessage(
                             type = 1,
                             text = "❌ 发送失败: $errorMsg",
@@ -344,7 +450,6 @@ fun BotRuntimeScreen(
         )
     }
 
-    // 代码类型选择对话框
     if (showCodeTypeSelector) {
         AlertDialog(
             onDismissRequest = { showCodeTypeSelector = false },
@@ -509,25 +614,23 @@ fun BotRuntimeScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(bottom = 16.dp)
                 ) {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp)
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        contentAlignment = Alignment.CenterStart
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                     ) {
                         Text(
                             "YHBot 控制台",
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            if (isWsConnected) "● WebSocket 已连接" else "○ WebSocket 未连接",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isWsConnected) Color.Green else Color.Red
+                        )
                     }
-                    
-                    Text(
-                        if (isWsConnected) "● WebSocket 已连接" else "○ WebSocket 未连接",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isWsConnected) Color.Green else Color.Red
-                    )
 
                     HorizontalDivider()
 
@@ -598,9 +701,14 @@ fun BotRuntimeScreen(
                 FloatingActionButton(
                     onClick = {
                         if (isWsConnected) {
-                            wsManager.disconnect()
+                            BotWebSocketManagerSingleton.disconnect(token)
                         } else {
-                            wsManager.connect()
+                            BotWebSocketManagerSingleton.getInstance(
+                                token = token,
+                                onEvent = onEventCallback,
+                                onStatusChanged = onStatusChangedCallback,
+                                onError = onErrorCallback
+                            )
                         }
                     },
                     containerColor = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -624,7 +732,7 @@ fun BotRuntimeScreen(
                     contentPadding = PaddingValues(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(messages) { msg ->
+                    items(messagesState) { msg ->
                         when (msg.type) {
                             1 -> MessageItem(msg)
                             2 -> MessageItemWithButton(msg)
@@ -634,7 +742,9 @@ fun BotRuntimeScreen(
 
                 BottomActionBar(
                     onSendClick = { showSendDialog = true },
-                    onClearClick = { messages.clear() },
+                    onClearClick = { 
+                        viewModel.clearMessages()
+                    },
                     onFullscreenClick = { isBlackout = true }
                 )
             }
