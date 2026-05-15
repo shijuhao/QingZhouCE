@@ -23,9 +23,7 @@ object BotWebSocketManagerSingleton {
         onError: (String) -> Unit
     ): BotWebSocketInstance {
         return managers.getOrPut(token) {
-            BotWebSocketInstance(token, onEvent, onStatusChanged, onError).also {
-                it.connect()
-            }
+            BotWebSocketInstance(token, onEvent, onStatusChanged, onError)
         }.also { instance ->
             instance.updateCallbacks(onEvent, onStatusChanged, onError)
         }
