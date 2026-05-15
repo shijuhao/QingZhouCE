@@ -240,7 +240,6 @@ fun BotRuntimeScreen(
             try {
                 val commandData = AppJson.json.decodeFromString<CommandData>(helperJson)
                 
-                // 处理普通消息（自动回复）
                 if (eventType == "message.receive.normal") {
                     val eventObj = eventJson["event"]?.jsonObject
                     val messageObj = eventObj?.get("message")?.jsonObject
@@ -249,14 +248,23 @@ fun BotRuntimeScreen(
                     val senderObj = eventObj?.get("sender")?.jsonObject
                     val senderId = senderObj?.get("senderId")?.jsonPrimitive?.content ?: ""
                     val chatObj = eventObj?.get("chat")?.jsonObject
-                    val chatType = chatObj?.get("chatType")?.jsonPrimitive?.content ?: "user"
+                    val chatType = chatObj?.get("chatType")?.jsonPrimitive?.content ?: ""
+                    val chatId = chatObj?.get("chatId")?.jsonPrimitive?.content ?: ""
                     
                     for (autoReply in commandData.autoReplies) {
                         if (text.contains(autoReply.key)) {
                             val api = YunHuApiService(token)
+                            
+                            // 根据聊天类型决定回复给谁
+                            val (recvId, recvType) = when (chatType) {
+                                "group" -> Pair(chatId, "group")      // 群聊：回复到群
+                                "bot" -> Pair(senderId, "user")       // 私聊：回复给用户
+                                else -> Pair(senderId, "user")
+                            }
+                            
                             api.sendMessage(
-                                recvId = senderId,
-                                recvType = chatType,
+                                recvId = recvId,
+                                recvType = recvType,
                                 contentType = autoReply.type,
                                 content = autoReply.reply,
                                 onSuccess = { _, _ ->
