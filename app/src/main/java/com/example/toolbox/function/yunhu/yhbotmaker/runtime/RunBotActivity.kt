@@ -333,20 +333,20 @@ fun BotRuntimeScreen(
     }
     
     val onStatusChangedCallback: (Boolean) -> Unit = { connected ->
-        if (isWsConnected == connected) return@let
-        
-        isWsConnected = connected
-        prefs.edit { putBoolean("stop_${index + 1}", !connected) }
-        
-        if (connected) {
-            viewModel.addMessage(
-                ChatMessage(
-                    type = 3,
-                    text = "WebSocket 已连接",
-                    time = timeFormat.format(Date()),
-                    iconColor = Color.Green
+        if (isWsConnected != connected) {
+            isWsConnected = connected
+            prefs.edit { putBoolean("stop_${index + 1}", !connected) }
+            
+            if (connected) {
+                viewModel.addMessage(
+                    ChatMessage(
+                        type = 3,
+                        text = "WebSocket 已连接",
+                        time = timeFormat.format(Date()),
+                        iconColor = Color.Green
+                    )
                 )
-            )
+            }
         }
     }
     
