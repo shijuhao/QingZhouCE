@@ -75,7 +75,17 @@ YHBotMaker 帮助文档
 • 连接状态：顶部显示 ●在线 或 ○离线
 • 黑屏模式：点击底部灯泡图标，再点击灯泡关闭
 
-二、代码编辑
+二、消息图标说明
+-----------
+消息列表左侧图标代表不同类型：
+
+📥 收到消息 (青色)      - 收到 WebSocket 事件
+✅ 操作成功 (绿色)      - 发送成功、自动回复成功、快捷命令成功
+ℹ️ 系统消息 (白色)      - 连接状态、启动信息等
+❌ 报错 (红色)         - 发送失败、连接错误等
+🤖 其他 (主题色)       - Lua print 输出等
+
+三、代码编辑
 -----------
 侧边栏 → 编辑代码
 
@@ -85,7 +95,7 @@ YHBotMaker 帮助文档
 • 事件处理代码：每次收到WebSocket事件时执行
   - event 变量包含完整的事件数据
 
-三、事件数据结构（event变量）
+四、事件数据结构（event变量）
 -----------
 event.header
   - eventId: 事件唯一ID
@@ -107,7 +117,7 @@ event.event
     - commandId: 指令ID
     - commandName: 指令名称
 
-四、事件类型（event.header.eventType）
+五、事件类型（event.header.eventType）
 -----------
 • message.receive.normal  - 普通消息
 • message.receive.instruction - 指令消息
@@ -119,10 +129,11 @@ event.event
 • bot.shortcut.menu      - 快捷菜单
 • bot.setting            - 机器人设置
 
-五、内置函数
+六、内置函数
 -----------
 • print(消息内容, 类型)
   显示日志消息，类型：0=普通 1=成功 2=错误 3=警告 4=系统 5=进行中
+  对应消息图标：其他、✅操作成功、❌报错、ℹ️系统消息、其他、其他
 
 • sendText(接收者ID, 接收类型, 内容)
   发送文本消息
@@ -151,7 +162,7 @@ event.event
 • http.put(url, data, headers, contentType)
 • http.delete(url, headers)
 
-六、代码示例
+七、代码示例
 -----------
 -- 处理普通消息并回复给发送者
 if event.header.eventType == "message.receive.normal" then
@@ -164,12 +175,6 @@ if event.header.eventType == "message.receive.normal" then
         sendText(senderId, "user", "你好，我是机器人！")
     elseif text == "时间" then
         sendText(senderId, "user", os.date("%Y-%m-%d %H:%M:%S"))
-    elseif text == "帮助" then
-        local helpText = [[可用命令：
-- 你好：打招呼
-- 时间：查看时间
-- 撤回：撤回本条消息]]
-        sendMarkdown(senderId, "user", helpText)
     end
 end
 
@@ -186,41 +191,6 @@ if event.header.eventType == "message.receive.normal" then
     end
 end
 
--- 处理群消息
-if event.header.eventType == "message.receive.normal" then
-    local chatId = event.event.chat.chatId
-    local chatType = event.event.chat.chatType
-    local text = event.event.message.content.text
-    
-    if chatType == "group" and text:match("@机器人") then
-        sendText(chatId, "group", "我在的，有什么需要帮助？")
-    end
-end
-
--- 处理关注事件
-if event.header.eventType == "bot.followed" then
-    local userId = event.event.sender.senderId
-    sendText(userId, "user", "感谢关注我！")
-end
-
--- 处理按钮事件
-if event.header.eventType == "button.report.inline" then
-    local userId = event.event.userId
-    local value = event.event.value
-    sendText(userId, "user", "你点击了按钮: " .. tostring(value))
-end
-
--- 处理指令消息
-if event.header.eventType == "message.receive.instruction" then
-    local senderId = event.event.sender.senderId
-    local cmdId = event.event.message.commandId
-    local cmdName = event.event.message.commandName
-    
-    if cmdId == 1 then
-        sendText(senderId, "user", "执行了命令：" .. cmdName)
-    end
-end
-
 -- HTTP请求示例
 if event.header.eventType == "message.receive.normal" then
     local text = event.event.message.content.text
@@ -232,10 +202,10 @@ if event.header.eventType == "message.receive.normal" then
     end
 end
 
-七、注意事项
+八、注意事项
 -----------
 • 代码修改后点击保存即可生效，无需重启机器人
-• WebSocket 断开后会自动重连（指数退避）
+• WebSocket 连接需要手动点击右下角按钮
 • sendText/sendMarkdown/sendHTML 需要3个参数：接收者ID、接收类型、内容
 • recallMessage 需要3个参数：聊天ID、聊天类型、消息ID
 • 接收类型：user(用户) 或 group(群)

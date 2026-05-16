@@ -1,17 +1,18 @@
 package com.example.toolbox.function.yunhu.yhbotmaker.runtime
 
 import android.os.Handler
-import android.os.HandlerThread
 import android.os.Looper
 import android.util.Log
 import com.example.toolbox.AppJson
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import okhttp3.*
 import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 object BotWebSocketManagerSingleton {
     private val managers = ConcurrentHashMap<String, BotWebSocketInstance>()
@@ -43,6 +44,10 @@ object BotWebSocketManagerSingleton {
     fun disconnect(token: String) {
         managers.remove(token)?.disconnect()
     }
+    
+    fun getConnectionState(token: String): StateFlow<Boolean>? {
+        return managers[token]?.connectionState
+    }
 }
 
 class BotWebSocketInstance(
@@ -58,12 +63,12 @@ class BotWebSocketInstance(
         .build()
     
     private var webSocket: WebSocket? = null
-    @Volatile private var isConnected = false
-    private var isManualDisconnect = false
+    private val _connectionState = MutableStateFlow(false)
+    val connectionState: StateFlow<Boolean> = _connectionState
     
+    private var isManualDisconnect = false
     private var reconnectJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    
     private val mainHandler = Handler(Looper.getMainLooper())
     
     fun updateCallbacks(
@@ -74,7 +79,7 @@ class BotWebSocketInstance(
         this.onEvent = onEvent
         this.onStatusChanged = onStatusChanged
         this.onError = onError
-        onStatusChanged(isConnected)
+        onStatusChanged(_connectionState.value)
     }
     
     fun connect() {
@@ -90,7 +95,7 @@ class BotWebSocketInstance(
         
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                isConnected = true
+                _connectionState.value = true
                 Log.d("BotWS-$token", "Connected")
                 mainHandler.post { onStatusChanged(true) }
             }
@@ -106,14 +111,14 @@ class BotWebSocketInstance(
             }
             
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                isConnected = false
+                _connectionState.value = false
                 Log.d("BotWS-$token", "Closed: $code $reason")
                 mainHandler.post { onStatusChanged(false) }
                 scheduleReconnect()
             }
             
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                isConnected = false
+                _connectionState.value = false
                 Log.e("BotWS-$token", "Failure", t)
                 mainHandler.post { onStatusChanged(false) }
                 scheduleReconnect()
@@ -132,7 +137,7 @@ class BotWebSocketInstance(
     }
     
     private fun reconnect() {
-        if (isConnected || isManualDisconnect) return
+        if (_connectionState.value || isManualDisconnect) return
         webSocket?.close(1000, "Reconnecting")
         webSocket = null
         connect()
@@ -143,9 +148,7 @@ class BotWebSocketInstance(
         reconnectJob?.cancel()
         webSocket?.close(1000, "Manual disconnect")
         webSocket = null
-        isConnected = false
+        _connectionState.value = false
         mainHandler.post { onStatusChanged(false) }
     }
-    
-    fun isConnected(): Boolean = isConnected
 }

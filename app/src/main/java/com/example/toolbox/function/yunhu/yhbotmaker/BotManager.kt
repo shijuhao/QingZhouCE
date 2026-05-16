@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.toolbox.function.yunhu.yhbotmaker.runtime.RunBotActivity
+import com.example.toolbox.function.yunhu.yhbotmaker.runtime.BotWebSocketManagerSingleton
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import java.io.File
 import java.io.FileOutputStream
@@ -73,11 +74,6 @@ class BotModel(application: Application) : AndroidViewModel(application) {
         prefs.edit { putString("botlist", AppJson.json.encodeToString(bots)) }
     }
 
-    fun isStopped(index: Int) = prefs.getBoolean("stop_$index", false)
-    fun setStopped(index: Int, stopped: Boolean) {
-        prefs.edit { putBoolean("stop_$index", stopped) }
-    }
-
     fun avatarPath(index: Int) = prefs.getString("avatar_$index", null)
     fun setAvatar(index: Int, path: String?) {
         prefs.edit {
@@ -99,7 +95,7 @@ class BotModel(application: Application) : AndroidViewModel(application) {
         bots = bots.toMutableList().apply { removeAt(pos) }
         save()
         (pos + 1).let { idx ->
-            listOf("stop_$idx", "avatar_$idx", "chelper_$idx", "code_$idx", "code-start_$idx")
+            listOf("avatar_$idx", "chelper_$idx", "code_$idx", "code-start_$idx")
                .forEach { key -> prefs.edit { remove(key) } }
         }
     }
@@ -185,11 +181,8 @@ fun BotManagerScreen(
                     ) { pos, bot ->
                         BotCard(
                             bot = bot,
-                            pos = pos,
-                            isStopped = model.isStopped(pos + 1),
                             avatar = model.avatarPath(pos + 1),
                             onClick = { model.lastIndex = pos; navigateToBotDetail(bot) },
-                            onStop = { model.setStopped(pos + 1, it) },
                             onEdit = { editPos = pos },
                             onDuplicate = { model.duplicate(pos) },
                             onDelete = { model.delete(pos) }
@@ -240,20 +233,19 @@ fun BotManagerScreen(
     }
 }
 
-// ==================== 列表卡片 ====================
 @Composable
 fun BotCard(
     bot: Bot,
-    pos: Int,
-    isStopped: Boolean,
     avatar: String?,
     onClick: () -> Unit,
-    onStop: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
     onDelete: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    
+    val connectionState = BotWebSocketManagerSingleton.getConnectionState(bot.token)
+    val isConnected = connectionState?.collectAsState()?.value ?: false
 
     val bitmap = remember(avatar) {
         avatar?.takeIf { File(it).exists() }?.let { BitmapFactory.decodeFile(it) }
@@ -274,7 +266,7 @@ fun BotCard(
                     }
                 }
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = if (isStopped) Color.Gray else Color.Green),
+                    colors = CardDefaults.cardColors(containerColor = if (isConnected) Color.Green else Color.Gray),
                     shape = MaterialTheme.shapes.extraSmall,
                     modifier = Modifier.size(12.dp).align(Alignment.BottomEnd).padding(2.dp)
                 ) {}
@@ -292,7 +284,6 @@ fun BotCard(
 
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 listOfNotNull(
-                    if (isStopped) "启动运行" to { onStop(false) } else "停止运行" to { onStop(true) },
                     "复制此机器人" to onDuplicate,
                     "编辑" to onEdit,
                     "删除" to onDelete
