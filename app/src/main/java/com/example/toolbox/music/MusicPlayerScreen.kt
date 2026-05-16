@@ -83,7 +83,7 @@ fun MusicPlayerScreen(
             }
         },
         bottomBar = {
-            if (!isSettingsPage && state.currentMusic != null) {
+            if (currentRoute?.destination?.route != "player" && state.currentMusic != null) {
                 MiniPlayer(
                     musicItem = state.currentMusic!!,
                     isPlaying = state.isPlaying,

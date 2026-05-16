@@ -147,6 +147,11 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
     
     private fun scanMusicFilesMediaStore(context: Context): List<MusicItem> {
         val musicList = mutableListOf<MusicItem>()
+        
+        if (!hasReadPermission(context)) {
+            return emptyList()
+        }
+        
         val projection = arrayOf(
             android.provider.MediaStore.Audio.Media._ID,
             android.provider.MediaStore.Audio.Media.TITLE,
@@ -183,7 +188,11 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                     val duration = it.getLong(durationColumn)
                     val filePath = it.getString(dataColumn) ?: ""
                     
-                    // 获取专辑封面
+                    val uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                        .buildUpon()
+                        .appendPath(id.toString())
+                        .build()
+                    
                     val albumArtUri = if (albumIdColumn >= 0) {
                         val albumId = it.getLong(albumIdColumn)
                         android.provider.MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI
@@ -192,12 +201,7 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                             .build()
                     } else null
                     
-                    val uri = Uri.withAppendedPath(
-                        android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                        id.toString()
-                    )
-                    
-                    if (duration > 0 && filePath.isNotEmpty()) {
+                    if (duration > 0) {
                         musicList.add(
                             MusicItem(
                                 id = id,
@@ -213,6 +217,7 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                 }
             }
         } catch (e: Exception) {
+            android.util.Log.e("MusicPlayer", "MediaStore scan failed", e)
             e.printStackTrace()
         }
         
@@ -307,7 +312,16 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
         
         try {
             mediaPlayer = MediaPlayer().apply {
-                setDataSource(context, musicItem.uri)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val fd = context.contentResolver.openFileDescriptor(musicItem.uri, "r")
+                    fd?.let {
+                        setDataSource(it.fileDescriptor)
+                        it.close()
+                    }
+                } else {
+                    setDataSource(context, musicItem.uri)
+                }
+                
                 prepareAsync()
                 setOnPreparedListener { mp ->
                     _state.update { 
