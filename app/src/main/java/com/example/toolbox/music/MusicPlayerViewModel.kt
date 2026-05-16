@@ -180,25 +180,23 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                 android.provider.MediaStore.Audio.Media.DURATION,
                 android.provider.MediaStore.Audio.Media.DATA,
                 android.provider.MediaStore.Audio.Media.ALBUM_ID,
-                android.provider.MediaStore.Audio.Media.DISPLAY_NAME,
-                android.provider.MediaStore.Audio.Media.RELATIVE_PATH
+                android.provider.MediaStore.Audio.Media.DISPLAY_NAME
             )
-
-            val selection = "${android.provider.MediaStore.Audio.Media.DURATION} > ?"
-            val selectionArgs = arrayOf("0")
-            val sortOrder = "${android.provider.MediaStore.Audio.Media.DISPLAY_NAME} ASC"
             
-            android.util.Log.d("MusicScanner", "MediaStore query: collection=$collection")
+            val selection = "${android.provider.MediaStore.Audio.Media.IS_MUSIC} != 0"
+            val sortOrder = "${android.provider.MediaStore.Audio.Media.TITLE} ASC"
+            
+            android.util.Log.d("MusicScanner", "MediaStore query, Android SDK: ${Build.VERSION.SDK_INT}")
             
             val cursor = context.contentResolver.query(
                 collection,
                 projection,
                 selection,
-                selectionArgs,
+                null,
                 sortOrder
             )
             
-            android.util.Log.d("MusicScanner", "MediaStore cursor: ${cursor != null}, count: ${cursor?.count ?: 0}")
+            android.util.Log.d("MusicScanner", "Cursor: ${cursor != null}, count: ${cursor?.count ?: 0}")
             
             cursor?.use {
                 val idColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
@@ -207,11 +205,10 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                 val durationColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DURATION)
                 val dataColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
                 val albumIdColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM_ID)
-                val displayNameColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DISPLAY_NAME)
                 
                 while (it.moveToNext()) {
                     val id = it.getLong(idColumn)
-                    val title = it.getString(titleColumn) ?: it.getString(displayNameColumn) ?: "未知歌曲"
+                    val title = it.getString(titleColumn) ?: "未知歌曲"
                     val artist = it.getString(artistColumn) ?: "未知艺术家"
                     val duration = it.getLong(durationColumn)
                     val filePath = it.getString(dataColumn) ?: ""
@@ -228,11 +225,7 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                             .build()
                     } else null
                     
-                    val fileName = it.getString(displayNameColumn) ?: ""
-                    val isAudioFile = listOf(".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".wma")
-                        .any { fileName.lowercase().endsWith(it) }
-                    
-                    if (duration > 0 && isAudioFile) {
+                    if (duration > 0) {
                         musicList.add(
                             MusicItem(
                                 id = id,
@@ -244,15 +237,13 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                                 filePath = filePath
                             )
                         )
-                        android.util.Log.d("MusicScanner", "Found: $title by $artist")
                     }
                 }
             }
             
-            android.util.Log.d("MusicScanner", "MediaStore scan found ${musicList.size} songs")
+            android.util.Log.d("MusicScanner", "Found ${musicList.size} songs")
         } catch (e: Exception) {
-            android.util.Log.e("MusicScanner", "MediaStore scan failed", e)
-            e.printStackTrace()
+            android.util.Log.e("MusicScanner", "Scan failed", e)
         }
         
         return musicList
