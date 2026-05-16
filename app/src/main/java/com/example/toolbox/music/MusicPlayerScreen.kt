@@ -57,29 +57,47 @@ fun MusicPlayerScreen(
     
     Scaffold(
         topBar = {
-            if (!isSettingsPage) {
-                TopAppBar(
-                    title = { Text("音乐") },
-                    navigationIcon = {
-                        IconButton(onClick = onMenuClick) {
-                            Icon(Icons.Default.Menu, contentDescription = "菜单")
+            when (currentRoute?.destination?.route) {
+                "settings" -> {
+                    TopAppBar(
+                        title = { Text("播放器设置") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            }
                         }
-                    },
-                    actions = {
-                        IconButton(onClick = { navController.navigate("settings") }) {
-                            Icon(Icons.Default.Settings, contentDescription = "设置")
+                    )
+                }
+                "player" -> {
+                    TopAppBar(
+                        title = { Text("正在播放") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { /* 更多功能 */ }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                            }
                         }
-                    }
-                )
-            } else {
-                TopAppBar(
-                    title = { Text("播放器设置") },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    )
+                }
+                else -> {
+                    TopAppBar(
+                        title = { Text("音乐") },
+                        navigationIcon = {
+                            IconButton(onClick = onMenuClick) {
+                                Icon(Icons.Default.Menu, contentDescription = "菜单")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { navController.navigate("settings") }) {
+                                Icon(Icons.Default.Settings, contentDescription = "设置")
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         },
         bottomBar = {
@@ -117,7 +135,6 @@ fun MusicPlayerScreen(
                     duration = state.duration,
                     onPlayPauseClick = { viewModel.togglePlayPause() },
                     onSeekTo = { viewModel.seekTo(it) },
-                    onClose = { navController.popBackStack() },
                     viewModel = viewModel
                 )
             }
@@ -320,259 +337,233 @@ fun FullScreenPlayer(
     duration: Int,
     onPlayPauseClick: () -> Unit,
     onSeekTo: (Int) -> Unit,
-    onClose: () -> Unit,
     viewModel: MusicPlayerViewModel
 ) {
     val state by viewModel.state.collectAsState()
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("正在播放") },
-                navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* 更多功能 */ }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "更多")
-                    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 专辑封面 - 圆角正方形
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .sizeIn(maxWidth = 320.dp),
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (musicItem?.albumArt != null) {
+                    AsyncImage(
+                        model = musicItem.albumArt,
+                        contentDescription = "专辑封面",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // 音乐信息
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = musicItem?.title ?: "未知歌曲",
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = musicItem?.artist ?: "未知艺术家",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
-    ) { paddingValues ->
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // 进度条区域
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 专辑封面 - 圆角正方形
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .sizeIn(maxWidth = 320.dp),
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (musicItem?.albumArt != null) {
-                        AsyncImage(
-                            model = musicItem.albumArt,
-                            contentDescription = "专辑封面",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(100.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+            Slider(
+                value = if (duration > 0) currentPosition.toFloat() / duration else 0f,
+                onValueChange = { newValue ->
+                    if (duration > 0) {
+                        onSeekTo((newValue * duration).toInt())
                     }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // 音乐信息
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = musicItem?.title ?: "未知歌曲",
-                    style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = musicItem?.artist ?: "未知艺术家",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            )
             
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // 进度条区域
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // 自定义进度条
-                Slider(
-                    value = if (duration > 0) currentPosition.toFloat() / duration else 0f,
-                    onValueChange = { newValue ->
-                        if (duration > 0) {
-                            onSeekTo((newValue * duration).toInt())
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                    )
-                )
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = formatTime(currentPosition),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = formatTime(duration),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // 播放模式按钮行
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // 随机播放按钮
-                IconButton(
-                    onClick = { viewModel.toggleShuffle() },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Shuffle,
-                        contentDescription = "随机播放",
-                        tint = if (state.isShuffle) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                
-                // 循环模式按钮（支持三种模式：单曲循环、列表循环、关闭）
-                IconButton(
-                    onClick = { viewModel.toggleLoop() },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = if (state.isLooping) Icons.Default.RepeatOne else Icons.Default.Repeat,
-                        contentDescription = "循环播放",
-                        tint = if (state.isLooping) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 播放控制按钮行
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 上一首
-                IconButton(
-                    onClick = { viewModel.playPrevious() },
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "上一首",
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-                
-                // 播放/暂停按钮
-                FloatingActionButton(
-                    onClick = onPlayPauseClick,
-                    modifier = Modifier.size(72.dp),
-                    shape = CircleShape,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "暂停" else "播放",
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-                
-                // 下一首
-                IconButton(
-                    onClick = { viewModel.playNext() },
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "下一首",
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // 音量控制区域
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.VolumeDown,
-                    contentDescription = "减小音量",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Text(
+                    text = formatTime(currentPosition),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
-                Slider(
-                    value = state.volume,
-                    onValueChange = { viewModel.setVolume(it) },
-                    modifier = Modifier.weight(1f),
-                    valueRange = 0f..1f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                    )
-                )
-                
-                Icon(
-                    imageVector = Icons.Default.VolumeUp,
-                    contentDescription = "增大音量",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Text(
+                    text = formatTime(duration),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
-            Spacer(modifier = Modifier.height(32.dp))
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // 播放模式按钮行
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            IconButton(
+                onClick = { viewModel.toggleShuffle() },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Shuffle,
+                    contentDescription = "随机播放",
+                    tint = if (state.isShuffle) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            
+            IconButton(
+                onClick = { viewModel.toggleLoop() },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = if (state.isLooping) Icons.Default.RepeatOne else Icons.Default.Repeat,
+                    contentDescription = "循环播放",
+                    tint = if (state.isLooping) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 播放控制按钮行
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { viewModel.playPrevious() },
+                modifier = Modifier.size(56.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SkipPrevious,
+                    contentDescription = "上一首",
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+            
+            FloatingActionButton(
+                onClick = onPlayPauseClick,
+                modifier = Modifier.size(72.dp),
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "暂停" else "播放",
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+            
+            IconButton(
+                onClick = { viewModel.playNext() },
+                modifier = Modifier.size(56.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = "下一首",
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // 音量控制区域
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.VolumeDown,
+                contentDescription = "减小音量",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Slider(
+                value = state.volume,
+                onValueChange = { viewModel.setVolume(it) },
+                modifier = Modifier.weight(1f),
+                valueRange = 0f..1f,
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+            )
+            
+            Icon(
+                imageVector = Icons.Default.VolumeUp,
+                contentDescription = "增大音量",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
