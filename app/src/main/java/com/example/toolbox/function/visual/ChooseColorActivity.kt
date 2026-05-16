@@ -3,6 +3,7 @@ package com.example.toolbox.function.visual
 import android.app.Activity
 import android.content.Context
 import android.graphics.Color as AndroidColor
+import androidx.compose.ui.graphics.asImageBitmap
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -29,18 +30,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.Color as ComposeColor
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
+import androidx.core.graphics.createBitmap
 import com.example.toolbox.ui.theme.ToolBoxTheme
+import androidx.core.graphics.set
 
 class ChooseColorActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,6 +76,38 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
     var hue by remember { mutableFloatStateOf(0f) }
     var saturation by remember { mutableFloatStateOf(0f) }
     var value by remember { mutableFloatStateOf(1f) }
+
+    // 预渲染HSV圆盘Bitmap（只渲染一次）
+    val hsvBitmap = remember {
+        val size = 512
+        val bitmap = createBitmap(size, size)
+        val centerX = size / 2f
+        val centerY = size / 2f
+        val maxRadius = size / 2f
+        
+        // 逐像素计算颜色
+        for (y in 0 until size) {
+            for (x in 0 until size) {
+                val dx = x - centerX
+                val dy = y - centerY
+                val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                
+                if (distance <= maxRadius) {
+                    // 计算色相和饱和度
+                    var angle = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+                    if (angle < 0) angle += 360f
+                    val sat = (distance / maxRadius).coerceIn(0f, 1f)
+                    
+                    // HSV转RGB
+                    val color = AndroidColor.HSVToColor(floatArrayOf(angle, sat, 1f))
+                    bitmap[x, y] = color
+                } else {
+                    bitmap[x, y] = 0
+                }
+            }
+        }
+        bitmap
+    }
 
     var hexColorA by remember { mutableStateOf("#FFFFFF") }
     var hexColor by remember { mutableStateOf("#FFFFFF") }
@@ -249,55 +286,50 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
                             }
                     ) {
                         Canvas(modifier = Modifier.matchParentSize()) {
-                            val radius = kotlin.math.min(size.width, size.height) / 2f
-                            val center = Offset(size.width / 2f, size.height / 2f)
-                            
-                            // 如果明度为0，直接绘制黑色背景
-                            if (value <= 0.01f) {
-                                drawCircle(
-                                    color = ComposeColor.Black,
-                                    center = center,
-                                    radius = radius
-                                )
-                            } else {
-                                // 使用径向渐变绘制HSV圆盘（高性能）
-                                // 先绘制色相环作为背景
-                                for (i in 0 until 360 step 2) {
-                                    drawArc(
-                                        color = ComposeColor(
-                                            AndroidColor.HSVToColor(floatArrayOf(i.toFloat(), 1f, value))
-                                        ),
-                                        startAngle = i.toFloat(),
-                                        sweepAngle = 4f,
-                                        useCenter = true,
-                                        topLeft = center - Offset(radius, radius),
-                                        size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2)
+                            val canvasWidth = size.width
+                            val canvasHeight = size.height
+                            val diameter = kotlin.math.min(canvasWidth, canvasHeight)
+                            val radius = diameter / 2f
+                            val center = Offset(canvasWidth / 2f, canvasHeight / 2f)
+
+                            val clipPath = androidx.compose.ui.graphics.Path().apply {
+                                addOval(
+                                    androidx.compose.ui.geometry.Rect(
+                                        center.x - radius,
+                                        center.y - radius,
+                                        center.x + radius,
+                                        center.y + radius
                                     )
-                                }
-                                
-                                // 再绘制从白到透明的径向渐变（模拟饱和度）
-                                drawCircle(
-                                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                        colors = listOf(
-                                            ComposeColor.White,
-                                            ComposeColor.Transparent
-                                        ),
-                                        center = center,
-                                        radius = radius
+                                )
+                            }
+
+                            clipPath(clipPath) {
+                                drawImage(
+                                    image = hsvBitmap.asImageBitmap(),
+                                    dstOffset = IntOffset(
+                                        (center.x - radius).toInt(),
+                                        (center.y - radius).toInt()
                                     ),
+                                    dstSize = IntSize(diameter.toInt(), diameter.toInt())
+                                )
+                            }
+
+                            // 在clipPath外绘制黑色遮罩，确保完全重叠
+                            if (value < 1f) {
+                                drawCircle(
+                                    color = ComposeColor.Black.copy(alpha = 1f - value),
                                     center = center,
                                     radius = radius
                                 )
                             }
-                            
-                            // 绘制饱和度指示器
+
                             val indicatorAngle = Math.toRadians(hue.toDouble()).toFloat()
                             val indicatorDistance = saturation * radius
                             val indicatorPos = center + Offset(
                                 kotlin.math.cos(indicatorAngle) * indicatorDistance,
                                 kotlin.math.sin(indicatorAngle) * indicatorDistance
                             )
-                            
+
                             drawCircle(
                                 color = ComposeColor.White,
                                 radius = 10f,

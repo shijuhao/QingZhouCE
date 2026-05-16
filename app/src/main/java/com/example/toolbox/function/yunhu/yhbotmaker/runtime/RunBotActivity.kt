@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -39,7 +40,6 @@ import androidx.core.content.edit
 import com.example.toolbox.AppJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
 private fun jsonObjectToMap(jsonObject: JsonObject): Map<String, Any> {
@@ -323,7 +323,7 @@ fun BotRuntimeScreen(
                         }
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // 解析失败，忽略
             }
         }
@@ -363,8 +363,8 @@ fun BotRuntimeScreen(
             )
         )
     }
-    
-    val wsManager = remember {
+
+    LaunchedEffect(token, onEventCallback, onStatusChangedCallback, onErrorCallback) {
         BotWebSocketManagerSingleton.getInstance(
             token = token,
             onEvent = onEventCallback,
@@ -646,7 +646,7 @@ fun BotRuntimeScreen(
                         Text(
                             if (isWsConnected) "● WebSocket 已连接" else "○ WebSocket 未连接",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isWsConnected) Color.Green else Color.Red
+                            color = if (isWsConnected) Color.Green else MaterialTheme.colorScheme.error
                         )
                     }
 
@@ -707,7 +707,7 @@ fun BotRuntimeScreen(
                         Text(
                             text = if (isWsConnected) "● 在线" else "○ 离线",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isWsConnected) Color.Green else Color.Red
+                            color = if (isWsConnected) Color.Green else MaterialTheme.colorScheme.error
                         )
                     },
                     navigationIcon = {
@@ -722,22 +722,22 @@ fun BotRuntimeScreen(
                     }
                 )
             },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = {
+            bottomBar = {
+                BottomActionBar(
+                    onSendClick = { showSendDialog = true },
+                    onClearClick = {
+                        viewModel.clearMessages()
+                    },
+                    onFullscreenClick = { isBlackout = true },
+                    onConnectClick = {
                         if (isWsConnected) {
                             BotWebSocketManagerSingleton.disconnect(token)
                         } else {
                             BotWebSocketManagerSingleton.connect(token)
                         }
                     },
-                    containerColor = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        if (isWsConnected) Icons.Default.Close else Icons.Default.Sync,
-                        contentDescription = if (isWsConnected) "断开" else "连接"
-                    )
-                }
+                    isWsConnected = isWsConnected
+                )
             }
         ) { innerPadding ->
             Column(
@@ -745,7 +745,6 @@ fun BotRuntimeScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // 消息列表
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.weight(1f),
@@ -756,14 +755,6 @@ fun BotRuntimeScreen(
                         MessageItem(msg)
                     }
                 }
-
-                BottomActionBar(
-                    onSendClick = { showSendDialog = true },
-                    onClearClick = { 
-                        viewModel.clearMessages()
-                    },
-                    onFullscreenClick = { isBlackout = true }
-                )
             }
         }
         
@@ -832,11 +823,14 @@ fun MessageItem(message: ChatMessage) {
 fun BottomActionBar(
     onSendClick: () -> Unit,
     onClearClick: () -> Unit,
-    onFullscreenClick: () -> Unit
+    onFullscreenClick: () -> Unit,
+    onConnectClick: () -> Unit,
+    isWsConnected: Boolean
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(8.dp)
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f),
+        modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
     ) {
         Row(
             modifier = Modifier
@@ -854,8 +848,12 @@ fun BottomActionBar(
             IconButton(onClick = onClearClick) {
                 Icon(Icons.Default.Delete, "清空日志")
             }
-            IconButton(onClick = {  }) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "开始")
+            IconButton(onClick = onConnectClick) {
+                Icon(
+                    if (isWsConnected) Icons.Default.Close else Icons.Default.Sync,
+                    contentDescription = if (isWsConnected) "断开" else "连接",
+                    tint = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

@@ -36,6 +36,68 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.toolbox.utils.getAppVersionInfo
 
+/**
+ * 计算目录大小（字节）
+ */
+fun calculateDirSize(dir: java.io.File): Long {
+    var size = 0L
+    if (dir.exists()) {
+        val files = dir.listFiles()
+        if (files != null) {
+            for (file in files) {
+                size += if (file.isDirectory) {
+                    calculateDirSize(file)
+                } else {
+                    file.length()
+                }
+            }
+        }
+    }
+    return size
+}
+
+/**
+ * 格式化文件大小
+ */
+fun formatFileSize(size: Long): String {
+    return when {
+        size < 1024 -> "$size B"
+        size < 1024 * 1024 -> "${size / 1024} KB"
+        size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"
+        else -> "${size / (1024 * 1024 * 1024)} GB"
+    }
+}
+
+/**
+ * 清除缓存
+ */
+fun clearCache(context: android.content.Context) {
+    val cacheDir = context.cacheDir
+    if (cacheDir.exists() && cacheDir.isDirectory) {
+        val files = cacheDir.listFiles()
+        if (files != null) {
+            for (file in files) {
+                deleteRecursively(file)
+            }
+        }
+    }
+}
+
+/**
+ * 递归删除文件或目录
+ */
+fun deleteRecursively(file: java.io.File) {
+    if (file.isDirectory) {
+        val files = file.listFiles()
+        if (files != null) {
+            for (child in files) {
+                deleteRecursively(child)
+            }
+        }
+    }
+    file.delete()
+}
+
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,6 +147,13 @@ fun SettingsScreen(
         mutableStateOf(prefs.getString("update_channel", "stable") ?: "stable") 
     }
 
+    // 缓存设置
+    var cacheMaxSize by remember {
+        mutableIntStateOf(prefs.getInt("cache_max_size_mb", 100))
+    }
+    var showCacheDialog by remember { mutableStateOf(false) }
+    var showClearCacheDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         lanzouAuthViewModel.refresh(context)
     }
@@ -113,6 +182,95 @@ fun SettingsScreen(
         },
         contentWindowInsets = WindowInsets.safeDrawing
     ) { innerPadding ->
+        if (showCacheDialog) {
+            val sizes = listOf(0 to "关闭", 10 to "10MB", 50 to "50MB", 100 to "100MB", 200 to "200MB", 500 to "500MB", 1000 to "1000MB")
+            AlertDialog(
+                onDismissRequest = { showCacheDialog = false },
+                title = { Text("设置缓存大小限制") },
+                text = {
+                    Column {
+                        Text("选择最大缓存大小")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 300.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(sizes.size) { index ->
+                                val (size, displayText) = sizes[index]
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            cacheMaxSize = size
+                                            prefs.edit().apply {
+                                                putInt("cache_max_size_mb", size)
+                                                apply()
+                                            }
+                                            Toast.makeText(context, if (size == 0) "缓存已关闭" else "已设置为 ${size}MB", Toast.LENGTH_SHORT).show()
+                                            showCacheDialog = false
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = cacheMaxSize == size,
+                                        onClick = {
+                                            cacheMaxSize = size
+                                            prefs.edit().apply {
+                                                putInt("cache_max_size_mb", size)
+                                                apply()
+                                            }
+                                            Toast.makeText(context, if (size == 0) "缓存已关闭" else "已设置为 ${size}MB", Toast.LENGTH_SHORT).show()
+                                            showCacheDialog = false
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(displayText)
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showCacheDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+
+        // 清除缓存确认对话框
+        if (showClearCacheDialog) {
+            val cacheDir = context.cacheDir
+            val cacheSize = calculateDirSize(cacheDir)
+            AlertDialog(
+                onDismissRequest = { showClearCacheDialog = false },
+                title = { Text("清除缓存") },
+                text = {
+                    Column {
+                        Text("当前缓存大小: ${formatFileSize(cacheSize)}")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("确定要清除所有缓存吗？这可能会导致应用重新加载数据。")
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            clearCache(context)
+                            Toast.makeText(context, "缓存已清除", Toast.LENGTH_SHORT).show()
+                            showClearCacheDialog = false
+                        }
+                    ) {
+                        Text("清除")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearCacheDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -289,6 +447,34 @@ fun SettingsScreen(
                                 }
                             )
                         }
+                    )
+                )
+            }
+
+            item {
+                SettingsGroup(
+                    title = "缓存",
+                    items = listOf(
+                        {
+                            SettingsItemCell(
+                                icon = Icons.Default.Storage,
+                                title = "缓存设置",
+                                subtitle = if (cacheMaxSize == 0) "缓存已关闭" else "当前限制: ${cacheMaxSize}MB",
+                                onClick = {
+                                    showCacheDialog = true
+                                }
+                            )
+                        },
+                        {
+                            SettingsItemCell(
+                                icon = Icons.Default.DeleteSweep,
+                                title = "清除缓存",
+                                subtitle = "清除所有应用缓存数据",
+                                onClick = {
+                                    showClearCacheDialog = true
+                                }
+                            )
+                        },
                     )
                 )
             }

@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inbox
@@ -93,6 +94,7 @@ import com.example.toolbox.liFangCommunity.ProfileScreen_LF
 import com.example.toolbox.message.MessageScreen
 import com.example.toolbox.mine.ProfileScreen
 import com.example.toolbox.mine.UserBottomSheet
+import com.example.toolbox.music.MusicPlayerScreen
 import com.example.toolbox.resourceLib.ResourceLibScreen
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.CoroutineScope
@@ -540,6 +542,11 @@ fun MainContentNavHost(
                 onMenuClick = onMenuClick,
             )
         }
+        composable(TopLevelDestinations.MusicPlayer.route) {
+            MusicPlayerScreen(
+                onMenuClick = onMenuClick,
+            )
+        }
     }
 }
 
@@ -557,7 +564,8 @@ enum class TopLevelDestinations(
     override val description: String
 ) : NavDestination {
     LFCommunity("lfcommunity", "立方论坛", Icons.Default.ChatBubbleOutline, "主要作为立方论坛客户端"),
-    YHBotMaker("yhbotmaker", "YHBotMaker", Icons.Default.Android, "主要作为云湖机器人制作器")
+    YHBotMaker("yhbotmaker", "YHBotMaker", Icons.Default.Android, "主要作为云湖机器人制作器"),
+    MusicPlayer("musicplayer", "音乐", Icons.Default.MusicNote, "本地音乐播放器")
 }
 
 enum class AppDestinations(
