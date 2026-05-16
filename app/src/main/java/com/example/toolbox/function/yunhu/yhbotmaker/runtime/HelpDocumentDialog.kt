@@ -162,6 +162,26 @@ event.event
 • http.put(url, data, headers, contentType)
 • http.delete(url, headers)
 
+• sharedDataSet(key, value)
+  保存数据到本地存储（每个机器人独立）
+  - key: 字符串键名
+  - value: 字符串值
+
+• sharedDataGet(key, defaultValue)
+  读取本地存储的数据
+  - key: 字符串键名
+  - defaultValue: 可选，默认值（默认为空字符串）
+  - 返回: 字符串值
+
+• sharedDataGetAll()
+  获取所有存储的数据，返回 table
+
+• sharedDataRemove(key)
+  删除指定键的数据
+
+• sharedDataClear()
+  清空当前机器人的所有存储数据
+
 七、代码示例
 -----------
 -- 处理普通消息并回复给发送者
@@ -175,6 +195,24 @@ if event.header.eventType == "message.receive.normal" then
         sendText(senderId, "user", "你好，我是机器人！")
     elseif text == "时间" then
         sendText(senderId, "user", os.date("%Y-%m-%d %H:%M:%S"))
+    end
+end
+
+-- 使用 SharedData 记录用户状态
+if event.header.eventType == "message.receive.normal" then
+    local senderId = event.event.sender.senderId
+    local text = event.event.message.content.text
+    
+    -- 获取用户计数
+    local count = sharedDataGet(senderId, "0")
+    local num = tonumber(count)
+    
+    if text == "计数" then
+        num = num + 1
+        sharedDataSet(senderId, tostring(num))
+        sendText(senderId, "user", "你已经说了 " .. num .. " 次计数")
+    elseif text == "查询" then
+        sendText(senderId, "user", "你已计数 " .. count .. " 次")
     end
 end
 
@@ -202,6 +240,18 @@ if event.header.eventType == "message.receive.normal" then
     end
 end
 
+-- 获取所有存储数据
+local all = sharedDataGetAll()
+for k, v in pairs(all) do
+    print(k .. " = " .. v, 0)
+end
+
+-- 删除数据
+sharedDataRemove("some_key")
+
+-- 清空所有数据
+sharedDataClear()
+
 八、注意事项
 -----------
 • 代码修改后点击保存即可生效，无需重启机器人
@@ -209,6 +259,8 @@ end
 • sendText/sendMarkdown/sendHTML 需要3个参数：接收者ID、接收类型、内容
 • recallMessage 需要3个参数：聊天ID、聊天类型、消息ID
 • 接收类型：user(用户) 或 group(群)
+• sharedData 系列函数存储的数据每个机器人独立，互不影响
+• 重启应用后 sharedData 数据仍然保留
 • 事件代码中注意避免死循环
 • 使用 pcall 包裹可能出错的代码
 """.trimIndent()
