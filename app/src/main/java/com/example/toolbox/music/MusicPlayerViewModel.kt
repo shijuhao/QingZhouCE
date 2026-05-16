@@ -127,16 +127,32 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
     }
     
     private fun hasReadPermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.READ_MEDIA_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                // Android 13+
+                ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.READ_MEDIA_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                // Android 11, 12
+                if (android.os.Environment.isExternalStorageManager()) {
+                    true
+                } else {
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE
+                    ) == PackageManager.PERMISSION_GRANTED
+                }
+            }
+            else -> {
+                // Android 10 及以下
+                ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED
+            }
         }
     }
     
@@ -148,30 +164,41 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
     private fun scanMusicFilesMediaStore(context: Context): List<MusicItem> {
         val musicList = mutableListOf<MusicItem>()
         
-        if (!hasReadPermission(context)) {
-            return emptyList()
-        }
-        
-        val projection = arrayOf(
-            android.provider.MediaStore.Audio.Media._ID,
-            android.provider.MediaStore.Audio.Media.TITLE,
-            android.provider.MediaStore.Audio.Media.ARTIST,
-            android.provider.MediaStore.Audio.Media.DURATION,
-            android.provider.MediaStore.Audio.Media.DATA,
-            android.provider.MediaStore.Audio.Media.ALBUM_ID
-        )
-        
-        val selection = "${android.provider.MediaStore.Audio.Media.IS_MUSIC} != 0"
-        val sortOrder = "${android.provider.MediaStore.Audio.Media.TITLE} ASC"
-        
         try {
+            val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                android.provider.MediaStore.Audio.Media.getContentUri(
+                    android.provider.MediaStore.VOLUME_EXTERNAL
+                )
+            } else {
+                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            }
+            
+            val projection = arrayOf(
+                android.provider.MediaStore.Audio.Media._ID,
+                android.provider.MediaStore.Audio.Media.TITLE,
+                android.provider.MediaStore.Audio.Media.ARTIST,
+                android.provider.MediaStore.Audio.Media.DURATION,
+                android.provider.MediaStore.Audio.Media.DATA,
+                android.provider.MediaStore.Audio.Media.ALBUM_ID,
+                android.provider.MediaStore.Audio.Media.DISPLAY_NAME,
+                android.provider.MediaStore.Audio.Media.RELATIVE_PATH
+            )
+
+            val selection = "${android.provider.MediaStore.Audio.Media.DURATION} > ?"
+            val selectionArgs = arrayOf("0")
+            val sortOrder = "${android.provider.MediaStore.Audio.Media.DISPLAY_NAME} ASC"
+            
+            android.util.Log.d("MusicScanner", "MediaStore query: collection=$collection")
+            
             val cursor = context.contentResolver.query(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                collection,
                 projection,
                 selection,
-                null,
+                selectionArgs,
                 sortOrder
             )
+            
+            android.util.Log.d("MusicScanner", "MediaStore cursor: ${cursor != null}, count: ${cursor?.count ?: 0}")
             
             cursor?.use {
                 val idColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
@@ -180,16 +207,16 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                 val durationColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DURATION)
                 val dataColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
                 val albumIdColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM_ID)
+                val displayNameColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DISPLAY_NAME)
                 
                 while (it.moveToNext()) {
                     val id = it.getLong(idColumn)
-                    val title = it.getString(titleColumn) ?: "未知歌曲"
+                    val title = it.getString(titleColumn) ?: it.getString(displayNameColumn) ?: "未知歌曲"
                     val artist = it.getString(artistColumn) ?: "未知艺术家"
                     val duration = it.getLong(durationColumn)
                     val filePath = it.getString(dataColumn) ?: ""
                     
-                    val uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-                        .buildUpon()
+                    val uri = collection.buildUpon()
                         .appendPath(id.toString())
                         .build()
                     
@@ -201,7 +228,11 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                             .build()
                     } else null
                     
-                    if (duration > 0) {
+                    val fileName = it.getString(displayNameColumn) ?: ""
+                    val isAudioFile = listOf(".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".wma")
+                        .any { fileName.lowercase().endsWith(it) }
+                    
+                    if (duration > 0 && isAudioFile) {
                         musicList.add(
                             MusicItem(
                                 id = id,
@@ -213,11 +244,14 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                                 filePath = filePath
                             )
                         )
+                        android.util.Log.d("MusicScanner", "Found: $title by $artist")
                     }
                 }
             }
+            
+            android.util.Log.d("MusicScanner", "MediaStore scan found ${musicList.size} songs")
         } catch (e: Exception) {
-            android.util.Log.e("MusicPlayer", "MediaStore scan failed", e)
+            android.util.Log.e("MusicScanner", "MediaStore scan failed", e)
             e.printStackTrace()
         }
         
@@ -229,19 +263,119 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
         val musicExtensions = listOf(".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg")
         
         try {
-            // Android 10+ 使用 MediaStore 作为备选，不再直接扫描根目录
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // 对于 Android 10+，直接返回空并提示使用 MediaStore
-                return emptyList()
+                // Android 10+：只使用 MediaStore 查询
+                android.util.Log.d("MusicScanner", "Android 10+, using MediaStore enhanced")
+                return scanMusicFilesMediaStoreEnhanced(context)
+            } else {
+                // Android 9 及以下：直接文件扫描
+                android.util.Log.d("MusicScanner", "Android 9-, using direct file scan")
+                val externalDir = android.os.Environment.getExternalStorageDirectory()
+                if (externalDir.exists() && externalDir.canRead()) {
+                    scanDirectoryRecursive(externalDir, musicExtensions, musicList)
+                } else {
+                    android.util.Log.e("MusicScanner", "Cannot access external storage directory")
+                }
             }
-            
-            val externalDir = android.os.Environment.getExternalStorageDirectory()
-            scanDirectoryRecursive(externalDir, musicExtensions, musicList)
         } catch (e: Exception) {
+            android.util.Log.e("MusicScanner", "File scan failed", e)
             e.printStackTrace()
         }
         
         return musicList.sortedBy { it.title.lowercase() }
+    }
+    
+    private fun scanMusicFilesMediaStoreEnhanced(context: Context): List<MusicItem> {
+        android.util.Log.d("MusicScanner", "Starting enhanced MediaStore scan")
+        
+        try {
+            val allMusic = scanMusicFilesMediaStore(context)
+            
+            if (allMusic.isNotEmpty()) {
+                android.util.Log.d("MusicScanner", "Enhanced scan found ${allMusic.size} songs via general query")
+                return allMusic
+            }
+            
+            val musicList = mutableListOf<MusicItem>()
+            val musicDirectories = listOf(
+                "Music",
+                "Download",
+                "Downloads", 
+                "Audio",
+                "media/music",
+                "media/audio",
+                "DCIM",
+                "Recordings",
+                "Voice Recorder"
+            )
+            
+            for (dir in musicDirectories) {
+                val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    android.provider.MediaStore.Audio.Media.getContentUri(
+                        android.provider.MediaStore.VOLUME_EXTERNAL
+                    )
+                } else {
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                }
+                
+                val projection = arrayOf(
+                    android.provider.MediaStore.Audio.Media._ID,
+                    android.provider.MediaStore.Audio.Media.TITLE,
+                    android.provider.MediaStore.Audio.Media.ARTIST,
+                    android.provider.MediaStore.Audio.Media.DURATION,
+                    android.provider.MediaStore.Audio.Media.ALBUM_ID,
+                    android.provider.MediaStore.Audio.Media.RELATIVE_PATH,
+                    android.provider.MediaStore.Audio.Media.DISPLAY_NAME
+                )
+                
+                val selection = "${android.provider.MediaStore.Audio.Media.RELATIVE_PATH} LIKE ? AND ${android.provider.MediaStore.Audio.Media.DURATION} > 0"
+                val selectionArgs = arrayOf("%${dir}%")
+                
+                android.util.Log.d("MusicScanner", "Scanning directory: $dir")
+                
+                context.contentResolver.query(
+                    collection,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    null
+                )?.use { cursor ->
+                    val idColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
+                    val titleColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.TITLE)
+                    val artistColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ARTIST)
+                    val durationColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DURATION)
+                    
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(idColumn)
+                        val title = cursor.getString(titleColumn) ?: "未知歌曲"
+                        val artist = cursor.getString(artistColumn) ?: "未知艺术家"
+                        val duration = cursor.getLong(durationColumn)
+                        
+                        val uri = collection.buildUpon()
+                            .appendPath(id.toString())
+                            .build()
+                        
+                        if (duration > 0) {
+                            musicList.add(
+                                MusicItem(
+                                    id = id,
+                                    title = title,
+                                    artist = artist,
+                                    duration = duration,
+                                    uri = uri
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            
+            android.util.Log.d("MusicScanner", "Directory-based scan found ${musicList.size} songs")
+            return musicList
+        } catch (e: Exception) {
+            android.util.Log.e("MusicScanner", "Enhanced MediaStore scan failed", e)
+            return emptyList()
+        }
     }
     
     private fun scanDirectoryRecursive(
