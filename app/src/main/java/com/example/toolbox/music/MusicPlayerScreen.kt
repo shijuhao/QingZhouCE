@@ -284,7 +284,8 @@ fun MiniPlayer(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .navigationBarsPadding(),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Row(
