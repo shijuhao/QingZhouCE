@@ -113,7 +113,8 @@ fun DefaultStartPageScreen(
     val startPages = listOf(
         AppDestinations.HOME,
         TopLevelDestinations.LFCommunity,
-        TopLevelDestinations.YHBotMaker
+        TopLevelDestinations.YHBotMaker,
+        TopLevelDestinations.MusicPlayer
     )
 
     LazyColumn(

@@ -589,6 +589,7 @@ fun getStartDestination(context: Context): String {
         "主页" -> AppDestinations.HOME.route
         "立方论坛" -> TopLevelDestinations.LFCommunity.route
         "YHBotMaker" -> TopLevelDestinations.YHBotMaker.route
+        "音乐" -> TopLevelDestinations.MusicPlayer.route
         else -> AppDestinations.HOME.route
     }
 }
