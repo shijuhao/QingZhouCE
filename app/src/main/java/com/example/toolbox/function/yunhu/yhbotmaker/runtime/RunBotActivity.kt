@@ -190,9 +190,9 @@ fun BotRuntimeScreen(
         ";"
     )
     
-    val luaEngine = remember {
-        BotSharedData.init(context, botName)
+    BotSharedData.init(context, botName)
     
+    val luaEngine = remember {
         LuaEngine(
             token = token,
             onPrint = { msg, type ->

@@ -56,7 +56,7 @@ fun SharedDataDialog(
                         label = { Text("键名") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isEdit  // 编辑时不能修改键名
+                        enabled = !isEdit
                     )
                     OutlinedTextField(
                         value = value,
@@ -106,7 +106,6 @@ fun SharedDataDialog(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // 标题栏
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -123,7 +122,6 @@ fun SharedDataDialog(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // 提示文字
             Text(
                 text = "存储的数据重启后保留，每个机器人独立",
                 style = MaterialTheme.typography.bodySmall,
@@ -132,7 +130,6 @@ fun SharedDataDialog(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // 数据列表
             if (dataMap.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -199,7 +196,6 @@ fun SharedDataDialog(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // 底部按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

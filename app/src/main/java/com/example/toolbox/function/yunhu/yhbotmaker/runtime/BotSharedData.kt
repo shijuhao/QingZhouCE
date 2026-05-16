@@ -19,7 +19,7 @@ object BotSharedData {
     }
     
     fun getAll(): Map<String, *> {
-        return prefs?.all ?: emptyMap()
+        return prefs?.all ?: emptyMap<String, Any>()
     }
     
     fun remove(key: String) {

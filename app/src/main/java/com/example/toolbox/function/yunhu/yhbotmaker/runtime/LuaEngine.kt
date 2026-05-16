@@ -174,12 +174,12 @@ class LuaEngine(
                 val n = args.narg()
                 if (n < 2) {
                     onPrint("❌ sharedDataSet 需要2个参数: key, value", 2)
-                    return NIL
+                    return LuaValue.NIL
                 }
                 val key = args.arg(1).tojstring()
                 val value = args.arg(2).tojstring()
                 BotSharedData.set(key, value)
-                return NIL
+                return LuaValue.NIL
             }
         })
         
@@ -189,7 +189,7 @@ class LuaEngine(
                 val n = args.narg()
                 if (n < 1) {
                     onPrint("❌ sharedDataGet 需要至少1个参数: key, defaultValue(可选)", 2)
-                    return NIL
+                    return LuaValue.NIL
                 }
                 val key = args.arg(1).tojstring()
                 val defaultValue = if (n >= 2) args.arg(2).tojstring() else ""
@@ -199,8 +199,8 @@ class LuaEngine(
         })
         
         // sharedData.getAll() - 返回 table
-        globals.set("sharedDataGetAll", object : ZeroArgFunction() {
-            override fun call(): LuaValue {
+        globals.set("sharedDataGetAll", object : VarArgFunction() {
+            override fun invoke(args: Varargs): LuaValue {
                 val all = BotSharedData.getAll()
                 val table = LuaTable()
                 all.forEach { (k, v) ->
@@ -215,15 +215,15 @@ class LuaEngine(
             override fun call(arg: LuaValue): LuaValue {
                 val key = arg.tojstring()
                 BotSharedData.remove(key)
-                return NIL
+                return LuaValue.NIL
             }
         })
         
         // sharedData.clear()
-        globals.set("sharedDataClear", object : ZeroArgFunction() {
-            override fun call(): LuaValue {
+        globals.set("sharedDataClear", object : VarArgFunction() {
+            override fun invoke(args: Varargs): LuaValue {
                 BotSharedData.clear()
-                return NIL
+                return LuaValue.NIL
             }
         })
 
