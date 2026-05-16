@@ -174,12 +174,12 @@ class LuaEngine(
                 val n = args.narg()
                 if (n < 2) {
                     onPrint("❌ sharedDataSet 需要2个参数: key, value", 2)
-                    return LuaValue.NIL
+                    return NIL
                 }
                 val key = args.arg(1).tojstring()
                 val value = args.arg(2).tojstring()
                 BotSharedData.set(key, value)
-                return LuaValue.NIL
+                return NIL
             }
         })
         
@@ -189,12 +189,12 @@ class LuaEngine(
                 val n = args.narg()
                 if (n < 1) {
                     onPrint("❌ sharedDataGet 需要至少1个参数: key, defaultValue(可选)", 2)
-                    return LuaValue.NIL
+                    return NIL
                 }
                 val key = args.arg(1).tojstring()
                 val defaultValue = if (n >= 2) args.arg(2).tojstring() else ""
                 val value = BotSharedData.get(key, defaultValue)
-                return LuaValue.valueOf(value)
+                return valueOf(value)
             }
         })
         
@@ -215,7 +215,7 @@ class LuaEngine(
             override fun call(arg: LuaValue): LuaValue {
                 val key = arg.tojstring()
                 BotSharedData.remove(key)
-                return LuaValue.NIL
+                return NIL
             }
         })
         
@@ -223,7 +223,7 @@ class LuaEngine(
         globals.set("sharedDataClear", object : VarArgFunction() {
             override fun invoke(args: Varargs): LuaValue {
                 BotSharedData.clear()
-                return LuaValue.NIL
+                return NIL
             }
         })
 
@@ -378,49 +378,6 @@ class LuaEngine(
         }
     }
 
-    fun runLoopCode(code: String, callback: Map<String, Any>): Boolean {
-        return try {
-            val luaTable = LuaTable()
-
-            fun convertToLuaValue(value: Any?): LuaValue {
-                return when (value) {
-                    null -> LuaValue.NIL
-                    is String -> LuaValue.valueOf(value)
-                    is Int -> LuaValue.valueOf(value)
-                    is Long -> LuaValue.valueOf(value.toInt())
-                    is Double -> LuaValue.valueOf(value)
-                    is Boolean -> LuaValue.valueOf(value)
-                    is Map<*, *> -> {
-                        val table = LuaTable()
-                        (value as Map<String, Any>).forEach { (k, v) ->
-                            table.set(k, convertToLuaValue(v))
-                        }
-                        table
-                    }
-                    is List<*> -> {
-                        val table = LuaTable()
-                        value.forEachIndexed { index, item ->
-                            table.set(index + 1, convertToLuaValue(item))
-                        }
-                        table
-                    }
-                    else -> LuaValue.valueOf(value.toString())
-                }
-            }
-
-            callback.forEach { (k, v) ->
-                luaTable.set(k, convertToLuaValue(v))
-            }
-
-            globals.set("callback", luaTable)
-            globals.load(code).call()
-            true
-        } catch (e: Exception) {
-            onPrint("❌ 循环代码错误: ${e.message}", 2)
-            false
-        }
-    }
-    
     fun runEventCode(code: String, event: Map<String, Any>): Boolean {
         return try {
             val luaTable = convertToLuaTable(event)
