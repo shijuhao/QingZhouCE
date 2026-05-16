@@ -17,9 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -87,18 +85,13 @@ class RunBotActivity : ComponentActivity() {
     }
 }
 
-/**
- * 消息数据类
- */
 data class ChatMessage(
     val id: Long = System.currentTimeMillis(),
-    val type: Int,          // 1=普通消息, 2=带按钮消息
+    val type: Int,  // 1=收到事件, 2=发送消息, 3=系统消息, 4=自动回复, 5=快捷命令, 6=错误
     val text: String,
     val time: String,
     val iconRes: Int? = null,
-    val iconColor: Color = Color.White,
-    val buttonText: String? = null,
-    val buttonAction: (() -> Unit)? = null
+    val iconColor: Color = Color.White
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -133,7 +126,7 @@ fun BotRuntimeScreen(
         if (messagesState.isEmpty()) {
             viewModel.addMessage(
                 ChatMessage(
-                    type = 1,
+                    type = 3,
                     text = "🤖 机器人 [$botName] 已启动\n等待 WebSocket 连接...",
                     time = timeFormat.format(Date()),
                     iconColor = Color.Cyan
@@ -202,7 +195,7 @@ fun BotRuntimeScreen(
             onPrint = { msg, type ->
                 viewModel.addMessage(
                     ChatMessage(
-                        type = 1,
+                        type = type,
                         text = msg,
                         time = timeFormat.format(Date()),
                         iconColor = when (type) {
@@ -226,7 +219,7 @@ fun BotRuntimeScreen(
         viewModel.addMessage(
             ChatMessage(
                 type = 1,
-                text = "📨 [$eventType]\n${eventJson.toString().take(300)}",
+                text = "[$eventType]\n${eventJson.toString().take(300)}",
                 time = timeFormat.format(Date()),
                 iconColor = Color.Cyan
             )
@@ -270,8 +263,8 @@ fun BotRuntimeScreen(
                                 onSuccess = { _, _ ->
                                     viewModel.addMessage(
                                         ChatMessage(
-                                            type = 1,
-                                            text = "🤖 自动回复: ${autoReply.reply}",
+                                            type = 2,
+                                            text = "自动回复成功: ${autoReply.reply}",
                                             time = timeFormat.format(Date()),
                                             iconColor = Color.Green
                                         )
@@ -280,8 +273,8 @@ fun BotRuntimeScreen(
                                 onError = { err ->
                                     viewModel.addMessage(
                                         ChatMessage(
-                                            type = 1,
-                                            text = "❌ 自动回复失败: $err",
+                                            type = 4,
+                                            text = "自动回复失败: $err",
                                             time = timeFormat.format(Date()),
                                             iconColor = Color.Red
                                         )
@@ -307,8 +300,8 @@ fun BotRuntimeScreen(
                                 luaEngine.runEventCode(quickCmd.code, eventMap)
                                 viewModel.addMessage(
                                     ChatMessage(
-                                        type = 1,
-                                        text = "⚡ 执行快捷命令: $commandId",
+                                        type = 2,
+                                        text = "执行快捷命令成功: $commandId",
                                         time = timeFormat.format(Date()),
                                         iconColor = Color.Cyan
                                     )
@@ -316,8 +309,8 @@ fun BotRuntimeScreen(
                             } catch (e: Exception) {
                                 viewModel.addMessage(
                                     ChatMessage(
-                                        type = 1,
-                                        text = "❌ 快捷命令执行失败: ${e.message}",
+                                        type = 4,
+                                        text = "快捷命令执行失败: ${e.message}",
                                         time = timeFormat.format(Date()),
                                         iconColor = Color.Red
                                     )
@@ -340,23 +333,28 @@ fun BotRuntimeScreen(
     }
     
     val onStatusChangedCallback: (Boolean) -> Unit = { connected ->
+        if (isWsConnected == connected) return@let
+        
         isWsConnected = connected
         prefs.edit { putBoolean("stop_${index + 1}", !connected) }
-        viewModel.addMessage(
-            ChatMessage(
-                type = 1,
-                text = if (connected) "🔌 WebSocket 已连接" else "⚠️ WebSocket 已断开",
-                time = timeFormat.format(Date()),
-                iconColor = if (connected) Color.Green else Color.Red
+        
+        if (connected) {
+            viewModel.addMessage(
+                ChatMessage(
+                    type = 3,
+                    text = "WebSocket 已连接",
+                    time = timeFormat.format(Date()),
+                    iconColor = Color.Green
+                )
             )
-        )
+        }
     }
     
     val onErrorCallback: (String) -> Unit = { error ->
         viewModel.addMessage(
             ChatMessage(
-                type = 1,
-                text = "❌ WebSocket 错误: $error",
+                type = 4,
+                text = "WebSocket 错误: $error",
                 time = timeFormat.format(Date()),
                 iconColor = Color.Red
             )
@@ -372,13 +370,16 @@ fun BotRuntimeScreen(
         )
     }
     
+    var startupExecuted by remember { mutableStateOf(false) }
+
     LaunchedEffect(isWsConnected) {
-        if (isWsConnected) {
+        if (isWsConnected && !startupExecuted) {
+            startupExecuted = true
             val startupCode = prefs.getString("code-start$index", "") ?: ""
             if (startupCode.isNotBlank()) {
                 viewModel.addMessage(
                     ChatMessage(
-                        type = 1,
+                        type = 3,
                         text = "📝 正在执行启动代码...",
                         time = timeFormat.format(Date()),
                         iconColor = Color.Yellow
@@ -398,7 +399,7 @@ fun BotRuntimeScreen(
         viewModel.addMessage(
             ChatMessage(
                 id = tempId,
-                type = 1,
+                type = 3,
                 text = "发送中 → $recvId ($recvType): $content",
                 time = timeFormat.format(Date()),
                 iconColor = Color.Gray
@@ -413,15 +414,14 @@ fun BotRuntimeScreen(
             content = content,
             onSuccess = { _, _ ->
                 scope.launch(Dispatchers.Main) {
-                    // 移除发送中的消息
                     val newMessages = viewModel.messages.value.filter { it.id != tempId }
                     viewModel.clearMessages()
                     newMessages.forEach { viewModel.addMessage(it) }
                     
                     viewModel.addMessage(
                         ChatMessage(
-                            type = 1,
-                            text = "✅ → $recvId: $content",
+                            type = 2,
+                            text = "成功向 $recvId 发送: $content",
                             time = timeFormat.format(Date()),
                             iconColor = Color.Green
                         )
@@ -437,8 +437,8 @@ fun BotRuntimeScreen(
                     
                     viewModel.addMessage(
                         ChatMessage(
-                            type = 1,
-                            text = "❌ 发送失败: $errorMsg",
+                            type = 4,
+                            text = "发送失败: $errorMsg",
                             time = timeFormat.format(Date()),
                             iconColor = Color.Red
                         )
@@ -736,10 +736,7 @@ fun BotRuntimeScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(messagesState) { msg ->
-                        when (msg.type) {
-                            1 -> MessageItem(msg)
-                            2 -> MessageItemWithButton(msg)
-                        }
+                        MessageItem(msg)
                     }
                 }
 
@@ -779,6 +776,14 @@ fun BotRuntimeScreen(
 
 @Composable
 fun MessageItem(message: ChatMessage) {
+    val (icon, iconTint) = when (message.type) {
+        1 -> Icons.AutoMirrored.Filled.CallReceived to Color.Cyan           // 收到消息
+        2 -> Icons.Default.Check to Color.Green                       // 操作成功
+        3 -> Icons.Default.Info to Color.White                              // 系统消息
+        4 -> Icons.Default.Error to Color.Red                               // 报错
+        else -> Icons.Default.Android to MaterialTheme.colorScheme.primary  // 其他
+    }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -788,56 +793,20 @@ fun MessageItem(message: ChatMessage) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Android,
+                imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = iconTint
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = message.text, style = MaterialTheme.typography.bodyMedium)
                 Text(
                     text = message.time,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun MessageItemWithButton(message: ChatMessage) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = message.text, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            if (message.buttonText != null) {
-                Button(
-                    onClick = { message.buttonAction?.invoke() ?: Unit },
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text(message.buttonText)
-                }
-            }
-            Text(
-                text = message.time,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.align(Alignment.End)
-            )
         }
     }
 }

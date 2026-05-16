@@ -33,14 +33,12 @@ fun BackupDialog(
     val startupCode = prefs.getString("code-start$botIndex", "") ?: ""
     val loopCode = prefs.getString("code$botIndex", "") ?: ""
     val quickCommands = prefs.getString("chelper$botIndex", "{}") ?: "{}"
-    val requestInterval = prefs.getString("shilv$botIndex", "2000") ?: "2000"
-
+    
     val backupData = buildJsonObject {
         put("botName", botName)
         put("startupCode", startupCode)
         put("loopCode", loopCode)
         put("quickCommands", quickCommands)
-        put("requestInterval", requestInterval)
         put("backupTime", System.currentTimeMillis())
     }
 
@@ -125,13 +123,6 @@ fun BackupDialog(
                         item {
                             Text(
                                 text = "循环代码: ${loopCode.take(50)}${if (loopCode.length > 50) "..." else ""}",
-                                modifier = Modifier.padding(8.dp),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        item {
-                            Text(
-                                text = "请求间隔: $requestInterval ms",
                                 modifier = Modifier.padding(8.dp),
                                 style = MaterialTheme.typography.bodySmall
                             )
