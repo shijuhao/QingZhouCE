@@ -1,15 +1,23 @@
 package com.example.toolbox.music
 
+import android.content.ContentResolver
 import android.content.Context
+import android.content.pm.PackageManager
+import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.File
 import java.io.IOException
 
 data class MusicPlayerState(
@@ -32,20 +40,20 @@ enum class ScanMode {
     FILE        // 仅文件扫描
 }
 
-class MusicPlayerViewModel(private val context: android.content.Context) : ViewModel() {
+class MusicPlayerViewModel(private val context: Context) : ViewModel() {
     private var mediaPlayer: MediaPlayer? = null
+    private var progressUpdateJob: kotlinx.coroutines.Job? = null
     
     private val _state = MutableStateFlow(MusicPlayerState())
     val state: StateFlow<MusicPlayerState> = _state.asStateFlow()
     
     init {
-        // 从 SharedPreferences 加载保存的扫描模式
         loadScanModeFromPrefs()
     }
     
     private fun loadScanModeFromPrefs() {
         try {
-            val prefs = context.getSharedPreferences("music_player_prefs", android.content.Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences("music_player_prefs", Context.MODE_PRIVATE)
             val savedMode = prefs.getString("scan_mode", "AUTO") ?: "AUTO"
             val mode = when (savedMode) {
                 "MEDIASTORE" -> ScanMode.MEDIASTORE
@@ -60,7 +68,7 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
     
     private fun saveScanModeToPrefs(mode: ScanMode) {
         try {
-            val prefs = context.getSharedPreferences("music_player_prefs", android.content.Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences("music_player_prefs", Context.MODE_PRIVATE)
             val modeString = when (mode) {
                 ScanMode.AUTO -> "AUTO"
                 ScanMode.MEDIASTORE -> "MEDIASTORE"
@@ -74,8 +82,19 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
     
     fun loadMusicList(context: Context) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, error = null) }
             try {
+                // 检查权限
+                if (!hasReadPermission(context)) {
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = "缺少存储权限，请在设置中授予权限"
+                        )
+                    }
+                    return@launch
+                }
+                
                 val musicList = when (_state.value.scanMode) {
                     ScanMode.AUTO -> {
                         val mediaStoreList = scanMusicFilesMediaStore(context)
@@ -107,6 +126,20 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
         }
     }
     
+    private fun hasReadPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.READ_MEDIA_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+    
     fun setScanMode(mode: ScanMode) {
         _state.update { it.copy(scanMode = mode) }
         saveScanModeToPrefs(mode)
@@ -119,37 +152,52 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
             android.provider.MediaStore.Audio.Media.TITLE,
             android.provider.MediaStore.Audio.Media.ARTIST,
             android.provider.MediaStore.Audio.Media.DURATION,
-            android.provider.MediaStore.Audio.Media.DATA
+            android.provider.MediaStore.Audio.Media.DATA,
+            android.provider.MediaStore.Audio.Media.ALBUM_ID
         )
         
+        val selection = "${android.provider.MediaStore.Audio.Media.IS_MUSIC} != 0"
         val sortOrder = "${android.provider.MediaStore.Audio.Media.TITLE} ASC"
         
         try {
-            context.contentResolver.query(
+            val cursor = context.contentResolver.query(
                 android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                 projection,
-                null,
+                selection,
                 null,
                 sortOrder
-            )?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
-                val titleColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.TITLE)
-                val artistColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ARTIST)
-                val durationColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DURATION)
-                val dataColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
+            )
+            
+            cursor?.use {
+                val idColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
+                val titleColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.TITLE)
+                val artistColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ARTIST)
+                val durationColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DURATION)
+                val dataColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
+                val albumIdColumn = it.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM_ID)
                 
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idColumn)
-                    val title = cursor.getString(titleColumn) ?: "未知歌曲"
-                    val artist = cursor.getString(artistColumn) ?: "未知艺术家"
-                    val duration = cursor.getLong(durationColumn)
-                    val filePath = cursor.getString(dataColumn) ?: ""
+                while (it.moveToNext()) {
+                    val id = it.getLong(idColumn)
+                    val title = it.getString(titleColumn) ?: "未知歌曲"
+                    val artist = it.getString(artistColumn) ?: "未知艺术家"
+                    val duration = it.getLong(durationColumn)
+                    val filePath = it.getString(dataColumn) ?: ""
+                    
+                    // 获取专辑封面
+                    val albumArtUri = if (albumIdColumn >= 0) {
+                        val albumId = it.getLong(albumIdColumn)
+                        android.provider.MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI
+                            .buildUpon()
+                            .appendPath(albumId.toString())
+                            .build()
+                    } else null
+                    
                     val uri = Uri.withAppendedPath(
                         android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                         id.toString()
                     )
                     
-                    if (duration > 0) {
+                    if (duration > 0 && filePath.isNotEmpty()) {
                         musicList.add(
                             MusicItem(
                                 id = id,
@@ -157,6 +205,7 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
                                 artist = artist,
                                 duration = duration,
                                 uri = uri,
+                                albumArt = albumArtUri,
                                 filePath = filePath
                             )
                         )
@@ -172,9 +221,15 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
     
     private fun scanMusicFilesDirect(context: Context): List<MusicItem> {
         val musicList = mutableListOf<MusicItem>()
-        val musicExtensions = listOf(".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".wma")
+        val musicExtensions = listOf(".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg")
         
         try {
+            // Android 10+ 使用 MediaStore 作为备选，不再直接扫描根目录
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // 对于 Android 10+，直接返回空并提示使用 MediaStore
+                return emptyList()
+            }
+            
             val externalDir = android.os.Environment.getExternalStorageDirectory()
             scanDirectoryRecursive(externalDir, musicExtensions, musicList)
         } catch (e: Exception) {
@@ -185,10 +240,10 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
     }
     
     private fun scanDirectoryRecursive(
-        directory: java.io.File,
+        directory: File,
         extensions: List<String>,
         musicList: MutableList<MusicItem>,
-        maxDepth: Int = 10,
+        maxDepth: Int = 8,
         currentDepth: Int = 0
     ) {
         if (currentDepth >= maxDepth) return
@@ -201,29 +256,19 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
                 } else if (file.isFile) {
                     val fileName = file.name.lowercase()
                     if (extensions.any { fileName.endsWith(it) }) {
-                        val uri = Uri.fromFile(file)
-                        val mediaPlayer = MediaPlayer()
-                        try {
-                            mediaPlayer.setDataSource(file.absolutePath)
-                            mediaPlayer.prepare()
-                            val duration = mediaPlayer.duration.toLong()
-                            mediaPlayer.release()
-                            
-                            if (duration > 0) {
-                                val title = file.nameWithoutExtension
-                                musicList.add(
-                                    MusicItem(
-                                        id = System.currentTimeMillis() + musicList.size,
-                                        title = title,
-                                        artist = "未知艺术家",
-                                        duration = duration,
-                                        uri = uri,
-                                        filePath = file.absolutePath
-                                    )
+                        val duration = getAudioDuration(file.absolutePath)
+                        if (duration > 0) {
+                            val title = file.nameWithoutExtension
+                            musicList.add(
+                                MusicItem(
+                                    id = System.currentTimeMillis() + musicList.size,
+                                    title = title,
+                                    artist = extractArtistFromMetadata(file.absolutePath) ?: "未知艺术家",
+                                    duration = duration,
+                                    uri = Uri.fromFile(file),
+                                    filePath = file.absolutePath
                                 )
-                            }
-                        } catch (e: Exception) {
-                            mediaPlayer.release()
+                            )
                         }
                     }
                 }
@@ -233,12 +278,36 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
         }
     }
     
+    private fun getAudioDuration(filePath: String): Long {
+        return try {
+            MediaMetadataRetriever().use { retriever ->
+                retriever.setDataSource(filePath)
+                val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                durationStr?.toLongOrNull() ?: 0
+            }
+        } catch (e: Exception) {
+            0
+        }
+    }
+    
+    private fun extractArtistFromMetadata(filePath: String): String? {
+        return try {
+            MediaMetadataRetriever().use { retriever ->
+                retriever.setDataSource(filePath)
+                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                    ?.takeIf { it.isNotBlank() }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
     fun playMusic(musicItem: MusicItem) {
         stopMusic()
         
         try {
             mediaPlayer = MediaPlayer().apply {
-                setDataSource(musicItem.uri.toString())
+                setDataSource(context, musicItem.uri)
                 prepareAsync()
                 setOnPreparedListener { mp ->
                     _state.update { 
@@ -250,7 +319,7 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
                             error = null
                         )
                     }
-                    start()
+                    mp.start()
                     startProgressUpdate()
                 }
                 setOnErrorListener { _, what, extra ->
@@ -263,12 +332,7 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
                     true
                 }
                 setOnCompletionListener {
-                    if (_state.value.isLooping) {
-                        seekTo(0)
-                        start()
-                    } else {
-                        _state.update { it.copy(isPlaying = false, currentPosition = 0) }
-                    }
+                    handleCompletion()
                 }
             }
         } catch (e: IOException) {
@@ -281,11 +345,84 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
         }
     }
     
+    private fun handleCompletion() {
+        if (_state.value.isLooping) {
+            // 单曲循环
+            mediaPlayer?.seekTo(0)
+            mediaPlayer?.start()
+        } else {
+            // 播放下一首
+            playNext()
+        }
+    }
+    
+    fun playNext() {
+        val currentList = _state.value.musicList
+        val currentMusic = _state.value.currentMusic
+        
+        // 添加空列表检查
+        if (currentList.isEmpty()) return
+        
+        // 如果没有正在播放的歌曲，播放第一首
+        if (currentMusic == null) {
+            if (currentList.isNotEmpty()) {
+                playMusic(currentList.first())
+            }
+            return
+        }
+        
+        val currentIndex = currentList.indexOf(currentMusic)
+        if (currentIndex == -1) {
+            // 如果当前歌曲不在列表中，播放第一首
+            playMusic(currentList.first())
+            return
+        }
+        
+        val nextIndex = if (_state.value.isShuffle) {
+            var newIndex = (currentList.indices).random()
+            while (newIndex == currentIndex && currentList.size > 1) {
+                newIndex = (currentList.indices).random()
+            }
+            newIndex
+        } else {
+            (currentIndex + 1) % currentList.size
+        }
+        
+        playMusic(currentList[nextIndex])
+    }
+    
+    fun playPrevious() {
+        val currentList = _state.value.musicList
+        val currentMusic = _state.value.currentMusic
+        
+        if (currentList.isEmpty()) return
+        if (currentMusic == null) {
+            playMusic(currentList.first())
+            return
+        }
+        
+        val currentIndex = currentList.indexOf(currentMusic)
+        if (currentIndex == -1) return
+        
+        val prevIndex = if (_state.value.isShuffle) {
+            var newIndex = (currentList.indices).random()
+            while (newIndex == currentIndex && currentList.size > 1) {
+                newIndex = (currentList.indices).random()
+            }
+            newIndex
+        } else {
+            if (currentIndex - 1 < 0) currentList.size - 1 else currentIndex - 1
+        }
+        
+        playMusic(currentList[prevIndex])
+    }
+    
     fun togglePlayPause() {
         mediaPlayer?.let { mp ->
             if (_state.value.isPlaying) {
                 mp.pause()
                 _state.update { it.copy(isPlaying = false) }
+                stopProgressUpdate()
             } else {
                 mp.start()
                 _state.update { it.copy(isPlaying = true) }
@@ -295,9 +432,14 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
     }
     
     fun stopMusic() {
+        stopProgressUpdate()
         mediaPlayer?.let { mp ->
-            mp.stop()
-            mp.release()
+            try {
+                mp.stop()
+                mp.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
         mediaPlayer = null
         _state.update { 
@@ -310,8 +452,10 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
     }
     
     fun seekTo(position: Int) {
-        mediaPlayer?.seekTo(position)
-        _state.update { it.copy(currentPosition = position) }
+        mediaPlayer?.let { mp ->
+            mp.seekTo(position)
+            _state.update { it.copy(currentPosition = position) }
+        }
     }
     
     fun setVolume(volume: Float) {
@@ -329,15 +473,25 @@ class MusicPlayerViewModel(private val context: android.content.Context) : ViewM
     }
     
     private fun startProgressUpdate() {
-        viewModelScope.launch {
-            while (_state.value.isPlaying && mediaPlayer != null) {
-                kotlin.runCatching {
+        stopProgressUpdate()
+        progressUpdateJob = viewModelScope.launch {
+            while (isActive && _state.value.isPlaying && mediaPlayer != null) {
+                delay(500) // 更新频率 500ms
+                try {
                     val currentPosition = mediaPlayer?.currentPosition ?: 0
-                    _state.update { it.copy(currentPosition = currentPosition) }
+                    if (currentPosition != _state.value.currentPosition) {
+                        _state.update { it.copy(currentPosition = currentPosition) }
+                    }
+                } catch (e: Exception) {
+                    break
                 }
-                kotlinx.coroutines.delay(1000)
             }
         }
+    }
+    
+    private fun stopProgressUpdate() {
+        progressUpdateJob?.cancel()
+        progressUpdateJob = null
     }
     
     override fun onCleared() {
