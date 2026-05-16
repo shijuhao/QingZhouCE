@@ -117,6 +117,7 @@ fun BotRuntimeScreen(
     var showHelpDialog by remember { mutableStateOf(false) }
     var showSendDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
+    var showSharedDataDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
     
     var isWsConnected by remember { mutableStateOf(false) }
@@ -190,6 +191,8 @@ fun BotRuntimeScreen(
     )
     
     val luaEngine = remember {
+        BotSharedData.init(context, botName)
+    
         LuaEngine(
             token = token,
             onPrint = { msg, type ->
@@ -448,6 +451,13 @@ fun BotRuntimeScreen(
             }
         )
     }
+    
+    if (showSharedDataDialog) {
+        SharedDataDialog(
+            botName = botName,
+            onDismiss = { showSharedDataDialog = false }
+        )
+    }
 
     if (showSendDialog) {
         SendMessageDialog(
@@ -655,6 +665,13 @@ fun BotRuntimeScreen(
                         selected = false,
                         onClick = { showQuickCommandManager = true },
                         icon = { Icon(Icons.Default.Bolt, null) },
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("SharedData") },
+                        selected = false,
+                        onClick = { showSharedDataDialog = true },
+                        icon = { Icon(Icons.Default.Storage, null) },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     NavigationDrawerItem(

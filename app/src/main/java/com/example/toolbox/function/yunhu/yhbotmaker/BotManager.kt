@@ -81,14 +81,24 @@ class BotModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun add(bot: Bot) {
+    fun add(bot: Bot): Boolean {
+        // 检查是否已存在同名机器人
+        if (bots.any { it.name == bot.name }) {
+            return false
+        }
         bots = bots + bot.copy(index = bots.size + 1)
         save()
+        return true
     }
-
-    fun update(pos: Int, bot: Bot) {
+    
+    fun update(pos: Int, bot: Bot): Boolean {
+        // 检查是否已存在同名机器人（排除当前编辑的）
+        if (bots.any { it.index != pos + 1 && it.name == bot.name }) {
+            return false
+        }
         bots = bots.toMutableList().apply { this[pos] = bot.copy(index = pos + 1) }
         save()
+        return true
     }
 
     fun delete(pos: Int) {
@@ -97,19 +107,6 @@ class BotModel(application: Application) : AndroidViewModel(application) {
         (pos + 1).let { idx ->
             listOf("avatar_$idx", "chelper_$idx", "code_$idx", "code-start_$idx")
                .forEach { key -> prefs.edit { remove(key) } }
-        }
-    }
-
-    fun duplicate(pos: Int) {
-        val original = bots[pos]
-        bots = bots + original.copy(index = bots.size + 1)
-        save()
-        (pos + 1).let { from ->
-            (bots.size).let { to ->
-                prefs.getString("avatar_$from", null)?.let { path ->
-                    prefs.edit { putString("avatar_$to", path) }
-                }
-            }
         }
     }
 
@@ -184,7 +181,6 @@ fun BotManagerScreen(
                             avatar = model.avatarPath(pos + 1),
                             onClick = { model.lastIndex = pos; navigateToBotDetail(bot) },
                             onEdit = { editPos = pos },
-                            onDuplicate = { model.duplicate(pos) },
                             onDelete = { model.delete(pos) }
                         )
                     }
@@ -193,41 +189,49 @@ fun BotManagerScreen(
         }
     }
 
-    // 创建对话框
     if (showCreate) {
         EditDialog(
             initial = null,
+            currentAvatar = null,
             onDismiss = { showCreate = false },
             onConfirm = { bot, avatarUri ->
-                model.add(bot)
-                if (avatarUri != null) {
-                    saveImage(context, avatarUri)?.let { path ->
-                        model.setAvatar(model.bots.size, path)
+                val success = model.add(bot)
+                if (success) {
+                    if (avatarUri != null) {
+                        saveImage(context, avatarUri)?.let { path ->
+                            model.setAvatar(model.bots.size, path)
+                        }
                     }
+                    showCreate = false
+                    refreshKey++
+                } else {
+                    toast(context, "机器人名称已存在")
                 }
-                showCreate = false
-                refreshKey++
             }
         )
     }
 
-    // 编辑对话框
     if (editPos >= 0) {
+        val bot = model.bots[editPos]
         EditDialog(
-            initial = model.bots[editPos],
+            initial = bot,
             currentAvatar = model.avatarPath(editPos + 1),
             onDismiss = { editPos = -1 },
-            onConfirm = { bot, avatarUri ->
-                model.update(editPos, bot)
-                if (avatarUri != null) {
-                    saveImage(context, avatarUri)?.let { path ->
-                        model.setAvatar(editPos + 1, path)
+            onConfirm = { newBot, avatarUri ->
+                val success = model.update(editPos, newBot)
+                if (success) {
+                    if (avatarUri != null) {
+                        saveImage(context, avatarUri)?.let { path ->
+                            model.setAvatar(editPos + 1, path)
+                        }
+                    } else if (model.avatarPath(editPos + 1) != null) {
+                        model.setAvatar(editPos + 1, null)
                     }
-                } else if (model.avatarPath(editPos + 1) != null) {
-                    model.setAvatar(editPos + 1, null)
+                    editPos = -1
+                    refreshKey++
+                } else {
+                    toast(context, "机器人名称已存在")
                 }
-                editPos = -1
-                refreshKey++
             }
         )
     }
@@ -239,7 +243,6 @@ fun BotCard(
     avatar: String?,
     onClick: () -> Unit,
     onEdit: () -> Unit,
-    onDuplicate: () -> Unit,
     onDelete: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -284,7 +287,6 @@ fun BotCard(
 
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 listOfNotNull(
-                    "复制此机器人" to onDuplicate,
                     "编辑" to onEdit,
                     "删除" to onDelete
                 ).forEach { (text, action) ->
@@ -399,7 +401,6 @@ fun EditDialog(
     )
 }
 
-// ==================== 工具 ====================
 fun saveImage(context: Context, uri: Uri): String? = try {
     context.contentResolver.openInputStream(uri)?.use { input ->
         BitmapFactory.decodeStream(input)?.let { bmp ->
@@ -414,7 +415,6 @@ fun toast(context: Context, msg: String) {
     android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
 }
 
-// ==================== Activity ====================
 class BotMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

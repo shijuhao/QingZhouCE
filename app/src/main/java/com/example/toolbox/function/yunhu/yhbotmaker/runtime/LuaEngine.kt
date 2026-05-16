@@ -167,6 +167,65 @@ class LuaEngine(
                 return NIL
             }
         })
+        
+        // sharedData.set(key, value)
+        globals.set("sharedDataSet", object : VarArgFunction() {
+            override fun invoke(args: Varargs): LuaValue {
+                val n = args.narg()
+                if (n < 2) {
+                    onPrint("❌ sharedDataSet 需要2个参数: key, value", 2)
+                    return NIL
+                }
+                val key = args.arg(1).tojstring()
+                val value = args.arg(2).tojstring()
+                BotSharedData.set(key, value)
+                return NIL
+            }
+        })
+        
+        // sharedData.get(key, defaultValue)
+        globals.set("sharedDataGet", object : VarArgFunction() {
+            override fun invoke(args: Varargs): LuaValue {
+                val n = args.narg()
+                if (n < 1) {
+                    onPrint("❌ sharedDataGet 需要至少1个参数: key, defaultValue(可选)", 2)
+                    return NIL
+                }
+                val key = args.arg(1).tojstring()
+                val defaultValue = if (n >= 2) args.arg(2).tojstring() else ""
+                val value = BotSharedData.get(key, defaultValue)
+                return LuaValue.valueOf(value)
+            }
+        })
+        
+        // sharedData.getAll() - 返回 table
+        globals.set("sharedDataGetAll", object : ZeroArgFunction() {
+            override fun call(): LuaValue {
+                val all = BotSharedData.getAll()
+                val table = LuaTable()
+                all.forEach { (k, v) ->
+                    table.set(k, v.toString())
+                }
+                return table
+            }
+        })
+        
+        // sharedData.remove(key)
+        globals.set("sharedDataRemove", object : OneArgFunction() {
+            override fun call(arg: LuaValue): LuaValue {
+                val key = arg.tojstring()
+                BotSharedData.remove(key)
+                return NIL
+            }
+        })
+        
+        // sharedData.clear()
+        globals.set("sharedDataClear", object : ZeroArgFunction() {
+            override fun call(): LuaValue {
+                BotSharedData.clear()
+                return NIL
+            }
+        })
 
         fun parseHeaders(json: String?): Map<String, String> {
             if (json.isNullOrBlank()) return emptyMap()
