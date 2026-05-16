@@ -22,14 +22,19 @@ fun SharedDataDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var dataMap by remember { mutableStateOf<Map<String, *>>(emptyMap()) }
+    var dataMap by remember { mutableStateOf<MutableMap<String, String>>(mutableMapOf()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var editingKey by remember { mutableStateOf<String?>(null) }
     var editingValue by remember { mutableStateOf("") }
     
     // 刷新数据
     fun refreshData() {
-        dataMap = BotSharedData.getAll()
+        val all = BotSharedData.getAll()
+        val newMap = mutableMapOf<String, String>()
+        all.forEach { (k, v) ->
+            newMap[k] = v.toString()
+        }
+        dataMap = newMap
     }
     
     LaunchedEffect(Unit) {
@@ -144,7 +149,7 @@ fun SharedDataDialog(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.heightIn(max = 400.dp)
                 ) {
-                    items(dataMap.toList()) { (key, value) ->
+                    items(dataMap.entries.toList()) { entry ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -160,11 +165,11 @@ fun SharedDataDialog(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = key,
+                                        text = entry.key,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
-                                        text = value.toString(),
+                                        text = entry.value,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -172,15 +177,15 @@ fun SharedDataDialog(
                                 Row {
                                     IconButton(
                                         onClick = {
-                                            editingKey = key
-                                            editingValue = value.toString()
+                                            editingKey = entry.key
+                                            editingValue = entry.value
                                         }
                                     ) {
                                         Icon(Icons.Default.Edit, "编辑")
                                     }
                                     IconButton(
                                         onClick = {
-                                            BotSharedData.remove(key)
+                                            BotSharedData.remove(entry.key)
                                             refreshData()
                                             toast(context, "已删除")
                                         }
