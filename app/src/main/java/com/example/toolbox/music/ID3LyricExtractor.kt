@@ -81,8 +81,8 @@ object ID3LyricExtractor {
         if (offset >= data.size) return null
             
         val lyricsBytes = data.copyOfRange(offset, data.size)
-            
-        return when (encoding) {
+        
+        val rawText = when (encoding) {
             0 -> String(lyricsBytes, Charsets.ISO_8859_1)
             1 -> {
                 if (lyricsBytes.size >= 2) {
@@ -97,6 +97,8 @@ object ID3LyricExtractor {
             3 -> String(lyricsBytes, Charsets.UTF_8)
             else -> String(lyricsBytes, Charsets.ISO_8859_1)
         }
+        
+        return rawText.trim()
     }
     
     private fun indexOfNull(data: ByteArray, start: Int): Int {

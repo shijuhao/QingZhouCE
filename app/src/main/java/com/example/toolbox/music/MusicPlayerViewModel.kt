@@ -84,6 +84,8 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
     private val _state = MutableStateFlow(MusicPlayerState())
     val state: StateFlow<MusicPlayerState> = _state.asStateFlow()
     
+    private val semaphore = java.util.concurrent.Semaphore(3)
+
     init {
         loadScanModeFromPrefs()
         loadCustomFoldersFromPrefs()
@@ -215,6 +217,7 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
         }
         
         return try {
+            semaphore.acquire()
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(context, musicItem.uri)
             val artwork = retriever.embeddedPicture
@@ -230,6 +233,8 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        } finally {
+            semaphore.release()
         }
     }
     

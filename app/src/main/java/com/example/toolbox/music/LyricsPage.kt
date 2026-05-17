@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -26,40 +28,30 @@ fun LyricsPage(
     val currentLyricIndex = LyricParser.getCurrentLyricIndex(lyrics, currentPosition)
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }.toInt()
+    val targetOffset = -(screenHeightPx / 4)
     
     var autoScrollEnabled by remember { mutableStateOf(true) }
-    var pendingScrollIndex by remember { mutableStateOf(-1) }
-    var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     
     LaunchedEffect(listState.isScrollInProgress) {
         if (listState.isScrollInProgress) {
-            scrollJob?.cancel()
             autoScrollEnabled = false
-        } else {
-            scrollJob = scope.launch {
-                delay(3000)
-                autoScrollEnabled = true
-                if (pendingScrollIndex >= 0) {
-                    listState.animateScrollToItem(pendingScrollIndex, -100)
-                    pendingScrollIndex = -1
-                } else if (currentLyricIndex >= 0) {
-                    listState.animateScrollToItem(currentLyricIndex, -100)
-                }
-            }
+        } else if (!autoScrollEnabled) {
+            delay(3000)
+            autoScrollEnabled = true
+            listState.animateScrollToItem(currentLyricIndex, targetOffset)
         }
     }
     
     LaunchedEffect(currentLyricIndex) {
-        if (currentLyricIndex >= 0 && lyrics.isNotEmpty()) {
-            if (autoScrollEnabled) {
-                listState.animateScrollToItem(currentLyricIndex, -100)
-                pendingScrollIndex = -1
-            } else {
-                pendingScrollIndex = currentLyricIndex
-            }
+        if (autoScrollEnabled && currentLyricIndex >= 0) {
+            listState.animateScrollToItem(currentLyricIndex, targetOffset)
         }
     }
-    
+
     if (lyrics.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),

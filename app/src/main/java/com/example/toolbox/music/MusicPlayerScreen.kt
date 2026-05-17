@@ -329,6 +329,7 @@ fun MusicListItem(
     var coverBitmap by remember { mutableStateOf<Bitmap?>(null) }
     
     LaunchedEffect(musicItem.id) {
+        delay(50 * (musicItem.id % 20))
         withContext(Dispatchers.IO) {
             coverBitmap = viewModel.getAlbumArt(context, musicItem)
         }

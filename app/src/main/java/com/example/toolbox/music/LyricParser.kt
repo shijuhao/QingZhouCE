@@ -8,20 +8,42 @@ data class LyricLine(
 object LyricParser {
     fun parseLrc(lrcContent: String): List<LyricLine> {
         val lines = mutableListOf<LyricLine>()
-        val regex = Regex("\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})](.*)")
+        
+        val timeRegex = Regex("\\[(\\d{2}):(\\d{2})(?:\\.(\\d{2,3}))?]")
         
         lrcContent.lines().forEach { line ->
-            val matchResult = regex.find(line.trim())
-            if (matchResult != null) {
-                val minutes = matchResult.groupValues[1].toLong()
-                val seconds = matchResult.groupValues[2].toLong()
-                val milliseconds = matchResult.groupValues[3].padEnd(3, '0').toLong()
-                val text = matchResult.groupValues[4].trim()
+            val trimmedLine = line.trim()
+            if (trimmedLine.isEmpty()) return@forEach
+            
+            val matches = timeRegex.findAll(trimmedLine).toList()
+            if (matches.isEmpty()) return@forEach
+            
+            var text = trimmedLine
+            var lastIndex = 0
+            
+            matches.forEach { match ->
+                val minutes = match.groupValues[1].toLong()
+                val seconds = match.groupValues[2].toLong()
+                val millisecondsStr = match.groupValues[3]
+                
+                val milliseconds = when (millisecondsStr.length) {
+                    2 -> millisecondsStr.toLong() * 10
+                    3 -> millisecondsStr.toLong()
+                    else -> 0
+                }
                 
                 val timestamp = minutes * 60 * 1000 + seconds * 1000 + milliseconds
-                if (text.isNotEmpty()) {
-                    lines.add(LyricLine(timestamp, text))
-                }
+                
+                val matchStart = match.range.first
+                val matchEnd = match.range.last + 1
+                text = text.substring(0, matchStart) + text.substring(matchEnd)
+                lastIndex = matchEnd
+            }
+            
+            text = text.trim()
+            
+            if (text.isNotEmpty() && !text.startsWith("[") && !text.contains(":")) {
+                lines.add(LyricLine(timestamp, text))
             }
         }
         
@@ -32,11 +54,16 @@ object LyricParser {
         if (lyrics.isEmpty()) return -1
         
         val currentMs = currentPosition.toLong()
-        for (i in lyrics.indices.reversed()) {
+        var resultIndex = -1
+        
+        for (i in lyrics.indices) {
             if (currentMs >= lyrics[i].timestamp) {
-                return i
+                resultIndex = i
+            } else {
+                break
             }
         }
-        return -1
+        
+        return resultIndex
     }
 }
