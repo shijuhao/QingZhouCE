@@ -449,6 +449,9 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                 
                 prepareAsync()
                 setOnPreparedListener { mp ->
+                    val currentVolume = _state.value.volume
+                    mp.setVolume(currentVolume, currentVolume)
+                    
                     _state.update { 
                         it.copy(
                             currentMusic = musicItem,

@@ -364,7 +364,7 @@ fun BotRuntimeScreen(
         )
     }
 
-    LaunchedEffect(token, onEventCallback, onStatusChangedCallback, onErrorCallback) {
+    LaunchedEffect(Unit) {
         BotWebSocketManagerSingleton.getInstance(
             token = token,
             onEvent = onEventCallback,
@@ -492,7 +492,7 @@ fun BotRuntimeScreen(
                             showCodeEditor = true
                         }
                     ) {
-                        Text("事件处理代码 (WebSocket事件触发)")  // 改这里
+                        Text("事件处理代码 (WebSocket事件触发)")
                     }
                 }
             },
@@ -505,7 +505,10 @@ fun BotRuntimeScreen(
     }
 
     if (showCodeEditor) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { false }
+        )
         ModalBottomSheet(
             onDismissRequest = { showCodeEditor = false },
             sheetState = sheetState,
@@ -516,32 +519,40 @@ fun BotRuntimeScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Text(
-                    text = if (currentCodeType == "start") "编辑功能代码" else "编辑事件处理代码",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { showCodeEditor = false }) {
+                        Icon(Icons.Default.Close, contentDescription = "关闭")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (currentCodeType == "start") "编辑功能代码" else "编辑事件处理代码",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { showCodeEditor = false }) {
+                        Icon(Icons.Default.Check, contentDescription = "保存")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // 可滚动的编辑器区域
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
+                        .fillMaxSize()
                 ) {
-                    // 编辑器主体
                     OutlinedTextField(
                         value = codeContent,
                         onValueChange = { codeContent = it },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 200.dp)
+                            .weight(1f)
                             .padding(bottom = 8.dp),
-                        maxLines = 20,
                         label = { Text("Lua 代码") }
                     )
 
-                    // 快捷符号栏 - 横向滑动单行
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier
@@ -561,29 +572,6 @@ fun BotRuntimeScreen(
                                 Text(symbol)
                             }
                         }
-                    }
-                }
-
-                // 底部按钮（固定在底部）
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = { showCodeEditor = false }
-                    ) {
-                        Text("取消")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            saveCode(currentCodeType, codeContent.text)
-                            showCodeEditor = false
-                        }
-                    ) {
-                        Text("保存")
                     }
                 }
             }
@@ -829,13 +817,14 @@ fun BottomActionBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f),
-        modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .navigationBarsPadding(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
