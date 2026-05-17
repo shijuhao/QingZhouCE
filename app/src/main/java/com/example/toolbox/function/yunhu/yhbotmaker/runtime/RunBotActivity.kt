@@ -732,7 +732,7 @@ fun BotRuntimeScreen(
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     NavigationDrawerItem(
-                        label = { Text("快捷指令") },
+                        label = { Text("FastBot") },
                         selected = false,
                         onClick = { showQuickCommandManager = true },
                         icon = { Icon(Icons.Default.Bolt, null) },
