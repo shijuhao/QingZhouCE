@@ -102,7 +102,7 @@ fun ImportDialog(
                     FilterChip(
                         selected = importMode == 1,
                         onClick = { importMode = 1; showPreview = false },
-                        label = { Text("仅快捷指令") }
+                        label = { Text("仅导入FastBot") }
                     )
                 }
                 
