@@ -363,6 +363,13 @@ fun BotRuntimeScreen(
             )
         )
     }
+    
+    LaunchedEffect(Unit) {
+        val savedCode = prefs.getString("code$index", "") ?: ""
+        if (viewModel.currentLoopCode.value.isEmpty() && savedCode.isNotEmpty()) {
+            viewModel.setCurrentLoopCode(savedCode)
+        }
+    }
 
     LaunchedEffect(Unit) {
         BotWebSocketManagerSingleton.getInstance(

@@ -97,7 +97,10 @@ class BotWebSocketInstance(
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 _connectionState.value = true
                 Log.d("BotWS-$token", "Connected")
-                mainHandler.post { onStatusChanged(true) }
+                mainHandler.post { 
+                    onStatusChanged(true)
+                    onStatusChangedCallback?.invoke(true)
+                }
             }
             
             override fun onMessage(webSocket: WebSocket, text: String) {
