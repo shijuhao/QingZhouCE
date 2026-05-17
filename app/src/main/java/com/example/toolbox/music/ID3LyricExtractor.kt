@@ -69,7 +69,7 @@ object ID3LyricExtractor {
         val encoding = data[offset++].toInt() and 0xFF
             
         offset += 3
-
+    
         val contentTypeEnd = indexOfNull(data, offset)
         if (contentTypeEnd == -1) return null
         offset = contentTypeEnd + 1
@@ -83,18 +83,19 @@ object ID3LyricExtractor {
         val lyricsBytes = data.copyOfRange(offset, data.size)
             
         return when (encoding) {
-            0, 3 -> String(lyricsBytes, charset("ISO-8859-1"))
+            0 -> String(lyricsBytes, Charsets.ISO_8859_1)
             1 -> {
                 if (lyricsBytes.size >= 2) {
                     val bom = (lyricsBytes[0].toInt() and 0xFF shl 8) or (lyricsBytes[1].toInt() and 0xFF)
-                    val charset = if (bom == 0xFEFF) "UTF-16BE" else "UTF-16LE"
-                    String(lyricsBytes, charset(charset))
+                    val charset = if (bom == 0xFEFF) Charsets.UTF_16BE else Charsets.UTF_16LE
+                    String(lyricsBytes, charset)
                 } else {
-                    String(lyricsBytes, charset("UTF-16"))
+                    String(lyricsBytes, Charsets.UTF_16)
                 }
             }
-            2 -> String(lyricsBytes, charset("UTF-16BE"))
-            else -> String(lyricsBytes, charset("ISO-8859-1"))
+            2 -> String(lyricsBytes, Charsets.UTF_16BE)
+            3 -> String(lyricsBytes, Charsets.UTF_8)
+            else -> String(lyricsBytes, Charsets.ISO_8859_1)
         }
     }
     

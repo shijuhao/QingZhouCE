@@ -10,13 +10,19 @@ import androidx.compose.material.icons.automirrored.filled.VolumeDown
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PlayerControllerPage(
@@ -29,6 +35,17 @@ fun PlayerControllerPage(
     viewModel: MusicPlayerViewModel,
     state: MusicPlayerState
 ) {
+    var coverBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    val context = LocalContext.current
+    
+    LaunchedEffect(musicItem?.id) {
+        if (musicItem != null) {
+            withContext(Dispatchers.IO) {
+                coverBitmap = viewModel.getAlbumArt(context, musicItem)
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -54,9 +71,9 @@ fun PlayerControllerPage(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                if (musicItem?.albumArt != null) {
-                    AsyncImage(
-                        model = musicItem.albumArt,
+                if (coverBitmap != null) {
+                    Image(
+                        bitmap = coverBitmap!!.asImageBitmap(),
                         contentDescription = "专辑封面",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

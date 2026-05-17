@@ -19,6 +19,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -165,7 +170,8 @@ fun MusicPlayerScreen(
                             permissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
                         }
                     },
-                    onScanClick = { viewModel.loadMusicList(context) }
+                    onScanClick = { viewModel.loadMusicList(context) },
+                    viewModel = viewModel
                 )
             }
             composable("player") {
@@ -199,7 +205,8 @@ fun MusicListScreen(
     needsPermission: Boolean,
     scanProgress: String,
     onRequestPermission: () -> Unit,
-    onScanClick: () -> Unit
+    onScanClick: () -> Unit,
+    viewModel: MusicPlayerViewModel
 ) {
     if (isLoading) {
         Box(
@@ -302,7 +309,8 @@ fun MusicListScreen(
                     musicItem = music,
                     isCurrentPlaying = currentMusic?.id == music.id,
                     isActuallyPlaying = currentMusic?.id == music.id && isPlaying,
-                    onClick = { onMusicClick(music) }
+                    onClick = { onMusicClick(music) },
+                    viewModel = viewModel
                 )
             }
         }
@@ -314,8 +322,18 @@ fun MusicListItem(
     musicItem: MusicItem,
     isCurrentPlaying: Boolean,
     isActuallyPlaying: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    viewModel: MusicPlayerViewModel
 ) {
+    val context = LocalContext.current
+    var coverBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    
+    LaunchedEffect(musicItem.id) {
+        withContext(Dispatchers.IO) {
+            coverBitmap = viewModel.getAlbumArt(context, musicItem)
+        }
+    }
+    
     Surface(
         shape = RoundedCornerShape(8.dp),
         onClick = onClick,
@@ -328,9 +346,9 @@ fun MusicListItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (musicItem.albumArt != null) {
-                AsyncImage(
-                    model = musicItem.albumArt,
+            if (coverBitmap != null) {
+                Image(
+                    bitmap = coverBitmap!!.asImageBitmap(),
                     contentDescription = "专辑封面",
                     modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
@@ -395,6 +413,17 @@ fun MiniPlayer(
         state.lyrics[currentLyricIndex].text
     } else null
     
+    val context = LocalContext.current
+    var coverBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    
+    LaunchedEffect(musicItem?.id) {
+        if (musicItem != null) {
+            withContext(Dispatchers.IO) {
+                coverBitmap = viewModel.getAlbumArt(context, musicItem)
+            }
+        }
+    }
+    
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f),
         onClick = onClick,
@@ -409,9 +438,9 @@ fun MiniPlayer(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (musicItem?.albumArt != null) {
-                AsyncImage(
-                    model = musicItem.albumArt,
+            if (coverBitmap != null) {
+                Image(
+                    bitmap = coverBitmap!!.asImageBitmap(),
                     contentDescription = "专辑封面",
                     modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
@@ -434,11 +463,15 @@ fun MiniPlayer(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
-                    text = currentLyricText ?: (musicItem?.artist ?: "点击播放音乐"),
+                    text = if (state.showLyricsInMiniPlayer && currentLyricIndex >= 0 && currentLyricIndex < state.lyrics.size) {
+                        state.lyrics[currentLyricIndex].text
+                    } else {
+                        musicItem?.artist ?: "点击播放音乐"
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (currentLyricText != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (state.showLyricsInMiniPlayer && currentLyricIndex >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             

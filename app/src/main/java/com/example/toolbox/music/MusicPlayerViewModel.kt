@@ -1,5 +1,7 @@
 package com.example.toolbox.music
 
+import android.graphics.BitmapFactory
+import android.util.LruCache
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -77,6 +79,7 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
     private val musicCache = mutableMapOf<String, List<MusicItem>>()
     private val cacheTimestamp = mutableMapOf<String, Long>()
     private val cacheValidDuration = 24 * 60 * 60 * 1000L
+    private val coverCache = LruCache<String, Bitmap>(50)
     
     private val _state = MutableStateFlow(MusicPlayerState())
     val state: StateFlow<MusicPlayerState> = _state.asStateFlow()
@@ -201,6 +204,32 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
             prefs.edit {putString("scan_mode", modeString)}
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+    
+    fun getAlbumArt(context: Context, musicItem: MusicItem): Bitmap? {
+        val key = musicItem.id.toString()
+        val cached = coverCache.get(key)
+        if (cached != null) {
+            return cached
+        }
+        
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, musicItem.uri)
+            val artwork = retriever.embeddedPicture
+            retriever.release()
+            
+            if (artwork != null) {
+                val bitmap = BitmapFactory.decodeByteArray(artwork, 0, artwork.size)
+                bitmap?.let { coverCache.put(key, it) }
+                bitmap
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
     
@@ -374,10 +403,10 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
     
     fun loadLyrics(musicItem: MusicItem) {
         viewModelScope.launch(Dispatchers.IO) {
-            val lyrics = if (musicItem.filePath.isNotEmpty()) {
-                loadLyricsFromAudioFile(musicItem.filePath)
-            } else if (musicItem.lyricPath != null) {
+            val lyrics = if (musicItem.lyricPath != null) {
                 loadLyricsFromFile(musicItem.lyricPath)
+            } else if (musicItem.filePath.isNotEmpty()) {
+                loadLyricsFromAudioFile(musicItem.filePath)
             } else {
                 emptyList()
             }
@@ -626,15 +655,7 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
                     val uri = collection.buildUpon()
                         .appendPath(id.toString())
                         .build()
-                    
-                    val albumArtUri = if (albumIdColumn >= 0) {
-                        val albumId = it.getLong(albumIdColumn)
-                        android.provider.MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI
-                            .buildUpon()
-                            .appendPath(albumId.toString())
-                            .build()
-                    } else null
-                    
+
                     if (duration > 0) {
                         val lyricPath = findLyricFile(filePath)
                         musicList.add(
@@ -644,7 +665,6 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
                                 artist = artist,
                                 duration = duration,
                                 uri = uri,
-                                albumArt = albumArtUri,
                                 filePath = filePath,
                                 lyricPath = lyricPath
                             )
@@ -1073,10 +1093,8 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
         val currentList = _state.value.musicList
         val currentMusic = _state.value.currentMusic
         
-        // 添加空列表检查
         if (currentList.isEmpty()) return
         
-        // 如果没有正在播放的歌曲，播放第一首
         if (currentMusic == null) {
             playMusic(currentList.first())
             return
@@ -1084,17 +1102,20 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
         
         val currentIndex = currentList.indexOf(currentMusic)
         if (currentIndex == -1) {
-            // 如果当前歌曲不在列表中，播放第一首
             playMusic(currentList.first())
             return
         }
         
         val nextIndex = if (_state.value.isShuffle) {
-            var newIndex = (currentList.indices).random()
-            while (newIndex == currentIndex && currentList.size > 1) {
-                newIndex = (currentList.indices).random()
+            if (currentList.size == 1) {
+                0
+            } else {
+                var newIndex = (currentList.indices).random()
+                while (newIndex == currentIndex && currentList.size > 1) {
+                    newIndex = (currentList.indices).random()
+                }
+                newIndex
             }
-            newIndex
         } else {
             (currentIndex + 1) % currentList.size
         }
@@ -1116,11 +1137,15 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
         if (currentIndex == -1) return
         
         val prevIndex = if (_state.value.isShuffle) {
-            var newIndex = (currentList.indices).random()
-            while (newIndex == currentIndex && currentList.size > 1) {
-                newIndex = (currentList.indices).random()
+            if (currentList.size == 1) {
+                0
+            } else {
+                var newIndex = (currentList.indices).random()
+                while (newIndex == currentIndex && currentList.size > 1) {
+                    newIndex = (currentList.indices).random()
+                }
+                newIndex
             }
-            newIndex
         } else {
             if (currentIndex - 1 < 0) currentList.size - 1 else currentIndex - 1
         }
@@ -1196,13 +1221,12 @@ class MusicPlayerViewModel(private val application: android.app.Application) : V
         progressUpdateJob = viewModelScope.launch {
             var lastNotificationUpdate = 0L
             while (isActive && _state.value.isPlaying && mediaPlayer != null) {
-                delay(1000) // 更新频率 1s
+                delay(100)
                 try {
                     val currentPosition = mediaPlayer?.currentPosition ?: 0
                     if (currentPosition != _state.value.currentPosition) {
                         _state.update { it.copy(currentPosition = currentPosition) }
                         
-                        // 每5秒更新一次通知（减少频繁更新）
                         val now = System.currentTimeMillis()
                         if (now - lastNotificationUpdate > 5000) {
                             updateNotification()

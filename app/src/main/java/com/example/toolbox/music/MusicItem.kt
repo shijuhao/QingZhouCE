@@ -9,7 +9,6 @@ data class MusicItem(
     val artist: String,
     val duration: Long,
     val uri: Uri,
-    val albumArt: Uri? = null,
     val filePath: String = "",
     val lyricPath: String? = null
 ) {

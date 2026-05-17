@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun LyricsPage(
@@ -23,13 +25,38 @@ fun LyricsPage(
 ) {
     val currentLyricIndex = LyricParser.getCurrentLyricIndex(lyrics, currentPosition)
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    
+    var autoScrollEnabled by remember { mutableStateOf(true) }
+    var pendingScrollIndex by remember { mutableStateOf(-1) }
+    var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress) {
+            scrollJob?.cancel()
+            autoScrollEnabled = false
+        } else {
+            scrollJob = scope.launch {
+                delay(3000)
+                autoScrollEnabled = true
+                if (pendingScrollIndex >= 0) {
+                    listState.animateScrollToItem(pendingScrollIndex, -100)
+                    pendingScrollIndex = -1
+                } else if (currentLyricIndex >= 0) {
+                    listState.animateScrollToItem(currentLyricIndex, -100)
+                }
+            }
+        }
+    }
     
     LaunchedEffect(currentLyricIndex) {
         if (currentLyricIndex >= 0 && lyrics.isNotEmpty()) {
-            listState.animateScrollToItem(
-                index = currentLyricIndex,
-                scrollOffset = -100
-            )
+            if (autoScrollEnabled) {
+                listState.animateScrollToItem(currentLyricIndex, -100)
+                pendingScrollIndex = -1
+            } else {
+                pendingScrollIndex = currentLyricIndex
+            }
         }
     }
     
@@ -86,7 +113,6 @@ fun LyricsPage(
                 }
             }
             
-            // 顶部羽化效果
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,7 +128,6 @@ fun LyricsPage(
                     )
             )
             
-            // 底部羽化效果
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
