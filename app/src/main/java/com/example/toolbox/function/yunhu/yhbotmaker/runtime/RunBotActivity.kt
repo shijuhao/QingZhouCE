@@ -138,32 +138,31 @@ fun BotRuntimeScreen(
             title = { Text("电池优化") },
             text = { Text("为了让机器人在后台稳定运行，请允许忽略电池优化") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                            data = android.net.Uri.parse("package:${context.packageName}")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    TextButton(
+                        onClick = {
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = android.net.Uri.parse("package:${context.packageName}")
+                            }
+                            context.startActivity(intent)
                         }
-                        context.startActivity(intent)
+                    ) {
+                        Text("去设置")
                     }
-                ) {
-                    Text("去设置")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { }
-                ) {
-                    Text("取消")
-                }
-            },
-            neutralButton = {
-                TextButton(
-                    onClick = {
-                        batteryDialogShown.value = true
-                        prefs.edit { putBoolean("battery_dialog_shown", true) }
+                    TextButton(onClick = { }) {
+                        Text("取消")
                     }
-                ) {
-                    Text("不再提醒")
+                    TextButton(
+                        onClick = {
+                            batteryDialogShown.value = true
+                            prefs.edit { putBoolean("battery_dialog_shown", true) }
+                        }
+                    ) {
+                        Text("不再提醒")
+                    }
                 }
             }
         )
