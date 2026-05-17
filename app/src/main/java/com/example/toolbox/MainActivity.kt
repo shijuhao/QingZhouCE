@@ -131,7 +131,7 @@ fun MyApplicationApp() {
         factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return MusicPlayerViewModel(context.applicationContext) as T
+                return MusicPlayerViewModel(context.applicationContext as android.app.Application) as T
             }
         }
     )

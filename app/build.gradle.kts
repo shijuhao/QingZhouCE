@@ -119,6 +119,7 @@ dependencies {
     implementation(libs.luaj.jse)
     implementation(libs.exp4j)
     implementation(libs.zxing.core)
+    implementation(libs.androidx.media)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)

@@ -1,14 +1,20 @@
+@file:Suppress("AssignedValueIsNeverRead", "AssignedValueIsNeverRead")
+
 package com.example.toolbox.music
 
+import android.os.Build
+import android.os.Environment
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -16,20 +22,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.AsyncImage
-import com.example.toolbox.settings.SettingsCustomItem
-import com.example.toolbox.settings.SettingsGroup
-import com.example.toolbox.settings.SettingsItemCell
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +43,13 @@ fun MusicPlayerScreen(
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
     val currentRoute by navController.currentBackStackEntryAsState()
-    val isSettingsPage = currentRoute?.destination?.route == "settings"
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            viewModel.onPermissionResult(isGranted)
+        }
+    )
     
     LaunchedEffect(Unit) {
         viewModel.loadMusicList(context)
@@ -54,7 +62,7 @@ fun MusicPlayerScreen(
                     TopAppBar(
                         title = { Text("播放器设置") },
                         navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
+                            FilledTonalIconButton(onClick = { navController.popBackStack() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                             }
                         }
@@ -64,7 +72,7 @@ fun MusicPlayerScreen(
                     TopAppBar(
                         title = { Text("正在播放") },
                         navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
+                            FilledTonalIconButton(onClick = { navController.popBackStack() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                             }
                         },
@@ -79,7 +87,7 @@ fun MusicPlayerScreen(
                     TopAppBar(
                         title = { Text("音乐") },
                         navigationIcon = {
-                            IconButton(onClick = onMenuClick) {
+                            FilledTonalIconButton(onClick = onMenuClick) {
                                 Icon(Icons.Default.Menu, contentDescription = "菜单")
                             }
                         },
@@ -93,12 +101,20 @@ fun MusicPlayerScreen(
             }
         },
         bottomBar = {
-            if (currentRoute?.destination?.route != "player" && state.currentMusic != null) {
+            if (currentRoute?.destination?.route != "player" && state.musicList.isNotEmpty()) {
                 MiniPlayer(
-                    musicItem = state.currentMusic!!,
+                    musicItem = state.currentMusic,
                     isPlaying = state.isPlaying,
-                    onPlayPauseClick = { viewModel.togglePlayPause() },
-                    onClick = { navController.navigate("player") }
+                    currentPosition = state.currentPosition,
+                    onPlayPauseClick = { 
+                        if (state.currentMusic != null) {
+                            viewModel.togglePlayPause() 
+                        } else if (state.musicList.isNotEmpty()) {
+                            viewModel.playMusic(state.musicList.first())
+                        }
+                    },
+                    onClick = { navController.navigate("player") },
+                    viewModel = viewModel
                 )
             }
         }
@@ -113,9 +129,42 @@ fun MusicPlayerScreen(
                     musicList = state.musicList,
                     currentMusic = state.currentMusic,
                     isPlaying = state.isPlaying,
-                    onMusicClick = { viewModel.playMusic(it) },
+                    onMusicClick = { music ->
+                        if (state.currentMusic?.id == music.id) {
+                            navController.navigate("player")
+                        } else {
+                            viewModel.playMusic(music)
+                        }
+                    },
                     isLoading = state.isLoading,
-                    error = state.error,
+                    needsPermission = state.needsPermission,
+                    scanProgress = state.scanProgress,
+                    onRequestPermission = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            permissionLauncher.launch(android.Manifest.permission.READ_MEDIA_AUDIO)
+                        }
+                        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            val hasReadPermission = android.content.pm.PackageManager.PERMISSION_GRANTED ==
+                                androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context,
+                                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                                )
+                            
+                            if (!hasReadPermission) {
+                                permissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                            } else if (!Environment.isExternalStorageManager()) {
+                                val intent = android.content.Intent(
+                                    android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
+                                ).apply {
+                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            }
+                        }
+                        else {
+                            permissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                        }
+                    },
                     onScanClick = { viewModel.loadMusicList(context) }
                 )
             }
@@ -147,7 +196,9 @@ fun MusicListScreen(
     isPlaying: Boolean,
     onMusicClick: (MusicItem) -> Unit,
     isLoading: Boolean,
-    error: String?,
+    needsPermission: Boolean,
+    scanProgress: String,
+    onRequestPermission: () -> Unit,
     onScanClick: () -> Unit
 ) {
     if (isLoading) {
@@ -155,7 +206,55 @@ fun MusicListScreen(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator()
+                if (scanProgress.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = scanProgress,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    } else if (needsPermission) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "需要存储权限",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "请授予权限以扫描音乐文件",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = onRequestPermission) {
+                    Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("授予权限")
+                }
+            }
         }
     } else if (musicList.isEmpty()) {
         Box(
@@ -201,7 +300,8 @@ fun MusicListScreen(
             items(musicList) { music ->
                 MusicListItem(
                     musicItem = music,
-                    isCurrentPlaying = currentMusic?.id == music.id && isPlaying,
+                    isCurrentPlaying = currentMusic?.id == music.id,
+                    isActuallyPlaying = currentMusic?.id == music.id && isPlaying,
                     onClick = { onMusicClick(music) }
                 )
             }
@@ -213,18 +313,13 @@ fun MusicListScreen(
 fun MusicListItem(
     musicItem: MusicItem,
     isCurrentPlaying: Boolean,
+    isActuallyPlaying: Boolean,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrentPlaying) 
-                MaterialTheme.colorScheme.primaryContainer 
-            else 
-                MaterialTheme.colorScheme.surface
-        )
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
@@ -233,11 +328,21 @@ fun MusicListItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = if (isCurrentPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = if (isCurrentPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (musicItem.albumArt != null) {
+                AsyncImage(
+                    model = musicItem.albumArt,
+                    contentDescription = "专辑封面",
+                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
             
             Column(
                 modifier = Modifier.weight(1f)
@@ -256,58 +361,84 @@ fun MusicListItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             Text(
                 text = musicItem.formatDuration(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (isCurrentPlaying) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = if (isActuallyPlaying) "播放中" else "已暂停",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
 fun MiniPlayer(
-    musicItem: MusicItem,
+    musicItem: MusicItem?,
     isPlaying: Boolean,
+    currentPosition: Int,
     onPlayPauseClick: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    viewModel: MusicPlayerViewModel
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .navigationBarsPadding(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    val state by viewModel.state.collectAsState()
+    val currentLyricIndex = LyricParser.getCurrentLyricIndex(state.lyrics, currentPosition)
+    val currentLyricText = if (state.showLyricsInMiniPlayer && currentLyricIndex >= 0 && currentLyricIndex < state.lyrics.size) {
+        state.lyrics[currentLyricIndex].text
+    } else null
+    
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp)
+                .navigationBarsPadding(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp)
-            )
+            if (musicItem?.albumArt != null) {
+                AsyncImage(
+                    model = musicItem.albumArt,
+                    contentDescription = "专辑封面",
+                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
             
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = musicItem.title,
+                    text = musicItem?.title ?: "未播放",
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
-                    text = musicItem.artist,
+                    text = currentLyricText ?: (musicItem?.artist ?: "点击播放音乐"),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (currentLyricText != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
@@ -333,455 +464,237 @@ fun FullScreenPlayer(
     viewModel: MusicPlayerViewModel
 ) {
     val state by viewModel.state.collectAsState()
+    val pagerState = rememberPagerState(pageCount = { 2 })
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 专辑封面 - 圆角正方形
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .sizeIn(maxWidth = 320.dp),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                if (musicItem?.albumArt != null) {
-                    AsyncImage(
-                        model = musicItem.albumArt,
-                        contentDescription = "专辑封面",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(100.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(26.dp))
-        
-        // 音乐信息
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = musicItem?.title ?: "未知歌曲",
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = musicItem?.artist ?: "未知艺术家",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // 进度条区域
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Slider(
-                value = if (duration > 0) currentPosition.toFloat() / duration else 0f,
-                onValueChange = { newValue ->
-                    if (duration > 0) {
-                        onSeekTo((newValue * duration).toInt())
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+    Box(modifier = Modifier.fillMaxSize()) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            when (page) {
+                0 -> PlayerControllerPage(
+                    musicItem = musicItem,
+                    isPlaying = isPlaying,
+                    currentPosition = currentPosition,
+                    duration = duration,
+                    onPlayPauseClick = onPlayPauseClick,
+                    onSeekTo = onSeekTo,
+                    viewModel = viewModel,
+                    state = state
                 )
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = formatTime(currentPosition),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = formatTime(duration),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                1 -> LyricsPage(
+                    lyrics = state.lyrics,
+                    currentPosition = currentPosition
                 )
             }
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 播放模式按钮行
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            IconButton(
-                onClick = { viewModel.toggleShuffle() },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shuffle,
-                    contentDescription = "随机播放",
-                    tint = if (state.isShuffle) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
-                        MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            
-            IconButton(
-                onClick = { viewModel.toggleLoop() },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = if (state.isLooping) Icons.Default.RepeatOne else Icons.Default.Repeat,
-                    contentDescription = "循环播放",
-                    tint = if (state.isLooping) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
-                        MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 播放控制按钮行
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = { viewModel.playPrevious() },
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SkipPrevious,
-                    contentDescription = "上一首",
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-            
-            FloatingActionButton(
-                onClick = onPlayPauseClick,
-                modifier = Modifier.size(72.dp),
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "暂停" else "播放",
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-            
-            IconButton(
-                onClick = { viewModel.playNext() },
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SkipNext,
-                    contentDescription = "下一首",
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // 音量控制区域
+
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.VolumeDown,
-                contentDescription = "减小音量",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Slider(
-                value = state.volume,
-                onValueChange = { viewModel.setVolume(it) },
-                modifier = Modifier.weight(1f),
-                valueRange = 0f..1f,
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(16.dp)
                 )
-            )
-            
-            Icon(
-                imageVector = Icons.Default.VolumeUp,
-                contentDescription = "增大音量",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            repeat(2) { index ->
+                val isSelected = pagerState.currentPage == index
+                Box(
+                    modifier = Modifier
+                        .size(if (isSelected) 12.dp else 8.dp, 8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            if (isSelected) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                )
+            }
         }
-        
-        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
 @Composable
-fun MusicSettingsScreen(
-    onScanClick: () -> Unit,
-    viewModel: MusicPlayerViewModel
+fun FolderPickerDialog(
+    onDismiss: () -> Unit,
+    onFolderSelected: (String) -> Unit,
+    customFolders: List<String>,
+    onRemoveFolder: (String) -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
-    var showQualityDialog by remember { mutableStateOf(false) }
-    var showEqualizerDialog by remember { mutableStateOf(false) }
+    var showDirectoryChooser by remember { mutableStateOf(false) }
     
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            SettingsGroup(
-                title = "音乐库",
-                items = listOf(
-                    {
-                        SettingsItemCell(
-                            icon = Icons.Default.Refresh,
-                            title = "手动扫描音乐",
-                            subtitle = "重新扫描设备上的音乐文件",
-                            onClick = onScanClick
-                        )
-                    }
-                )
-            )
-        }
-        
-        item {
-            SettingsGroup(
-                title = "扫描方式",
-                items = listOf(
-                    {
-                        SettingsCustomItem(onClick = { viewModel.setScanMode(ScanMode.AUTO) }) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("自定义扫描文件夹") },
+        text = {
+            Column {
+                if (customFolders.isNotEmpty()) {
+                    Text(
+                        text = "已选择的文件夹：",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 200.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(customFolders) { folder ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
                             ) {
-                                Icon(
-                                    Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Text(
-                                        text = "自动扫描",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        text = "优先使用MediaStore，失败后使用文件扫描",
+                                        text = folder,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
+                                    IconButton(onClick = { onRemoveFolder(folder) }) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "删除",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
                                 }
-                                RadioButton(
-                                    selected = state.scanMode == ScanMode.AUTO,
-                                    onClick = { viewModel.setScanMode(ScanMode.AUTO) }
-                                )
-                            }
-                        }
-                    },
-                    {
-                        SettingsCustomItem(onClick = { viewModel.setScanMode(ScanMode.MEDIASTORE) }) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.LibraryMusic,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "MediaStore扫描",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        text = "使用系统媒体库，速度快",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                RadioButton(
-                                    selected = state.scanMode == ScanMode.MEDIASTORE,
-                                    onClick = { viewModel.setScanMode(ScanMode.MEDIASTORE) }
-                                )
-                            }
-                        }
-                    },
-                    {
-                        SettingsCustomItem(onClick = { viewModel.setScanMode(ScanMode.FILE) }) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.FolderOpen,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "文件扫描",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        text = "直接扫描文件系统，更全面但较慢",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                RadioButton(
-                                    selected = state.scanMode == ScanMode.FILE,
-                                    onClick = { viewModel.setScanMode(ScanMode.FILE) }
-                                )
                             }
                         }
                     }
-                )
-            )
-        }
-        
-        item {
-            SettingsGroup(
-                title = "音质设置",
-                items = listOf(
-                    {
-                        SettingsItemCell(
-                            icon = Icons.Default.MusicNote,
-                            title = "音质选择",
-                            subtitle = "标准音质",
-                            onClick = { showQualityDialog = true }
-                        )
-                    }
-                )
-            )
-        }
-        
-        item {
-            SettingsGroup(
-                title = "均衡器",
-                items = listOf(
-                    {
-                        SettingsItemCell(
-                            icon = Icons.Default.Equalizer,
-                            title = "均衡器设置",
-                            subtitle = "未启用",
-                            onClick = { showEqualizerDialog = true }
-                        )
-                    }
-                )
-            )
-        }
-    }
-    
-    // 音质选择对话框
-    if (showQualityDialog) {
-        val qualities = listOf("标准音质", "高品质", "无损音质")
-        var selectedQuality by remember { mutableIntStateOf(0) }
-        AlertDialog(
-            onDismissRequest = { showQualityDialog = false },
-            title = { Text("选择音质") },
-            text = {
-                Column {
-                    qualities.forEachIndexed { index, quality ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { selectedQuality = index },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = selectedQuality == index,
-                                onClick = { selectedQuality = index }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(quality)
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showQualityDialog = false }) {
-                    Text("确定")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showQualityDialog = false }) {
-                    Text("取消")
-                }
+                
+                Text(
+                    text = "点击按钮选择要扫描的文件夹",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        )
-    }
-    
-    // 均衡器对话框
-    if (showEqualizerDialog) {
-        AlertDialog(
-            onDismissRequest = { showEqualizerDialog = false },
-            title = { Text("均衡器") },
-            text = { Text("均衡器功能暂未实现") },
-            confirmButton = {
-                TextButton(onClick = { showEqualizerDialog = false }) {
-                    Text("确定")
-                }
+        },
+        confirmButton = {
+            Button(onClick = { showDirectoryChooser = true }) {
+                Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("选择文件夹")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("关闭")
+            }
+        }
+    )
+
+    if (showDirectoryChooser) {
+        DirectoryChooserDialog(
+            onDismiss = { showDirectoryChooser = false },
+            onDirectorySelected = { directory ->
+                onFolderSelected(directory.absolutePath)
+                showDirectoryChooser = false
             }
         )
     }
 }
 
-private fun formatTime(milliseconds: Int): String {
-    val totalSeconds = milliseconds / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format("%d:%02d", minutes, seconds)
+@Composable
+fun DirectoryChooserDialog(
+    onDismiss: () -> Unit,
+    onDirectorySelected: (File) -> Unit
+) {
+    var currentDirectory by remember { mutableStateOf(Environment.getExternalStorageDirectory()) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择文件夹") },
+        text = {
+            Column {
+                // 当前路径
+                Text(
+                    text = currentDirectory.absolutePath,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                // 父目录按钮
+                if (currentDirectory.parentFile != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { currentDirectory = currentDirectory.parentFile!! },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.ArrowUpward, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("..", style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                
+                // 子目录列表
+                val subDirs = currentDirectory.listFiles { file ->
+                    file.isDirectory && !file.name.startsWith(".")
+                }?.toList()?.sortedBy { it.name.lowercase() } ?: emptyList()
+                
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 300.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(subDirs) { dir ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (dir.canRead()) {
+                                        currentDirectory = dir
+                                    }
+                                },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Folder, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(dir.name, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onDirectorySelected(currentDirectory) }) {
+                Text("选择此文件夹")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }

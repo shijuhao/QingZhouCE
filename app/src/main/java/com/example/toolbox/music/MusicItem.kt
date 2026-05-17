@@ -1,6 +1,7 @@
 package com.example.toolbox.music
 
 import android.net.Uri
+import java.util.Locale
 
 data class MusicItem(
     val id: Long,
@@ -9,11 +10,12 @@ data class MusicItem(
     val duration: Long,
     val uri: Uri,
     val albumArt: Uri? = null,
-    val filePath: String = ""
+    val filePath: String = "",
+    val lyricPath: String? = null
 ) {
     fun formatDuration(): String {
         val minutes = duration / 1000 / 60
         val seconds = (duration / 1000) % 60
-        return String.format("%d:%02d", minutes, seconds)
+        return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
     }
 }
