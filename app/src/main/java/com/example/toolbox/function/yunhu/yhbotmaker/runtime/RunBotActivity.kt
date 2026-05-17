@@ -510,7 +510,7 @@ fun BotRuntimeScreen(
             confirmValueChange = { false }
         )
         ModalBottomSheet(
-            onDismissRequest = { showCodeEditor = false },
+            onDismissRequest = { },
             sheetState = sheetState,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -532,7 +532,11 @@ fun BotRuntimeScreen(
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(onClick = { showCodeEditor = false }) {
+                    IconButton(
+                        onClick = {
+                            saveCode(currentCodeType, codeContent.text)
+                            showCodeEditor = false
+                    }) {
                         Icon(Icons.Default.Check, contentDescription = "保存")
                     }
                 }
