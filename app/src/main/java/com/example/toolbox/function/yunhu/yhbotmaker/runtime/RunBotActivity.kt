@@ -134,17 +134,12 @@ fun BotRuntimeScreen(
     
     if (!isIgnoringBattery && !batteryDialogShown.value) {
         AlertDialog(
-            onDismissRequest = {
-                batteryDialogShown.value = true
-                prefs.edit { putBoolean("battery_dialog_shown", true) }
-            },
+            onDismissRequest = { },
             title = { Text("电池优化") },
             text = { Text("为了让机器人在后台稳定运行，请允许忽略电池优化") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        batteryDialogShown.value = true
-                        prefs.edit { putBoolean("battery_dialog_shown", true) }
                         val intent = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                             data = android.net.Uri.parse("package:${context.packageName}")
                         }
@@ -156,12 +151,19 @@ fun BotRuntimeScreen(
             },
             dismissButton = {
                 TextButton(
+                    onClick = { }
+                ) {
+                    Text("取消")
+                }
+            },
+            neutralButton = {
+                TextButton(
                     onClick = {
                         batteryDialogShown.value = true
                         prefs.edit { putBoolean("battery_dialog_shown", true) }
                     }
                 ) {
-                    Text("取消")
+                    Text("不再提醒")
                 }
             }
         )
@@ -598,16 +600,13 @@ fun BotRuntimeScreen(
                     modifier = Modifier
                         .fillMaxSize()
                 ) {
-                    val scrollState = rememberScrollState()
-
                     OutlinedTextField(
                         value = codeContent,
                         onValueChange = { codeContent = it },
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .padding(bottom = 8.dp)
-                            .horizontalScroll(scrollState),
+                            .padding(bottom = 8.dp),
                         label = { Text("Lua 代码") },
                         maxLines = Int.MAX_VALUE,
                         textStyle = LocalTextStyle.current.copy(
