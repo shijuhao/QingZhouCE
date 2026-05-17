@@ -506,10 +506,14 @@ fun BotRuntimeScreen(
 
     if (showCodeEditor) {
         val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = true
+            skipPartiallyExpanded = true,
+            confirmValueChange = { newValue ->
+                newValue != SheetValue.Hidden
+            }
         )
         ModalBottomSheet(
             onDismissRequest = { },
+            dragHandle = { },
             sheetState = sheetState,
             modifier = Modifier.fillMaxWidth()
         ) {
