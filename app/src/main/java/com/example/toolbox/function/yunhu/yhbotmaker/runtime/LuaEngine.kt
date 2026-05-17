@@ -19,7 +19,7 @@ class LuaEngine(
     private val apiService = YunHuApiService(token)
 
     init {
-        onPrint("LuaEngine 开始初始化", 5)
+        onPrint("LuaEngine 开始初始化", 3)
 
         globals = JsePlatform.standardGlobals()
 
@@ -28,9 +28,9 @@ class LuaEngine(
                 -- 基础库已经由 JsePlatform.standardGlobals() 加载
                 -- 这里不需要额外操作
             """.trimIndent()).call()
-            onPrint("基础库加载完成", 5)
+            onPrint("基础库加载完成", 2)
         } catch (e: Exception) {
-            onPrint("基础库加载失败: ${e.message}", 2)
+            onPrint("基础库加载失败: ${e.message}", 4)
         }
 
         registerFunctions()
@@ -62,7 +62,7 @@ class LuaEngine(
             override fun invoke(args: Varargs): LuaValue {
                 val n = args.narg()
                 if (n < 3) {
-                    onPrint("❌ sendText 需要3个参数: recvId, recvType, content", 2)
+                    onPrint("sendText 需要3个参数: recvId, recvType, content", 4)
                     return NIL
                 }
                 val recvId = args.arg(1).tojstring()
@@ -75,10 +75,10 @@ class LuaEngine(
                     contentType = "text",
                     content = content,
                     onSuccess = { _, _ ->
-                        onPrint("✅ 消息发送成功 → $recvId ($recvType): $content", 1)
+                        onPrint("消息发送成功 → $recvId ($recvType): $content", 2)
                     },
                     onError = { err ->
-                        onPrint("❌ 发送失败: $err", 2)
+                        onPrint("消息发送失败: $err", 4)
                     }
                 )
                 return NIL
@@ -90,7 +90,7 @@ class LuaEngine(
             override fun invoke(args: Varargs): LuaValue {
                 val n = args.narg()
                 if (n < 3) {
-                    onPrint("❌ sendMarkdown 需要3个参数: recvId, recvType, content", 2)
+                    onPrint("sendMarkdown 需要3个参数: recvId, recvType, content", 4)
                     return NIL
                 }
                 val recvId = args.arg(1).tojstring()
@@ -103,10 +103,10 @@ class LuaEngine(
                     contentType = "markdown",
                     content = content,
                     onSuccess = { _, _ ->
-                        onPrint("✅ Markdown发送成功 → $recvId ($recvType)", 1)
+                        onPrint("Markdown发送成功 → $recvId ($recvType)", 2)
                     },
                     onError = { err ->
-                        onPrint("❌ Markdown发送失败: $err", 2)
+                        onPrint("Markdown发送失败: $err", 4)
                     }
                 )
                 return NIL
@@ -118,7 +118,7 @@ class LuaEngine(
             override fun invoke(args: Varargs): LuaValue {
                 val n = args.narg()
                 if (n < 3) {
-                    onPrint("❌ sendHTML 需要3个参数: recvId, recvType, content", 2)
+                    onPrint("sendHTML 需要3个参数: recvId, recvType, content", 4)
                     return NIL
                 }
                 val recvId = args.arg(1).tojstring()
@@ -131,10 +131,10 @@ class LuaEngine(
                     contentType = "html",
                     content = content,
                     onSuccess = { _, _ ->
-                        onPrint("✅ HTML发送成功 → $recvId ($recvType)", 1)
+                        onPrint("HTML发送成功 → $recvId ($recvType)", 2)
                     },
                     onError = { err ->
-                        onPrint("❌ HTML发送失败: $err", 2)
+                        onPrint("HTML发送失败: $err", 4)
                     }
                 )
                 return NIL
@@ -146,7 +146,7 @@ class LuaEngine(
             override fun invoke(args: Varargs): LuaValue {
                 val n = args.narg()
                 if (n < 3) {
-                    onPrint("❌ recallMessage 需要3个参数: chatId, chatType, msgId", 2)
+                    onPrint("recallMessage 需要3个参数: chatId, chatType, msgId", 4)
                     return NIL
                 }
                 val chatId = args.arg(1).tojstring()
@@ -158,10 +158,10 @@ class LuaEngine(
                     chatType = chatType,
                     msgId = msgId,
                     onSuccess = { _, _ ->
-                        onPrint("✅ 撤回成功: $msgId", 1)
+                        onPrint("撤回成功: $msgId", 2)
                     },
                     onError = { err ->
-                        onPrint("❌ 撤回失败: $err", 2)
+                        onPrint("撤回失败: $err", 4)
                     }
                 )
                 return NIL
@@ -173,7 +173,7 @@ class LuaEngine(
             override fun invoke(args: Varargs): LuaValue {
                 val n = args.narg()
                 if (n < 2) {
-                    onPrint("❌ sharedDataSet 需要2个参数: key, value", 2)
+                    onPrint("sharedDataSet 需要2个参数: key, value", 4)
                     return NIL
                 }
                 val key = args.arg(1).tojstring()
@@ -188,7 +188,7 @@ class LuaEngine(
             override fun invoke(args: Varargs): LuaValue {
                 val n = args.narg()
                 if (n < 1) {
-                    onPrint("❌ sharedDataGet 需要至少1个参数: key, defaultValue(可选)", 2)
+                    onPrint("sharedDataGet 需要至少1个参数: key, defaultValue(可选)", 4)
                     return NIL
                 }
                 val key = args.arg(1).tojstring()
@@ -373,7 +373,7 @@ class LuaEngine(
             globals.load(code).call()
             true
         } catch (e: Exception) {
-            onPrint("❌ 启动代码错误: ${e.message}", 2)
+            onPrint("启动代码错误: ${e.message}", 4)
             false
         }
     }
@@ -385,7 +385,7 @@ class LuaEngine(
             globals.load(code).call()
             true
         } catch (e: Exception) {
-            onPrint("❌ 事件代码错误: ${e.message}", 2)
+            onPrint("事件代码错误: ${e.message}", 4)
             false
         }
     }
