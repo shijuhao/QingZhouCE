@@ -355,7 +355,8 @@ fun MyApplicationApp() {
         val topLevelRoutes = setOf(
             AppDestinations.HOME.route,
             TopLevelDestinations.LFCommunity.route,
-            TopLevelDestinations.YHBotMaker.route
+            TopLevelDestinations.YHBotMaker.route,
+            TopLevelDestinations.MusicPlayer.route
         )
         val isTopLevel = currentRoute in topLevelRoutes
 
