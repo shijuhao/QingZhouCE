@@ -7,6 +7,9 @@ import androidx.core.net.toUri
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Toast
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.example.toolbox.music.MusicPlayerViewModel
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -123,6 +126,16 @@ class MainActivity : ComponentActivity() {
 fun MyApplicationApp() {
     val mainViewModel: MainViewModel = viewModel()
     val context = LocalContext.current
+    
+    val musicPlayerViewModel: MusicPlayerViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return MusicPlayerViewModel(context.applicationContext) as T
+            }
+        }
+    )
+    
     val prefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
     var lastBackPressedTime by remember { mutableLongStateOf(0L) }
     
@@ -299,6 +312,7 @@ fun MyApplicationApp() {
                     nestedScrollConnection = nestedScrollConnection,
                     navController = navController,
                     mainViewModel = mainViewModel,
+                    musicPlayerViewModel = musicPlayerViewModel,
                     drawerState = drawerState,
                     scope = scope,
                     isMainPage = isMainPage,
@@ -318,6 +332,7 @@ fun MyApplicationApp() {
             nestedScrollConnection = nestedScrollConnection,
             navController = navController,
             mainViewModel = mainViewModel,
+            musicPlayerViewModel = musicPlayerViewModel,
             drawerState = drawerState,
             scope = scope,
             isMainPage = isMainPage,
@@ -401,6 +416,7 @@ private fun MainContent(
     nestedScrollConnection: NestedScrollConnection,
     navController: androidx.navigation.NavHostController,
     mainViewModel: MainViewModel,
+    musicPlayerViewModel: MusicPlayerViewModel,
     drawerState: DrawerState,
     scope: CoroutineScope,
     isMainPage: Boolean,
@@ -422,6 +438,7 @@ private fun MainContent(
         MainContentNavHost(
             navController = navController,
             mainViewModel = mainViewModel,
+            musicPlayerViewModel = musicPlayerViewModel,
             drawerState = drawerState,
             scope = scope,
             modifier = Modifier.fillMaxSize()
@@ -487,6 +504,7 @@ private fun MainContent(
 fun MainContentNavHost(
     navController: androidx.navigation.NavHostController,
     mainViewModel: MainViewModel,
+    musicPlayerViewModel: MusicPlayerViewModel,
     drawerState: DrawerState,
     scope: CoroutineScope,
     modifier: Modifier = Modifier
@@ -546,6 +564,7 @@ fun MainContentNavHost(
         composable(TopLevelDestinations.MusicPlayer.route) {
             MusicPlayerScreen(
                 onMenuClick = onMenuClick,
+                viewModel = musicPlayerViewModel,
             )
         }
     }
