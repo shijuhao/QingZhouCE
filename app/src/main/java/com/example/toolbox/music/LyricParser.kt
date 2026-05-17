@@ -19,7 +19,7 @@ object LyricParser {
             if (matches.isEmpty()) return@forEach
             
             var text = trimmedLine
-            var lastIndex = 0
+            var lastTimestamp = 0L
             
             matches.forEach { match ->
                 val minutes = match.groupValues[1].toLong()
@@ -32,18 +32,17 @@ object LyricParser {
                     else -> 0
                 }
                 
-                val timestamp = minutes * 60 * 1000 + seconds * 1000 + milliseconds
+                lastTimestamp = minutes * 60 * 1000 + seconds * 1000 + milliseconds
                 
                 val matchStart = match.range.first
                 val matchEnd = match.range.last + 1
                 text = text.substring(0, matchStart) + text.substring(matchEnd)
-                lastIndex = matchEnd
             }
             
             text = text.trim()
             
             if (text.isNotEmpty() && !text.startsWith("[") && !text.contains(":")) {
-                lines.add(LyricLine(timestamp, text))
+                lines.add(LyricLine(lastTimestamp, text))  // 使用 lastTimestamp
             }
         }
         
