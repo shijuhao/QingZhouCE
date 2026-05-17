@@ -139,7 +139,7 @@ fun SharedDataDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text("暂无数据，点击 + 添加")
@@ -147,7 +147,7 @@ fun SharedDataDialog(
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.heightIn(max = 400.dp)
+                    modifier = Modifier.weight(1f)
                 ) {
                     items(dataMap.entries.toList()) { entry ->
                         Card(

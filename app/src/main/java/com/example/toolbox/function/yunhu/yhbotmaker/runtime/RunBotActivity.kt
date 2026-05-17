@@ -2,6 +2,9 @@
 
 package com.example.toolbox.function.yunhu.yhbotmaker.runtime
 
+import android.os.PowerManager
+import android.provider.Settings
+import android.net.Uri
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -122,6 +126,47 @@ fun BotRuntimeScreen(
     var showImportDialog by remember { mutableStateOf(false) }
     var showSharedDataDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
+    
+    // 电池优化弹窗
+    val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
+    val batteryDialogShown = remember { mutableStateOf(prefs.getBoolean("battery_dialog_shown", false)) }
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+    val isIgnoringBattery = powerManager.isIgnoringBatteryOptimizations(context.packageName)
+    
+    if (!isIgnoringBattery && !batteryDialogShown.value) {
+        AlertDialog(
+            onDismissRequest = {
+                batteryDialogShown.value = true
+                prefs.edit { putBoolean("battery_dialog_shown", true) }
+            },
+            title = { Text("电池优化") },
+            text = { Text("为了让机器人在后台稳定运行，请允许忽略电池优化") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        batteryDialogShown.value = true
+                        prefs.edit { putBoolean("battery_dialog_shown", true) }
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = android.net.Uri.parse("package:${context.packageName}")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("去设置")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        batteryDialogShown.value = true
+                        prefs.edit { putBoolean("battery_dialog_shown", true) }
+                    }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
     
     LaunchedEffect(Unit) {
         if (messagesState.isEmpty()) {
@@ -554,14 +599,21 @@ fun BotRuntimeScreen(
                     modifier = Modifier
                         .fillMaxSize()
                 ) {
+                    val scrollState = rememberScrollState()
+
                     OutlinedTextField(
                         value = codeContent,
                         onValueChange = { codeContent = it },
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .padding(bottom = 8.dp),
-                        label = { Text("Lua 代码") }
+                            .padding(bottom = 8.dp)
+                            .horizontalScroll(scrollState),
+                        label = { Text("Lua 代码") },
+                        maxLines = Int.MAX_VALUE,
+                        textStyle = LocalTextStyle.current.copy(
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
                     )
 
                     LazyRow(
@@ -571,7 +623,7 @@ fun BotRuntimeScreen(
                             .padding(bottom = 16.dp)
                     ) {
                         items(symbols) { symbol ->
-                            Button(
+                            FilledTonalButton(
                                 onClick = {
                                     codeContent = codeContent.copy(
                                         text = codeContent.text + symbol
@@ -651,7 +703,30 @@ fun BotRuntimeScreen(
 
                     HorizontalDivider()
 
-                    // 菜单项列表
+                    NavigationDrawerItem(
+                        label = { 
+                            Text(
+                                if (isWsConnected) "断开连接" else "连接",
+                                color = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            ) 
+                        },
+                        selected = false,
+                        onClick = {
+                            if (isWsConnected) {
+                                BotWebSocketManagerSingleton.disconnect(token)
+                            } else {
+                                BotWebSocketManagerSingleton.connect(token)
+                            }
+                        },
+                        icon = { 
+                            Icon(
+                                if (isWsConnected) Icons.Default.Close else Icons.Default.Sync, 
+                                null,
+                                tint = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            ) 
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
                     NavigationDrawerItem(
                         label = { Text("编辑代码") },
                         selected = false,
