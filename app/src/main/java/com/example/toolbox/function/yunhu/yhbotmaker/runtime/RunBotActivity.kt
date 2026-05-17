@@ -128,7 +128,6 @@ fun BotRuntimeScreen(
     var showBackupDialog by remember { mutableStateOf(false) }
     
     // 电池优化弹窗
-    val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
     val batteryDialogShown = remember { mutableStateOf(prefs.getBoolean("battery_dialog_shown", false)) }
     val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
     val isIgnoringBattery = powerManager.isIgnoringBatteryOptimizations(context.packageName)
