@@ -31,18 +31,11 @@ object BotWebSocketManagerSingleton {
     }
     
     fun connect(token: String) {
-        val instance = managers[token]
-        if (instance == null) {
-            val newInstance = BotWebSocketInstance(token, {}, {}, {})
-            managers[token] = newInstance
-            newInstance.connect()
-        } else {
-            instance.connect()
-        }
+        managers[token]?.connect()
     }
     
     fun disconnect(token: String) {
-        managers.remove(token)?.disconnect()
+        managers[token]?.disconnect()
     }
     
     fun getConnectionState(token: String): StateFlow<Boolean>? {
@@ -99,7 +92,6 @@ class BotWebSocketInstance(
                 Log.d("BotWS-$token", "Connected")
                 mainHandler.post { 
                     onStatusChanged(true)
-                    onStatusChangedCallback?.invoke(true)
                 }
             }
             
