@@ -108,8 +108,11 @@ fun BotRuntimeScreen(
     val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     
-    val viewModel: BotRuntimeViewModel = viewModel()
+    val viewModel = BotRuntimeViewModel.getInstance(botName)
     val messagesState by viewModel.messages.collectAsState()
+    
+    val isWsConnected by viewModel.isWsConnected.collectAsState()
+    val currentLoopCode by viewModel.currentLoopCode.collectAsState()
     
     var isBlackout by remember { mutableStateOf(false) }
 
@@ -120,9 +123,6 @@ fun BotRuntimeScreen(
     var showSharedDataDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
     
-    var isWsConnected by remember { mutableStateOf(false) }
-    var currentLoopCode by remember { mutableStateOf(prefs.getString("code$index", "") ?: "") }
-
     LaunchedEffect(Unit) {
         if (messagesState.isEmpty()) {
             viewModel.addMessage(
@@ -160,7 +160,7 @@ fun BotRuntimeScreen(
         val key = if (type == "start") "code-start$index" else "code$index"
         prefs.edit { putString(key, code) }
         if (type == "loop") {
-            currentLoopCode = code
+            viewModel.setCurrentLoopCode(code)
         }
         toast(context, "已保存")
     }
@@ -193,7 +193,7 @@ fun BotRuntimeScreen(
     BotSharedData.init(context, botName)
     
     val luaEngine = remember {
-        LuaEngine(
+        viewModel.luaEngine ?: LuaEngine(
             token = token,
             onPrint = { msg, type ->
                 viewModel.addMessage(
@@ -212,7 +212,9 @@ fun BotRuntimeScreen(
                     )
                 )
             }
-        )
+        ).also {
+            viewModel.luaEngine = it
+        }
     }
     
     val onEventCallback: (JsonObject) -> Unit = { eventJson ->
@@ -336,20 +338,18 @@ fun BotRuntimeScreen(
     }
     
     val onStatusChangedCallback: (Boolean) -> Unit = { connected ->
-        if (isWsConnected != connected) {
-            isWsConnected = connected
-            prefs.edit { putBoolean("stop_${index + 1}", !connected) }
-            
-            if (connected) {
-                viewModel.addMessage(
-                    ChatMessage(
-                        type = 3,
-                        text = "WebSocket 已连接",
-                        time = timeFormat.format(Date()),
-                        iconColor = Color.Green
-                    )
+        viewModel.setWsConnected(connected)
+        prefs.edit { putBoolean("stop_${index + 1}", !connected) }
+    
+        if (connected) {
+            viewModel.addMessage(
+                ChatMessage(
+                    type = 3,
+                    text = "WebSocket 已连接",
+                    time = timeFormat.format(Date()),
+                    iconColor = Color.Green
                 )
-            }
+            )
         }
     }
     
@@ -373,11 +373,11 @@ fun BotRuntimeScreen(
         )
     }
     
-    var startupExecuted by remember { mutableStateOf(false) }
+    val startupExecuted by viewModel.startupExecuted.collectAsState()
 
     LaunchedEffect(isWsConnected) {
         if (isWsConnected && !startupExecuted) {
-            startupExecuted = true
+            viewModel.setStartupExecuted(true)
             val startupCode = prefs.getString("code-start$index", "") ?: ""
             if (startupCode.isNotBlank()) {
                 viewModel.addMessage(
@@ -506,8 +506,7 @@ fun BotRuntimeScreen(
 
     if (showCodeEditor) {
         val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
-            confirmValueChange = { false }
+            skipPartiallyExpanded = true
         )
         ModalBottomSheet(
             onDismissRequest = { },

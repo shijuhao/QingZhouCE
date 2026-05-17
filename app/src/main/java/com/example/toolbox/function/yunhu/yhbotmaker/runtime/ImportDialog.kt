@@ -21,7 +21,7 @@ fun ImportDialog(
 ) {
     val context = LocalContext.current
     var importText by remember { mutableStateOf("") }
-    var importType by remember { mutableIntStateOf(0) } // 0: 快捷指令, 1: 数据
+    var importMode by remember { mutableIntStateOf(0) } // 0=全部, 1=仅快捷指令
     var showPreview by remember { mutableStateOf(false) }
     var previewData by remember { mutableStateOf("") }
 
@@ -29,23 +29,29 @@ fun ImportDialog(
 
     fun validateAndPreview() {
         try {
-            when (importType) {
-                0 -> { // 快捷指令
-                    val json = AppJson.json.parseToJsonElement(importText).jsonObject
-                    if (json.containsKey("autoReplies") || json.containsKey("quickCommands") ||
-                        json.containsKey("自动回复") || json.containsKey("快捷命令")) {
-                        previewData = "✅ 快捷指令配置有效"
-                        showPreview = true
-                    } else {
-                        toast(context, "不是有效的快捷指令格式")
+            val json = AppJson.json.parseToJsonElement(importText).jsonObject
+            
+            when (importMode) {
+                0 -> {
+                    val items = mutableListOf<String>()
+                    if (json.containsKey("startupCode")) items.add("启动代码")
+                    if (json.containsKey("loopCode")) items.add("循环代码")
+                    if (json.containsKey("quickCommands")) items.add("快捷指令")
+                    if (items.isEmpty()) {
+                        toast(context, "不是有效的备份文件")
+                        return
                     }
+                    previewData = "✅ 将导入: ${items.joinToString(", ")}"
                 }
-                1 -> { // 数据
-                    val json = AppJson.json.parseToJsonElement(importText).jsonObject
-                    previewData = "✅ 数据格式有效\n包含字段: ${json.keys}"
-                    showPreview = true
+                1 -> {
+                    if (!json.containsKey("quickCommands")) {
+                        toast(context, "备份文件中没有快捷指令")
+                        return
+                    }
+                    previewData = "✅ 将导入: 快捷指令"
                 }
             }
+            showPreview = true
         } catch (e: Exception) {
             toast(context, "JSON 格式错误: ${e.message}")
         }
@@ -53,26 +59,26 @@ fun ImportDialog(
 
     fun doImport() {
         try {
-            when (importType) {
-                0 -> { // 导入快捷指令
-                    prefs.edit { putString("chelper$botIndex", importText) }
-                    toast(context, "快捷指令导入成功")
+            val json = AppJson.json.parseToJsonElement(importText).jsonObject
+            
+            when (importMode) {
+                0 -> {
+                    json["startupCode"]?.jsonPrimitive?.contentOrNull?.let {
+                        prefs.edit { putString("code-start$botIndex", it) }
+                    }
+                    json["loopCode"]?.jsonPrimitive?.contentOrNull?.let {
+                        prefs.edit { putString("code$botIndex", it) }
+                    }
+                    json["quickCommands"]?.jsonPrimitive?.contentOrNull?.let {
+                        prefs.edit { putString("chelper$botIndex", it) }
+                    }
+                    toast(context, "导入成功")
                 }
-                1 -> { // 导入数据
-                    val json = try {
-                        AppJson.json.parseToJsonElement(importText).jsonObject
-                    } catch (_: Exception) {
-                        toast(context, "JSON 格式错误")
-                        return
-                    }
-
-                    json.forEach { (key, value) ->
-                        val stringValue = value.jsonPrimitive.contentOrNull
-                        if (stringValue != null) {
-                            prefs.edit { putString(key, stringValue) }
-                        }
-                    }
-                    toast(context, "数据导入成功")
+                1 -> {
+                    json["quickCommands"]?.jsonPrimitive?.contentOrNull?.let {
+                        prefs.edit { putString("chelper$botIndex", it) }
+                        toast(context, "快捷指令导入成功")
+                    } ?: toast(context, "未找到快捷指令")
                 }
             }
             onDismiss()
@@ -83,40 +89,33 @@ fun ImportDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (importType == 0) "导入快捷指令" else "导入数据") },
+        title = { Text("导入配置") },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // 类型选择
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // 导入选项
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
-                        selected = importType == 0,
-                        onClick = { importType = 0; showPreview = false },
-                        label = { Text("快捷指令") }
+                        selected = importMode == 0,
+                        onClick = { importMode = 0; showPreview = false },
+                        label = { Text("全部") }
                     )
                     FilterChip(
-                        selected = importType == 1,
-                        onClick = { importType = 1; showPreview = false },
-                        label = { Text("数据") }
+                        selected = importMode == 1,
+                        onClick = { importMode = 1; showPreview = false },
+                        label = { Text("仅快捷指令") }
                     )
                 }
-
-                // 输入框
+                
                 OutlinedTextField(
                     value = importText,
                     onValueChange = { importText = it; showPreview = false },
-                    label = { Text("粘贴 JSON 内容") },
+                    label = { Text("粘贴备份 JSON") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 150.dp),
                     maxLines = 10
                 )
-
-                // 预览按钮
+                
                 Button(
                     onClick = { validateAndPreview() },
                     modifier = Modifier.fillMaxWidth(),
@@ -124,8 +123,7 @@ fun ImportDialog(
                 ) {
                     Text("预览")
                 }
-
-                // 预览结果
+                
                 if (showPreview) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -151,9 +149,7 @@ fun ImportDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
+            TextButton(onClick = onDismiss) { Text("取消") }
         }
     )
 }

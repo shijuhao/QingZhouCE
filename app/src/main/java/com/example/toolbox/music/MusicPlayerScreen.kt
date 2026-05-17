@@ -35,17 +35,9 @@ import com.example.toolbox.settings.SettingsItemCell
 @Composable
 fun MusicPlayerScreen(
     onMenuClick: () -> Unit,
-    modifier: Modifier = Modifier
+    viewModel: MusicPlayerViewModel,
 ) {
     val context = LocalContext.current
-    val viewModel: MusicPlayerViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                return MusicPlayerViewModel(context) as T
-            }
-        }
-    )
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
     val currentRoute by navController.currentBackStackEntryAsState()
@@ -386,7 +378,7 @@ fun FullScreenPlayer(
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(26.dp))
         
         // 音乐信息
         Column(
@@ -398,7 +390,7 @@ fun FullScreenPlayer(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = musicItem?.artist ?: "未知艺术家",
                 style = MaterialTheme.typography.titleMedium,
@@ -408,7 +400,7 @@ fun FullScreenPlayer(
             )
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         // 进度条区域
         Column(
@@ -446,7 +438,7 @@ fun FullScreenPlayer(
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         // 播放模式按钮行
         Row(
@@ -535,7 +527,7 @@ fun FullScreenPlayer(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
