@@ -369,9 +369,6 @@ fun BotRuntimeScreen(
         if (viewModel.currentLoopCode.value.isEmpty() && savedCode.isNotEmpty()) {
             viewModel.setCurrentLoopCode(savedCode)
         }
-    }
-
-    LaunchedEffect(Unit) {
         BotWebSocketManagerSingleton.getInstance(
             token = token,
             onEvent = onEventCallback,
@@ -727,9 +724,7 @@ fun BotRuntimeScreen(
             bottomBar = {
                 BottomActionBar(
                     onSendClick = { showSendDialog = true },
-                    onClearClick = {
-                        viewModel.clearMessages()
-                    },
+                    onClearClick = { viewModel.clearMessages() },
                     onFullscreenClick = { isBlackout = true },
                     onConnectClick = {
                         if (isWsConnected) {
