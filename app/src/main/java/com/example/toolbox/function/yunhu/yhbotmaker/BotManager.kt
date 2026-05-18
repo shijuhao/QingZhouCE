@@ -262,10 +262,16 @@ fun BotCard(
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box {
                 Card(shape = MaterialTheme.shapes.medium, modifier = Modifier.size(48.dp)) {
-                    if (bitmap != null) {
-                        Image(bitmap = bitmap.asImageBitmap(), null, Modifier.fillMaxSize())
-                    } else {
-                        Icon(Icons.Default.Person, null, Modifier.padding(8.dp))
+                    Box(contentAlignment = Alignment.Center) {
+                        if (bitmap != null) {
+                            Image(bitmap = bitmap.asImageBitmap(), null, Modifier.fillMaxSize())
+                        } else {
+                            Icon(
+                                Icons.Default.Person, 
+                                null, 
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                     }
                 }
                 Card(
@@ -350,10 +356,16 @@ fun EditDialog(
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.size(64.dp)
                     ) {
-                        if (bitmap != null) {
-                            Image(bitmap = bitmap.asImageBitmap(), null, Modifier.fillMaxSize())
-                        } else {
-                            Icon(Icons.Default.Person, null, Modifier.padding(16.dp))
+                        Box(contentAlignment = Alignment.Center) {
+                            if (bitmap != null) {
+                                Image(bitmap = bitmap.asImageBitmap(), null, Modifier.fillMaxSize())
+                            } else {
+                                Icon(
+                                    Icons.Default.Person, 
+                                    null, 
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.width(16.dp))
