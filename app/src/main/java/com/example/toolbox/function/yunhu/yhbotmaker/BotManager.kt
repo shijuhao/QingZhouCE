@@ -13,6 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -270,7 +271,9 @@ fun BotCard(
                     Image(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
                 } else {
@@ -282,7 +285,7 @@ fun BotCard(
                 }
                 Box(
                     modifier = Modifier
-                        .size(12.dp)
+                        .size(8.dp)
                         .align(Alignment.BottomEnd)
                         .background(
                             color = if (isConnected) Color.Green else Color.Gray,

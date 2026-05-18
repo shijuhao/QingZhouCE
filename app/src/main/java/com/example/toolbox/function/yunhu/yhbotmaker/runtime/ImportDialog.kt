@@ -13,6 +13,8 @@ import com.example.toolbox.AppJson
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun ImportDialog(
@@ -93,7 +95,12 @@ fun ImportDialog(
         onDismissRequest = onDismiss,
         title = { Text("导入配置") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 // 导入选项
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
