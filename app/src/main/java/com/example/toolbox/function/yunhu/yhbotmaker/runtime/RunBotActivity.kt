@@ -648,6 +648,7 @@ fun BotRuntimeScreen(
     if (showImportDialog) {
         ImportDialog(
             botIndex = index,
+            botName = botName,
             onDismiss = { showImportDialog = false }
         )
     }

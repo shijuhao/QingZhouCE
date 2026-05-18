@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.toolbox.function.yunhu.yhbotmaker.runtime.RunBotActivity
@@ -254,31 +256,37 @@ fun BotCard(
         avatar?.takeIf { File(it).exists() }?.let { BitmapFactory.decodeFile(it) }
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box {
-                Card(shape = MaterialTheme.shapes.medium, modifier = Modifier.size(48.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        if (bitmap != null) {
-                            Image(bitmap = bitmap.asImageBitmap(), null, Modifier.fillMaxSize())
-                        } else {
-                            Icon(
-                                Icons.Default.Person, 
-                                null, 
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                    }
+            Box(modifier = Modifier.size(48.dp)) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().padding(8.dp)
+                    )
                 }
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = if (isConnected) Color.Green else Color.Gray),
-                    shape = MaterialTheme.shapes.extraSmall,
-                    modifier = Modifier.size(12.dp).align(Alignment.BottomEnd).padding(2.dp)
-                ) {}
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .align(Alignment.BottomEnd)
+                        .background(
+                            color = if (isConnected) Color.Green else Color.Gray,
+                            shape = CircleShape
+                        )
+                )
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
@@ -356,13 +364,21 @@ fun EditDialog(
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.size(64.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             if (bitmap != null) {
-                                Image(bitmap = bitmap.asImageBitmap(), null, Modifier.fillMaxSize())
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
                             } else {
                                 Icon(
-                                    Icons.Default.Person, 
-                                    null, 
+                                    Icons.Default.Person,
+                                    null,
                                     modifier = Modifier.size(40.dp)
                                 )
                             }

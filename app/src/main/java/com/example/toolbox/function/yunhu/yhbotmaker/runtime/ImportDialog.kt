@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonPrimitive
 @Composable
 fun ImportDialog(
     botIndex: Int,
+    botName: String,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -68,6 +69,7 @@ fun ImportDialog(
                     }
                     json["loopCode"]?.jsonPrimitive?.contentOrNull?.let {
                         prefs.edit { putString("code$botIndex", it) }
+                        BotRuntimeViewModel.getInstance(botName).setCurrentLoopCode(it)
                     }
                     json["quickCommands"]?.jsonPrimitive?.contentOrNull?.let {
                         prefs.edit { putString("chelper$botIndex", it) }

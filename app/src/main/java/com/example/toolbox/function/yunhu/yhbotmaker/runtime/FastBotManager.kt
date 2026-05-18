@@ -137,12 +137,12 @@ fun FastBotDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(vertical = 12.dp)
         ) {
             Text(
                 text = "FastBot",
                 style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
             )
             
             LazyColumn(
@@ -547,7 +547,10 @@ fun QuickCommandDialog(
                     onValueChange = { code = it },
                     label = { Text("执行代码 (Lua)") },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 3
+                    minLines = 5,
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
                 )
                 Text(
                     text = "提示：代码中可以使用 event 变量获取事件数据",
