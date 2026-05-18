@@ -64,7 +64,7 @@ class QuickCommandManager(context: Context, botIndex: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuickCommandManagerDialog(
+fun FastBotDialog(
     botIndex: Int,
     onDismiss: () -> Unit
 ) {
@@ -82,7 +82,6 @@ fun QuickCommandManagerDialog(
     
     var selectedType by remember { mutableStateOf<String?>(null) }
     
-    // 自动回复编辑对话框
     if (showAutoReplyDialog) {
         AutoReplyDialog(
             initial = editingAutoReply,
@@ -107,7 +106,6 @@ fun QuickCommandManagerDialog(
         )
     }
     
-    // 快捷命令编辑对话框
     if (showQuickCommandDialog) {
         QuickCommandDialog(
             initial = editingQuickCommand,
@@ -132,14 +130,23 @@ fun QuickCommandManagerDialog(
         )
     }
     
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("FastBot") },
-        text = {
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = "FastBot",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 300.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 item {
                     SettingsGroup(
@@ -148,31 +155,29 @@ fun QuickCommandManagerDialog(
                                 SettingsItemCell(
                                     icon = Icons.Default.Chat,
                                     title = "自动回复",
-                                    subtitle = "关键词自动回复消息 (${data.autoReplies.size})",
-                                    onClick = { selectedType = "autoReply" }
+                                    subtitle = "收到关键词自动回复消息",
+                                    onClick = { 
+                                        selectedType = "autoReply"
+                                    }
                                 )
                             },
                             {
                                 SettingsItemCell(
                                     icon = Icons.Default.Code,
                                     title = "快捷命令",
-                                    subtitle = "根据命令ID执行Lua代码 (${data.quickCommands.size})",
-                                    onClick = { selectedType = "quickCommand" }
+                                    subtitle = "收到机器人指令自动执行执行Lua代码",
+                                    onClick = { 
+                                        selectedType = "quickCommand"
+                                    }
                                 )
                             }
                         )
                     )
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("关闭")
-            }
         }
-    )
+    }
     
-    // 自动回复管理弹窗
     if (selectedType == "autoReply") {
         AutoReplyManageDialog(
             data = data.autoReplies,
@@ -194,7 +199,6 @@ fun QuickCommandManagerDialog(
         )
     }
     
-    // 快捷命令管理弹窗
     if (selectedType == "quickCommand") {
         QuickCommandManageDialog(
             data = data.quickCommands,

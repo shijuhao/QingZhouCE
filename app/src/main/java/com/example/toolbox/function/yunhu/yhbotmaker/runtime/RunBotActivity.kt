@@ -120,7 +120,7 @@ fun BotRuntimeScreen(
     
     var isBlackout by remember { mutableStateOf(false) }
 
-    var showQuickCommandManager by remember { mutableStateOf(false) }
+    var showFastBotDialog by remember { mutableStateOf(false) }
     var showHelpDialog by remember { mutableStateOf(false) }
     var showSendDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
@@ -638,10 +638,10 @@ fun BotRuntimeScreen(
         }
     }
 
-    if (showQuickCommandManager) {
-        QuickCommandManagerDialog(
+    if (showFastBotDialog) {
+        FastBotDialog(
             botIndex = index,
-            onDismiss = { showQuickCommandManager = false }
+            onDismiss = { showFastBotDialog = false }
         )
     }
 
@@ -734,7 +734,7 @@ fun BotRuntimeScreen(
                     NavigationDrawerItem(
                         label = { Text("FastBot") },
                         selected = false,
-                        onClick = { showQuickCommandManager = true },
+                        onClick = { showFastBotDialog = true },
                         icon = { Icon(Icons.Default.Bolt, null) },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
@@ -857,7 +857,7 @@ fun MessageItem(message: ChatMessage) {
         1 -> Icons.AutoMirrored.Filled.CallReceived to Color.Cyan           // 收到消息
         2 -> Icons.Default.Check to Color.Green                       // 操作成功
         3 -> Icons.Default.Info to Color.White                              // 系统消息
-        4 -> Icons.Default.Error to Color.Red                               // 报错
+        4 -> Icons.Default.Close to Color.Red                               // 报错
         else -> Icons.Default.Android to MaterialTheme.colorScheme.primary  // 其他
     }
     
