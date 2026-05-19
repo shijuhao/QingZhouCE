@@ -199,7 +199,7 @@ fun BotManagerScreen(
             initial = null,
             currentAvatar = null,
             onDismiss = { showCreate = false },
-            onConfirm = { bot, avatarUri ->
+            onConfirm = { bot, avatarUri, clearAvatar ->
                 val success = model.add(bot)
                 if (success) {
                     if (avatarUri != null) {
