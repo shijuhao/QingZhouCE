@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class BotRuntimeViewModel private constructor(private val botName: String) : ViewModel() {
+class BotRuntimeViewModel private constructor(private val botIndex: Int) : ViewModel() {
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
@@ -42,11 +42,11 @@ class BotRuntimeViewModel private constructor(private val botName: String) : Vie
     }
     
     companion object {
-        private val instances = mutableMapOf<String, BotRuntimeViewModel>()
+        private val instances = mutableMapOf<Int, BotRuntimeViewModel>()
         
-        fun getInstance(botName: String): BotRuntimeViewModel {
-            return instances.getOrPut(botName) {
-                BotRuntimeViewModel(botName)
+        fun getInstance(botIndex: Int): BotRuntimeViewModel {
+            return instances.getOrPut(botIndex) {
+                BotRuntimeViewModel(botIndex)
             }
         }
     }

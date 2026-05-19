@@ -45,6 +45,12 @@ import com.example.toolbox.AppJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import java.io.File
 
 private fun jsonObjectToMap(jsonObject: JsonObject): Map<String, Any> {
     val result = mutableMapOf<String, Any>()
@@ -112,7 +118,7 @@ fun BotRuntimeScreen(
     val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     
-    val viewModel = BotRuntimeViewModel.getInstance(botName)
+    val viewModel = BotRuntimeViewModel.getInstance(index)
     val messagesState by viewModel.messages.collectAsState()
     
     val isWsConnected by viewModel.isWsConnected.collectAsState()
@@ -235,7 +241,7 @@ fun BotRuntimeScreen(
         ";"
     )
     
-    BotSharedData.init(context, botName)
+    BotSharedData.init(context, index)
     
     val luaEngine = remember {
         viewModel.luaEngine ?: LuaEngine(
@@ -415,6 +421,7 @@ fun BotRuntimeScreen(
             viewModel.setCurrentLoopCode(savedCode)
         }
         BotWebSocketManagerSingleton.getInstance(
+            botIndex = index,
             token = token,
             onEvent = onEventCallback,
             onStatusChanged = onStatusChangedCallback,
@@ -503,7 +510,7 @@ fun BotRuntimeScreen(
     
     if (showSharedDataDialog) {
         SharedDataDialog(
-            botName = botName,
+            botIndex = index,
             onDismiss = { showSharedDataDialog = false }
         )
     }
@@ -666,6 +673,13 @@ fun BotRuntimeScreen(
             onDismiss = { showHelpDialog = false }
         )
     }
+    
+    fun getAvatarBitmap(): Bitmap? {
+        val avatarPath = prefs.getString("avatar_${index + 1}", null)
+        return avatarPath?.takeIf { File(it).exists() }?.let { BitmapFactory.decodeFile(it) }
+    }
+    
+    var avatarBitmap by remember { mutableStateOf(getAvatarBitmap()) }
 
     val configuration = LocalConfiguration.current
     val drawerWidth = (configuration.screenWidthDp * 0.75f).dp
@@ -711,9 +725,9 @@ fun BotRuntimeScreen(
                         selected = false,
                         onClick = {
                             if (isWsConnected) {
-                                BotWebSocketManagerSingleton.disconnect(token)
+                                BotWebSocketManagerSingleton.disconnect(index)
                             } else {
-                                BotWebSocketManagerSingleton.connect(token)
+                                BotWebSocketManagerSingleton.connect(index)
                             }
                         },
                         icon = { 
@@ -774,13 +788,38 @@ fun BotRuntimeScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("YHBot - $botName") },
-                    subtitle = {
-                        Text(
-                            text = if (isWsConnected) "● 在线" else "○ 离线",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isWsConnected) Color.Green else MaterialTheme.colorScheme.error
-                        )
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // 头像区域
+                            if (avatarBitmap != null) {
+                                Image(
+                                    bitmap = avatarBitmap!!.asImageBitmap(),
+                                    contentDescription = "头像",
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = "默认头像",
+                                    modifier = Modifier.size(32.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Column {
+                                Text("YHBot - $botName")
+                                Text(
+                                    text = if (isWsConnected) "● 在线" else "○ 离线",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isWsConnected) Color.Green else MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -801,9 +840,9 @@ fun BotRuntimeScreen(
                     onFullscreenClick = { isBlackout = true },
                     onConnectClick = {
                         if (isWsConnected) {
-                            BotWebSocketManagerSingleton.disconnect(token)
+                            BotWebSocketManagerSingleton.disconnect(index)
                         } else {
-                            BotWebSocketManagerSingleton.connect(token)
+                            BotWebSocketManagerSingleton.connect(index)
                         }
                     },
                     isWsConnected = isWsConnected

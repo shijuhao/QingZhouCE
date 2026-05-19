@@ -71,7 +71,7 @@ fun ImportDialog(
                     }
                     json["loopCode"]?.jsonPrimitive?.contentOrNull?.let {
                         prefs.edit { putString("code$botIndex", it) }
-                        BotRuntimeViewModel.getInstance(botName).setCurrentLoopCode(it)
+                        BotRuntimeViewModel.getInstance(botIndex).setCurrentLoopCode(it)
                     }
                     json["quickCommands"]?.jsonPrimitive?.contentOrNull?.let {
                         prefs.edit { putString("chelper$botIndex", it) }

@@ -5,9 +5,13 @@ import android.content.SharedPreferences
 
 object BotSharedData {
     private var prefs: SharedPreferences? = null
+    private var currentIndex: Int = -1
     
-    fun init(context: Context, botName: String) {
-        prefs = context.getSharedPreferences("botSharedDataPrefs_$botName", Context.MODE_PRIVATE)
+    fun init(context: Context, botIndex: Int) {
+        if (currentIndex != botIndex || prefs == null) {
+            currentIndex = botIndex
+            prefs = context.getSharedPreferences("botSharedDataPrefs_$botIndex", Context.MODE_PRIVATE)
+        }
     }
     
     fun set(key: String, value: String) {

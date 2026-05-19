@@ -252,7 +252,7 @@ fun BotCard(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     
-    val connectionState = BotWebSocketManagerSingleton.getConnectionState(bot.token)
+    val connectionState = BotWebSocketManagerSingleton.getConnectionState(bot.index)
     val isConnected = connectionState?.collectAsState()?.value ?: false
 
     val bitmap = remember(avatar) {

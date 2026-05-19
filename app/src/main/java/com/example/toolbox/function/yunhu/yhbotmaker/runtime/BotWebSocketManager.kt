@@ -15,35 +15,37 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 object BotWebSocketManagerSingleton {
-    private val managers = ConcurrentHashMap<String, BotWebSocketInstance>()
+    private val managers = ConcurrentHashMap<Int, BotWebSocketInstance>()
     
     fun getInstance(
+        botIndex: Int,
         token: String,
         onEvent: (JsonObject) -> Unit,
         onStatusChanged: (Boolean) -> Unit,
         onError: (String) -> Unit
     ): BotWebSocketInstance {
-        return managers.getOrPut(token) {
-            BotWebSocketInstance(token, onEvent, onStatusChanged, onError)
+        return managers.getOrPut(botIndex) {
+            BotWebSocketInstance(botIndex, token, onEvent, onStatusChanged, onError)
         }.also { instance ->
             instance.updateCallbacks(onEvent, onStatusChanged, onError)
         }
     }
     
-    fun connect(token: String) {
-        managers[token]?.connect()
+    fun connect(botIndex: Int) {
+        managers[botIndex]?.connect()
     }
     
-    fun disconnect(token: String) {
-        managers[token]?.disconnect()
+    fun disconnect(botIndex: Int) {
+        managers[botIndex]?.disconnect()
     }
     
-    fun getConnectionState(token: String): StateFlow<Boolean>? {
-        return managers[token]?.connectionState
+    fun getConnectionState(botIndex: Int): StateFlow<Boolean>? {
+        return managers[botIndex]?.connectionState
     }
 }
 
 class BotWebSocketInstance(
+    private val botIndex: Int,
     private val token: String,
     private var onEvent: (JsonObject) -> Unit,
     private var onStatusChanged: (Boolean) -> Unit,
@@ -89,7 +91,7 @@ class BotWebSocketInstance(
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 _connectionState.value = true
-                Log.d("BotWS-$token", "Connected")
+                Log.d("BotWS-$botIndex", "Connected")
                 mainHandler.post { 
                     onStatusChanged(true)
                 }
@@ -100,21 +102,21 @@ class BotWebSocketInstance(
                     val json = AppJson.json.parseToJsonElement(text).jsonObject
                     mainHandler.post { onEvent(json) }
                 } catch (e: Exception) {
-                    Log.e("BotWS-$token", "Parse error", e)
+                    Log.e("BotWS-$botIndex", "Parse error", e)
                     mainHandler.post { onError("解析消息失败: ${e.message}") }
                 }
             }
             
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 _connectionState.value = false
-                Log.d("BotWS-$token", "Closed: $code $reason")
+                Log.d("BotWS-$botIndex", "Closed: $code $reason")
                 mainHandler.post { onStatusChanged(false) }
                 scheduleReconnect()
             }
             
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 _connectionState.value = false
-                Log.e("BotWS-$token", "Failure", t)
+                Log.e("BotWS-$botIndex", "Failure", t)
                 mainHandler.post { onStatusChanged(false) }
                 scheduleReconnect()
             }

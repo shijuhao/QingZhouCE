@@ -18,7 +18,7 @@ import com.example.toolbox.function.yunhu.yhbotmaker.toast
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SharedDataDialog(
-    botName: String,
+    botIndex: Int,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -27,7 +27,6 @@ fun SharedDataDialog(
     var editingKey by remember { mutableStateOf<String?>(null) }
     var editingValue by remember { mutableStateOf("") }
     
-    // 刷新数据
     fun refreshData() {
         val all = BotSharedData.getAll()
         val newMap = mutableMapOf<String, String>()
