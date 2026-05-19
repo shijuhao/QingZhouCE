@@ -10,8 +10,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
+import androidx.activity.enableEdgeToEdge 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -796,7 +795,7 @@ fun BotRuntimeScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (avatarBitmap != null) {
-                                Image(
+                                androidx.compose.foundation.Image(
                                     bitmap = avatarBitmap!!.asImageBitmap(),
                                     contentDescription = "头像",
                                     modifier = Modifier
