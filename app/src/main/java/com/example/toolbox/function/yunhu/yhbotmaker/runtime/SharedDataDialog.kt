@@ -116,7 +116,7 @@ fun SharedDataDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "SharedData - $botName",
+                    text = "SharedData 管理",
                     style = MaterialTheme.typography.headlineSmall
                 )
                 IconButton(onClick = { showAddDialog = true }) {

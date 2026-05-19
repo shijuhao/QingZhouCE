@@ -49,6 +49,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import java.io.File
 
@@ -793,7 +794,6 @@ fun BotRuntimeScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // 头像区域
                             if (avatarBitmap != null) {
                                 Image(
                                     bitmap = avatarBitmap!!.asImageBitmap(),

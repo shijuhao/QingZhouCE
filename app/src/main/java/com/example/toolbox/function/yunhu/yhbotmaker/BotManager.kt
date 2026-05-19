@@ -222,15 +222,21 @@ fun BotManagerScreen(
             initial = bot,
             currentAvatar = model.avatarPath(editPos + 1),
             onDismiss = { editPos = -1 },
-            onConfirm = { newBot, avatarUri ->
+            onConfirm = { newBot, avatarUri, clearAvatar ->
                 val success = model.update(editPos, newBot)
                 if (success) {
-                    if (avatarUri != null) {
-                        saveImage(context, avatarUri)?.let { path ->
-                            model.setAvatar(editPos + 1, path)
+                    when {
+                        clearAvatar -> {
+                            // 清除头像
+                            model.setAvatar(editPos + 1, null)
                         }
-                    } else if (model.avatarPath(editPos + 1) != null) {
-                        model.setAvatar(editPos + 1, null)
+                        avatarUri != null -> {
+                            // 新头像
+                            saveImage(context, avatarUri)?.let { path ->
+                                model.setAvatar(editPos + 1, path)
+                            }
+                        }
+                        // else: 不修改头像
                     }
                     editPos = -1
                     refreshKey++
@@ -324,15 +330,17 @@ fun EditDialog(
     initial: Bot?,
     currentAvatar: String? = null,
     onDismiss: () -> Unit,
-    onConfirm: (Bot, Uri?) -> Unit
+    onConfirm: (Bot, Uri?, Boolean) -> Unit
 ) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var token by remember { mutableStateOf(initial?.token ?: "") }
     var avatarUri by remember { mutableStateOf<Uri?>(null) }
+    var clearAvatar by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val bitmap = remember(avatarUri, currentAvatar) {
+    val bitmap = remember(avatarUri, currentAvatar, clearAvatar) {
         when {
+            clearAvatar -> null
             avatarUri != null -> {
                 try {
                     context.contentResolver.openInputStream(avatarUri!!)?.use {
@@ -350,7 +358,10 @@ fun EditDialog(
     }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { avatarUri = it }
+        uri?.let { 
+            avatarUri = it
+            clearAvatar = false
+        }
     }
 
     AlertDialog(
@@ -393,9 +404,12 @@ fun EditDialog(
                     Button(onClick = { launcher.launch("image/*") }) {
                         Text("选择头像")
                     }
-                    if (avatarUri != null || currentAvatar != null) {
+                    if (currentAvatar != null || clearAvatar) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        OutlinedButton(onClick = { avatarUri = null }) {
+                        OutlinedButton(onClick = { 
+                            avatarUri = null
+                            clearAvatar = true
+                        }) {
                             Text("清除")
                         }
                     }
@@ -424,7 +438,7 @@ fun EditDialog(
                         name.isBlank() || token.isBlank() -> toast(context, "请填写完整")
                         else -> {
                             val bot = Bot(token, name)
-                            onConfirm(bot, avatarUri)
+                            onConfirm(bot, avatarUri, clearAvatar)
                         }
                     }
                 }
