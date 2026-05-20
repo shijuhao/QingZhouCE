@@ -29,7 +29,7 @@ fun HelpDocumentDialog(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = modifier = Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
