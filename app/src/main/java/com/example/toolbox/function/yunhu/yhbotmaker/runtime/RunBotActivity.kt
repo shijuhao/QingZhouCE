@@ -296,6 +296,7 @@ fun BotRuntimeScreen(
             val chatObj = eventObj?.get("chat")?.jsonObject
             val chatType = chatObj?.get("chatType")?.jsonPrimitive?.content ?: ""
             val msgId = messageObj?.get("msgId")?.jsonPrimitive?.content ?: ""
+            val chatId = chatObj?.get("chatId")?.jsonPrimitive?.content ?: ""
             
             val helperKey = "chelper$index"
             val helperJson = prefs.getString(helperKey, "") ?: ""
