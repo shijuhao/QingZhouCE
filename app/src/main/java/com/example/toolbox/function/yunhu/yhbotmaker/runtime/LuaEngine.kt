@@ -17,6 +17,7 @@ class LuaEngine(
     private val httpClient = OkHttpClient()
     private val globals: Globals
     private val apiService = YunHuApiService(token)
+    var startupCodeExecuted: String = ""
 
     init {
         onPrint("LuaEngine 开始初始化", 3)
@@ -369,11 +370,12 @@ class LuaEngine(
     }
 
     fun runStartupCode(code: String): Boolean {
+        startupCodeExecuted = code
         return try {
             globals.load(code).call()
             true
         } catch (e: Exception) {
-            onPrint("启动代码错误: ${e.message}", 4)
+            onPrint("❌ 启动代码错误: ${e.message}", 2)
             false
         }
     }

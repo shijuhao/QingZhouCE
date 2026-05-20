@@ -26,13 +26,26 @@ import com.example.toolbox.settings.SettingsItemCell
 data class AutoReply(
     val key: String,
     val reply: String,
-    val type: String  // text, markdown, html
+    val type: String
 )
 
 @Serializable
 data class QuickCommand(
     val id: Int,
-    val code: String  // Lua 代码片段
+    val code: String
+)
+
+@Serializable
+data class BlockedUser(
+    val userId: String,
+    val userName: String = "",
+    val reason: String = ""
+)
+
+@Serializable
+data class BannedWord(
+    val word: String,
+    val action: String = "delete"
 )
 
 @Serializable
@@ -40,7 +53,11 @@ data class CommandData(
     @SerialName("autoReplies")
     val autoReplies: List<AutoReply> = emptyList(),
     @SerialName("quickCommands")
-    val quickCommands: List<QuickCommand> = emptyList()
+    val quickCommands: List<QuickCommand> = emptyList(),
+    @SerialName("blockedUsers")
+    val blockedUsers: List<BlockedUser> = emptyList(),
+    @SerialName("bannedWords")
+    val bannedWords: List<BannedWord> = emptyList()
 )
 
 class QuickCommandManager(context: Context, botIndex: Int) {
@@ -79,6 +96,14 @@ fun FastBotDialog(
     var showQuickCommandDialog by remember { mutableStateOf(false) }
     var editingQuickCommand by remember { mutableStateOf<QuickCommand?>(null) }
     var quickCommandIndex by remember { mutableIntStateOf(-1) }
+    
+    var showBlockedUserDialog by remember { mutableStateOf(false) }
+    var editingBlockedUser by remember { mutableStateOf<BlockedUser?>(null) }
+    var blockedUserIndex by remember { mutableIntStateOf(-1) }
+    
+    var showBannedWordDialog by remember { mutableStateOf(false) }
+    var editingBannedWord by remember { mutableStateOf<BannedWord?>(null) }
+    var bannedWordIndex by remember { mutableIntStateOf(-1) }
     
     var selectedType by remember { mutableStateOf<String?>(null) }
     
@@ -130,6 +155,54 @@ fun FastBotDialog(
         )
     }
     
+    if (showBlockedUserDialog) {
+        BlockedUserDialog(
+            initial = editingBlockedUser,
+            onDismiss = { 
+                showBlockedUserDialog = false
+                editingBlockedUser = null
+                blockedUserIndex = -1
+            },
+            onConfirm = { newItem ->
+                val newList = data.blockedUsers.toMutableList()
+                if (blockedUserIndex >= 0) {
+                    newList[blockedUserIndex] = newItem
+                } else {
+                    newList.add(newItem)
+                }
+                data = data.copy(blockedUsers = newList)
+                manager.save(data)
+                showBlockedUserDialog = false
+                editingBlockedUser = null
+                blockedUserIndex = -1
+            }
+        )
+    }
+    
+    if (showBannedWordDialog) {
+        BannedWordDialog(
+            initial = editingBannedWord,
+            onDismiss = { 
+                showBannedWordDialog = false
+                editingBannedWord = null
+                bannedWordIndex = -1
+            },
+            onConfirm = { newItem ->
+                val newList = data.bannedWords.toMutableList()
+                if (bannedWordIndex >= 0) {
+                    newList[bannedWordIndex] = newItem
+                } else {
+                    newList.add(newItem)
+                }
+                data = data.copy(bannedWords = newList)
+                manager.save(data)
+                showBannedWordDialog = false
+                editingBannedWord = null
+                bannedWordIndex = -1
+            }
+        )
+    }
+    
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxWidth()
@@ -156,19 +229,31 @@ fun FastBotDialog(
                                     icon = Icons.Default.Chat,
                                     title = "自动回复",
                                     subtitle = "收到关键词自动回复消息",
-                                    onClick = { 
-                                        selectedType = "autoReply"
-                                    }
+                                    onClick = { selectedType = "autoReply" }
                                 )
                             },
                             {
                                 SettingsItemCell(
                                     icon = Icons.Default.Code,
                                     title = "快捷命令",
-                                    subtitle = "收到机器人指令自动执行执行Lua代码",
-                                    onClick = { 
-                                        selectedType = "quickCommand"
-                                    }
+                                    subtitle = "收到机器人指令自动执行Lua代码",
+                                    onClick = { selectedType = "quickCommand" }
+                                )
+                            },
+                            {
+                                SettingsItemCell(
+                                    icon = Icons.Default.PersonRemove,
+                                    title = "群成员黑名单",
+                                    subtitle = "屏蔽指定用户发言 (${data.blockedUsers.size})",
+                                    onClick = { selectedType = "blockedUser" }
+                                )
+                            },
+                            {
+                                SettingsItemCell(
+                                    icon = Icons.Default.GppBad,
+                                    title = "违禁词",
+                                    subtitle = "自动删除包含违禁词的消息 (${data.bannedWords.size})",
+                                    onClick = { selectedType = "bannedWord" }
                                 )
                             }
                         )
@@ -215,6 +300,48 @@ fun FastBotDialog(
             },
             onDelete = { index ->
                 data = data.copy(quickCommands = data.quickCommands.toMutableList().apply { removeAt(index) })
+                manager.save(data)
+            }
+        )
+    }
+    
+    if (selectedType == "blockedUser") {
+        BlockedUserManageDialog(
+            data = data.blockedUsers,
+            onDismiss = { selectedType = null },
+            onAdd = {
+                editingBlockedUser = null
+                blockedUserIndex = -1
+                showBlockedUserDialog = true
+            },
+            onEdit = { index, item ->
+                editingBlockedUser = item
+                blockedUserIndex = index
+                showBlockedUserDialog = true
+            },
+            onDelete = { index ->
+                data = data.copy(blockedUsers = data.blockedUsers.toMutableList().apply { removeAt(index) })
+                manager.save(data)
+            }
+        )
+    }
+    
+    if (selectedType == "bannedWord") {
+        BannedWordManageDialog(
+            data = data.bannedWords,
+            onDismiss = { selectedType = null },
+            onAdd = {
+                editingBannedWord = null
+                bannedWordIndex = -1
+                showBannedWordDialog = true
+            },
+            onEdit = { index, item ->
+                editingBannedWord = item
+                bannedWordIndex = index
+                showBannedWordDialog = true
+            },
+            onDelete = { index ->
+                data = data.copy(bannedWords = data.bannedWords.toMutableList().apply { removeAt(index) })
                 manager.save(data)
             }
         )
@@ -312,30 +439,11 @@ fun AutoReplyManageDialog(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         itemsIndexed(data) { index, item ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("关键词: ${item.key}", style = MaterialTheme.typography.bodyMedium)
-                                        Text("回复: ${item.reply} (${item.type})", style = MaterialTheme.typography.bodySmall)
-                                    }
-                                    IconButton(onClick = { onEdit(index, item) }) {
-                                        Icon(Icons.Default.Edit, null)
-                                    }
-                                    IconButton(onClick = { onDelete(index) }) {
-                                        Icon(Icons.Default.Delete, null)
-                                    }
-                                }
-                            }
+                            AutoReplyCard(
+                                item = item,
+                                onEdit = { onEdit(index, item) },
+                                onDelete = { onDelete(index) }
+                            )
                         }
                     }
                 }
@@ -395,6 +503,70 @@ fun QuickCommandManageDialog(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         itemsIndexed(data) { index, item ->
+                            QuickCommandCard(
+                                item = item,
+                                onEdit = { onEdit(index, item) },
+                                onDelete = { onDelete(index) }
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    FloatingActionButton(
+                        onClick = onAdd,
+                        modifier = Modifier.size(48.dp),
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(Icons.Default.Add, "添加")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("返回")
+            }
+        }
+    )
+}
+
+@Composable
+fun BlockedUserManageDialog(
+    data: List<BlockedUser>,
+    onDismiss: () -> Unit,
+    onAdd: () -> Unit,
+    onEdit: (Int, BlockedUser) -> Unit,
+    onDelete: (Int) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("群成员黑名单") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+            ) {
+                if (data.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("暂无黑名单用户")
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        itemsIndexed(data) { index, item ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(
@@ -408,8 +580,96 @@ fun QuickCommandManageDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("命令ID: ${item.id}", style = MaterialTheme.typography.bodyMedium)
-                                        Text("代码: ${item.code.take(30)}${if (item.code.length > 30) "..." else ""}", style = MaterialTheme.typography.bodySmall)
+                                        Text("用户ID: ${item.userId}", style = MaterialTheme.typography.bodyMedium)
+                                        if (item.userName.isNotEmpty()) {
+                                            Text("昵称: ${item.userName}", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                        if (item.reason.isNotEmpty()) {
+                                            Text("原因: ${item.reason}", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                    IconButton(onClick = { onEdit(index, item) }) {
+                                        Icon(Icons.Default.Edit, null)
+                                    }
+                                    IconButton(onClick = { onDelete(index) }) {
+                                        Icon(Icons.Default.Delete, null)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    FloatingActionButton(
+                        onClick = onAdd,
+                        modifier = Modifier.size(48.dp),
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(Icons.Default.Add, "添加")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("返回")
+            }
+        }
+    )
+}
+
+@Composable
+fun BannedWordManageDialog(
+    data: List<BannedWord>,
+    onDismiss: () -> Unit,
+    onAdd: () -> Unit,
+    onEdit: (Int, BannedWord) -> Unit,
+    onDelete: (Int) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("违禁词管理") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+            ) {
+                if (data.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("暂无违禁词")
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        itemsIndexed(data) { index, item ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("违禁词: ${item.word}", style = MaterialTheme.typography.bodyMedium)
+                                        Text("动作: ${if (item.action == "delete") "删除消息" else "警告"}", style = MaterialTheme.typography.bodySmall)
                                     }
                                     IconButton(onClick = { onEdit(index, item) }) {
                                         Icon(Icons.Default.Edit, null)
@@ -572,6 +832,126 @@ fun QuickCommandDialog(
                         return@TextButton
                     }
                     onConfirm(QuickCommand(idInt, code))
+                }
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@Composable
+fun BlockedUserDialog(
+    initial: BlockedUser?,
+    onDismiss: () -> Unit,
+    onConfirm: (BlockedUser) -> Unit
+) {
+    var userId by remember { mutableStateOf(initial?.userId ?: "") }
+    var userName by remember { mutableStateOf(initial?.userName ?: "") }
+    var reason by remember { mutableStateOf(initial?.reason ?: "") }
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initial == null) "添加黑名单" else "编辑黑名单") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = userId,
+                    onValueChange = { userId = it },
+                    label = { Text("用户ID *") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = userName,
+                    onValueChange = { userName = it },
+                    label = { Text("用户昵称 (可选)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    label = { Text("拉黑原因 (可选)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (userId.isBlank()) {
+                        toast(context, "用户ID不能为空")
+                        return@TextButton
+                    }
+                    onConfirm(BlockedUser(userId, userName, reason))
+                }
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@Composable
+fun BannedWordDialog(
+    initial: BannedWord?,
+    onDismiss: () -> Unit,
+    onConfirm: (BannedWord) -> Unit
+) {
+    var word by remember { mutableStateOf(initial?.word ?: "") }
+    var action by remember { mutableStateOf(initial?.action ?: "delete") }
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initial == null) "添加违禁词" else "编辑违禁词") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = word,
+                    onValueChange = { word = it },
+                    label = { Text("违禁词 *") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("动作: ")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    FilterChip(
+                        selected = action == "delete",
+                        onClick = { action = "delete" },
+                        label = { Text("删除消息") }
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    FilterChip(
+                        selected = action == "warn",
+                        onClick = { action = "warn" },
+                        label = { Text("警告") }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (word.isBlank()) {
+                        toast(context, "违禁词不能为空")
+                        return@TextButton
+                    }
+                    onConfirm(BannedWord(word, action))
                 }
             ) {
                 Text("确定")
