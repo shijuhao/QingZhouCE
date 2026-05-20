@@ -676,7 +676,7 @@ fun BotRuntimeScreen(
     }
     
     fun getAvatarBitmap(): Bitmap? {
-        val avatarPath = prefs.getString("avatar_${index + 1}", null)
+        val avatarPath = prefs.getString("avatar_$index", null)
         return avatarPath?.takeIf { File(it).exists() }?.let { BitmapFactory.decodeFile(it) }
     }
     
@@ -807,8 +807,7 @@ fun BotRuntimeScreen(
                                 Icon(
                                     Icons.Default.Person,
                                     contentDescription = "默认头像",
-                                    modifier = Modifier.size(32.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    modifier = Modifier.size(32.dp)
                                 )
                             }
                             Column {

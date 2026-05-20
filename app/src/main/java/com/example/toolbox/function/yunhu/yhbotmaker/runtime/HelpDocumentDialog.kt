@@ -26,12 +26,12 @@ fun HelpDocumentDialog(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -48,6 +48,7 @@ fun HelpDocumentDialog(
 
             LazyColumn(
                 state = listState,
+                contentPadding = PaddingValues(12.dp)
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
