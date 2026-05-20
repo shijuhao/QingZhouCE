@@ -125,6 +125,9 @@ fun BotRuntimeScreen(
     val isWsConnected by viewModel.isWsConnected.collectAsState()
     val currentLoopCode by viewModel.currentLoopCode.collectAsState()
     
+    var showRestartDialog by remember { mutableStateOf(false) }
+    var pendingConnect by remember { mutableStateOf(false) }
+    
     var isBlackout by remember { mutableStateOf(false) }
 
     var showFastBotDialog by remember { mutableStateOf(false) }
@@ -276,11 +279,136 @@ fun BotRuntimeScreen(
         viewModel.addMessage(
             ChatMessage(
                 type = 1,
-                text = "[$eventType]\n${eventJson.toString().take(300)}",
+                text = "收到消息，类型为：$eventType",
                 time = timeFormat.format(Date()),
                 iconColor = Color.Cyan
             )
         )
+        
+        // ========== 黑名单和违禁词过滤 ==========
+        if (eventType == "message.receive.normal") {
+            val eventObj = eventJson["event"]?.jsonObject
+            val messageObj = eventObj?.get("message")?.jsonObject
+            val contentObj = messageObj?.get("content")?.jsonObject
+            val text = contentObj?.get("text")?.jsonPrimitive?.content ?: ""
+            val senderObj = eventObj?.get("sender")?.jsonObject
+            val senderId = senderObj?.get("senderId")?.jsonPrimitive?.content ?: ""
+            val chatObj = eventObj?.get("chat")?.jsonObject
+            val chatType = chatObj?.get("chatType")?.jsonPrimitive?.content ?: ""
+            val msgId = messageObj?.get("msgId")?.jsonPrimitive?.content ?: ""
+            
+            val helperKey = "chelper$index"
+            val helperJson = prefs.getString(helperKey, "") ?: ""
+            
+            if (helperJson.isNotBlank()) {
+                try {
+                    val commandData = AppJson.json.decodeFromString<CommandData>(helperJson)
+                    
+                    if (chatType == "group") {
+                        val isBlocked = commandData.blockedUsers.any { it.userId == senderId }
+                        if (isBlocked) {
+                            val api = YunHuApiService(token)
+                            api.recallMessage(
+                                chatId = chatId,
+                                chatType = chatType,
+                                msgId = msgId,
+                                onSuccess = { _, _ ->
+                                    viewModel.addMessage(
+                                        ChatMessage(
+                                            type = 4,
+                                            text = "🚫 已屏蔽黑名单用户发言: $senderId",
+                                            time = timeFormat.format(Date()),
+                                            iconColor = Color.Red
+                                        )
+                                    )
+                                },
+                                onError = { err ->
+                                    viewModel.addMessage(
+                                        ChatMessage(
+                                            type = 4,
+                                            text = "撤回失败: $err",
+                                            time = timeFormat.format(Date()),
+                                            iconColor = Color.Red
+                                        )
+                                    )
+                                }
+                            )
+                            return@onEventCallback
+                        }
+                    }
+                    
+                    for (bannedWord in commandData.bannedWords) {
+                        if (text.contains(bannedWord.word)) {
+                            when (bannedWord.action) {
+                                "delete" -> {
+                                    val api = YunHuApiService(token)
+                                    api.recallMessage(
+                                        chatId = if (chatType == "group") chatId else senderId,
+                                        chatType = chatType,
+                                        msgId = msgId,
+                                        onSuccess = { _, _ ->
+                                            viewModel.addMessage(
+                                                ChatMessage(
+                                                    type = 4,
+                                                    text = "⚠️ 包含违禁词「${bannedWord.word}」，已删除",
+                                                    time = timeFormat.format(Date()),
+                                                    iconColor = Color.Red
+                                                )
+                                            )
+                                        },
+                                        onError = { err ->
+                                            viewModel.addMessage(
+                                                ChatMessage(
+                                                    type = 4,
+                                                    text = "撤回失败: $err",
+                                                    time = timeFormat.format(Date()),
+                                                    iconColor = Color.Red
+                                                )
+                                            )
+                                        }
+                                    )
+                                    return@onEventCallback
+                                }
+                                "warn" -> {
+                                    val api = YunHuApiService(token)
+                                    val recvId = if (chatType == "group") chatId else senderId
+                                    api.sendMessage(
+                                        recvId = recvId,
+                                        recvType = chatType,
+                                        contentType = "text",
+                                        content = "⚠️ 您的消息包含违禁词「${bannedWord.word}」，请注意言行",
+                                        onSuccess = { _, _ ->
+                                            viewModel.addMessage(
+                                                ChatMessage(
+                                                    type = 4,
+                                                    text = "⚠️ 已警告包含违禁词「${bannedWord.word}」的用户",
+                                                    time = timeFormat.format(Date()),
+                                                    iconColor = Color.Yellow
+                                                )
+                                            )
+                                        },
+                                        onError = { err ->
+                                            viewModel.addMessage(
+                                                ChatMessage(
+                                                    type = 4,
+                                                    text = "发送警告失败: $err",
+                                                    time = timeFormat.format(Date()),
+                                                    iconColor = Color.Red
+                                                )
+                                            )
+                                        }
+                                    )
+                                    return@onEventCallback
+                                }
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                    // 解析失败，忽略
+                }
+            }
+        }
+        // ========== 黑名单和违禁词过滤结束 ==========
         
         // ========== 自动回复和快捷命令处理 ==========
         val helperKey = "chelper$index"
@@ -675,6 +803,35 @@ fun BotRuntimeScreen(
         )
     }
     
+    if (showRestartDialog) {
+        AlertDialog(
+            onDismissRequest = { showRestartDialog = false },
+            title = { Text("启动代码已修改") },
+            text = { Text("检测到启动代码已变更，是否重新运行初始化代码？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showRestartDialog = false
+                        viewModel.setStartupExecuted(false)
+                        BotWebSocketManagerSingleton.connect(index)
+                    }
+                ) {
+                    Text("重新运行")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRestartDialog = false
+                        BotWebSocketManagerSingleton.connect(index)
+                    }
+                ) {
+                    Text("直接连接")
+                }
+            }
+        )
+    }
+    
     fun getAvatarBitmap(): Bitmap? {
         val avatarPath = prefs.getString("avatar_$index", null)
         return avatarPath?.takeIf { File(it).exists() }?.let { BitmapFactory.decodeFile(it) }
@@ -728,7 +885,13 @@ fun BotRuntimeScreen(
                             if (isWsConnected) {
                                 BotWebSocketManagerSingleton.disconnect(index)
                             } else {
-                                BotWebSocketManagerSingleton.connect(index)
+                                val currentStartupCode = prefs.getString("code-start$index", "") ?: ""
+                                
+                                if (startupExecuted && luaEngine.startupCodeExecuted != currentStartupCode) {
+                                    showRestartDialog = true
+                                } else {
+                                    BotWebSocketManagerSingleton.connect(index)
+                                }
                             }
                         },
                         icon = { 
@@ -841,7 +1004,13 @@ fun BotRuntimeScreen(
                         if (isWsConnected) {
                             BotWebSocketManagerSingleton.disconnect(index)
                         } else {
-                            BotWebSocketManagerSingleton.connect(index)
+                            val currentStartupCode = prefs.getString("code-start$index", "") ?: ""
+                            
+                            if (startupExecuted && luaEngine.startupCodeExecuted != currentStartupCode) {
+                                showRestartDialog = true
+                            } else {
+                                BotWebSocketManagerSingleton.connect(index)
+                            }
                         }
                     },
                     isWsConnected = isWsConnected

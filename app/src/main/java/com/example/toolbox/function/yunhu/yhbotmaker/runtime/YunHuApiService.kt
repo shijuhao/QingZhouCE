@@ -79,7 +79,6 @@ class YunHuApiService(private val token: String) {
         })
     }
 
-    // 后续可添加撤回消息等方法
     fun recallMessage(
         chatId: String,
         chatType: String,
