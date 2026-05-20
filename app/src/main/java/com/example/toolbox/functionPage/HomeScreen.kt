@@ -7,8 +7,10 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import kotlinx.coroutines.delay
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -92,6 +94,24 @@ fun HomeScreen(
     val dayFormat = remember { SimpleDateFormat("d", Locale.getDefault()) }
     val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
     val currentDate = remember { Date() }
+    
+    var dayProgress by remember { mutableFloatStateOf(0f) }
+                    
+    LaunchedEffect(Unit) {
+        while (true) {
+            val calendar = Calendar.getInstance()
+            val totalMinutes = 24 * 60
+            val currentMinutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
+            dayProgress = currentMinutes.toFloat() / totalMinutes
+            delay(60000)
+        }
+    }
+    
+    val animatedProgress by animateFloatAsState(
+        targetValue = dayProgress,
+        animationSpec = tween(durationMillis = 500),
+        label = "progress"
+    )
 
     val expandedState = rememberSaveable(
         saver = mapSaver(
@@ -250,8 +270,6 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(4.dp)) }
-
             item {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
@@ -260,64 +278,89 @@ fun HomeScreen(
                 ) {
                     val dayOfMonth = dayFormat.format(currentDate)
                     val yearAndWeek = yearWeekFormat.format(currentDate)
+                    
+                    val greeting = remember(currentDate) {
+                        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                        when (hour) {
+                            in 5..11 -> "早上好"
+                            in 12..13 -> "中午好"
+                            in 14..17 -> "下午好"
+                            in 18..22 -> "晚上好"
+                            else -> "夜深了"
+                        }
+                    }
 
-                    Row(
-                        modifier = Modifier.fillMaxSize()
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .weight(1f),
-                            verticalArrangement = Arrangement.Center
+                        Row(
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            Text(
-                                text = "日月如梭",
-                                style = MaterialTheme.typography.titleLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp, start = 15.dp)
-                            )
-
-                            Row {
-                                Spacer(modifier = Modifier.width(15.dp))
+                                    .fillMaxHeight()
+                                    .weight(1f),
+                                verticalArrangement = Arrangement.Center
+                            ) {
                                 Text(
-                                    text = aWordText,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    text = greeting,
+                                    style = MaterialTheme.typography.titleLarge,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .basicMarquee()
-                                        .padding(top = 8.dp, bottom = 12.dp)
+                                        .padding(top = 12.dp, start = 15.dp)
+                                )
+                
+                                Row {
+                                    Spacer(modifier = Modifier.width(15.dp))
+                                    Text(
+                                        text = aWordText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .basicMarquee()
+                                            .padding(top = 8.dp, bottom = 12.dp)
+                                    )
+                                }
+                            }
+                
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(start = 10.dp),
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = dayOfMonth,
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    modifier = Modifier.padding(top = 12.dp, end = 15.dp)
+                                )
+                
+                                Spacer(modifier = Modifier.height(8.dp))
+                
+                                Text(
+                                    text = yearAndWeek,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(bottom = 12.dp, end = 15.dp)
                                 )
                             }
                         }
-
-                        Column(
+                        
+                        LinearProgressIndicator(
+                            progress = animatedProgress,
                             modifier = Modifier
-                                .fillMaxHeight()
-                                .padding(start = 10.dp),
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = dayOfMonth,
-                                style = MaterialTheme.typography.headlineLarge,
-                                modifier = Modifier.padding(top = 12.dp, end = 15.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = yearAndWeek,
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(bottom = 12.dp, end = 15.dp)
-                            )
-                        }
+                                .fillMaxWidth()
+                                .height(3.dp)
+                                .align(Alignment.BottomCenter),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
