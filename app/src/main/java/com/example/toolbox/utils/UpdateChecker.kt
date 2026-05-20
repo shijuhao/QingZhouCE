@@ -69,7 +69,8 @@ suspend fun checkForUpdateWithDetails(
 
         val shouldUpdate = when {
             isSnapshot && !isLatestPreRelease -> {
-                compareVersion(latestBaseVersion, currentBaseVersion) > 0
+                val cmp = compareVersion(latestBaseVersion, currentBaseVersion)
+                cmp > 0 || cmp == 0
             }
             isSnapshot -> {
                 currentCommit != latestCommit && latestCommit.isNotEmpty()
