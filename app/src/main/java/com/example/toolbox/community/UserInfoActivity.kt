@@ -9,6 +9,9 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -549,27 +552,20 @@ fun UserInfoScreen(userId: Int) {
             TopAppBar(
                 scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (collapsedFraction > 0.1f) {
-                        MaterialTheme.colorScheme.surface
-                    } else {
-                        Color.Transparent
-                    },
-                    scrolledContainerColor = if (collapsedFraction > 0.1f) {
-                        MaterialTheme.colorScheme.surface
-                    } else {
-                        Color.Transparent
-                    }
+                    containerColor = MaterialTheme.colorScheme.surface.copy(
+                        alpha = lerpFloat(0f, 1f, (collapsedFraction - 0.05f).coerceIn(0f, 1f) / 0.95f)
+                    )
                 ),
                 title = {
-                    if (collapsedFraction > 0.6f) {
-                        userInfo?.let {
-                            Text(
-                                it.username,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        } ?: Text("用户信息")
-                    }
+                    val titleAlpha = lerpFloat(0f, 1f, (collapsedFraction - 0.6f).coerceIn(0f, 1f) / 0.4f)
+                    userInfo?.let {
+                        Text(
+                            it.username,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.alpha(titleAlpha)
+                        )
+                    } ?: Text("用户信息")
                 },
                 navigationIcon = {
                     IconButton(onClick = { (context as Activity).finish() }) {
@@ -593,7 +589,7 @@ fun UserInfoScreen(userId: Int) {
                             )
                         }
                     }
-
+            
                     Box {
                         IconButton(onClick = { isMenuExpanded = true }) {
                             Icon(
@@ -635,9 +631,12 @@ fun UserInfoHeader(
     val context = LocalContext.current
 
     val avatarSize = lerpDp(80.dp, 44.dp, collapsedFraction)
-    val usernameAlpha = lerpFloat(1f, 0f, (collapsedFraction * 2f).coerceIn(0f, 1f))
-    val statsAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1.5f).coerceIn(0f, 1f))
+    val usernameAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1.5f).coerceIn(0f, 1f))
+    val statsAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1.2f).coerceIn(0f, 1f))
     val headerTopPadding = lerpDp(64.dp, 16.dp, collapsedFraction)
+    val bioAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1.2f).coerceIn(0f, 1f))
+    val levelRowAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1f).coerceIn(0f, 1f))
+    val buttonRowAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1f).coerceIn(0f, 1f))
     
     Column(
         modifier = Modifier
@@ -675,7 +674,9 @@ fun UserInfoHeader(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .alpha(levelRowAlpha)
                 ) {
                     Image(
                         modifier = Modifier.size(16.dp),
@@ -707,14 +708,18 @@ fun UserInfoHeader(
                         fontSize = 13.sp,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(vertical = 5.dp)
+                        modifier = Modifier
+                            .padding(vertical = 5.dp)
+                            .alpha(bioAlpha)
                     )
                 }
             }
 
             val notMyself = userInfo.userId != TokenManager.getUserID(context)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(buttonRowAlpha),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (notMyself) {
@@ -825,7 +830,8 @@ fun UserInfoHeader(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = 8.dp)
+                        .alpha(statsAlpha),
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.errorContainer
                 ) {
