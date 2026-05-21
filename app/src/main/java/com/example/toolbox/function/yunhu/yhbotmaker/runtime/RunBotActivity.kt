@@ -272,7 +272,7 @@ fun BotRuntimeScreen(
         }
     }
     
-    val onEventCallback: (JsonObject) -> Unit = { eventJson ->
+    val onEventCallback: (JsonObject) -> Unit = lambda@{ eventJson ->
         val eventType = eventJson["header"]?.jsonObject
             ?.get("eventType")?.jsonPrimitive?.contentOrNull ?: "unknown"
         
@@ -284,6 +284,9 @@ fun BotRuntimeScreen(
                 iconColor = Color.Cyan
             )
         )
+        
+        val helperKey = "chelper$index"
+        val helperJson = prefs.getString(helperKey, "") ?: ""
         
         // ========== 黑名单和违禁词过滤 ==========
         if (eventType == "message.receive.normal") {
@@ -297,10 +300,7 @@ fun BotRuntimeScreen(
             val chatType = chatObj?.get("chatType")?.jsonPrimitive?.content ?: ""
             val msgId = messageObj?.get("msgId")?.jsonPrimitive?.content ?: ""
             val chatId = chatObj?.get("chatId")?.jsonPrimitive?.content ?: ""
-            
-            val helperKey = "chelper$index"
-            val helperJson = prefs.getString(helperKey, "") ?: ""
-            
+
             if (helperJson.isNotBlank()) {
                 try {
                     val commandData = AppJson.json.decodeFromString<CommandData>(helperJson)
@@ -334,7 +334,7 @@ fun BotRuntimeScreen(
                                     )
                                 }
                             )
-                            return@onEventCallback
+                            return@lambda
                         }
                     }
                     
@@ -368,7 +368,7 @@ fun BotRuntimeScreen(
                                             )
                                         }
                                     )
-                                    return@onEventCallback
+                                    return@lambda
                                 }
                                 "warn" -> {
                                     val api = YunHuApiService(token)
@@ -399,7 +399,7 @@ fun BotRuntimeScreen(
                                             )
                                         }
                                     )
-                                    return@onEventCallback
+                                    return@lambda
                                 }
                             }
                         }
@@ -412,9 +412,6 @@ fun BotRuntimeScreen(
         // ========== 黑名单和违禁词过滤结束 ==========
         
         // ========== 自动回复和快捷命令处理 ==========
-        val helperKey = "chelper$index"
-        val helperJson = prefs.getString(helperKey, "") ?: ""
-        
         if (helperJson.isNotBlank()) {
             try {
                 val commandData = AppJson.json.decodeFromString<CommandData>(helperJson)
@@ -668,7 +665,7 @@ fun BotRuntimeScreen(
                             showCodeEditor = true
                         }
                     ) {
-                        Text("功能代码 (启动前运行)")
+                        Text("初始化代码 (启动前运行)")
                     }
                     TextButton(
                         onClick = {
@@ -717,7 +714,7 @@ fun BotRuntimeScreen(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (currentCodeType == "start") "编辑功能代码" else "编辑事件处理代码",
+                        text = if (currentCodeType == "start") "编辑初始化代码" else "编辑事件处理代码",
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.weight(1f)
                     )
