@@ -131,7 +131,6 @@ import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastMaxOfOrNull
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.fastSumBy
-import androidx.compose.ui.util.lerp
 import coil3.compose.AsyncImage
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.AppJson
@@ -158,6 +157,16 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.contentColorFor
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import kotlin.math.max
+import kotlin.math.min
+import androidx.compose.ui.unit.roundToInt
 
 private fun lerpFloat(start: Float, stop: Float, fraction: Float): Float {
     return start * (1 - fraction) + stop * fraction
@@ -472,7 +481,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
 
             val avatarMaxSize = min(avatarMax.roundToPx(), constraints.maxWidth)
             val avatarMinSize = max(CollapsedAvatarSize.roundToPx(), constraints.minWidth)
-            val avatarWidth = lerp(avatarMaxSize, avatarMinSize, slowInCollapseFraction)
+            val avatarWidth = lerp(avatarMaxSize.toFloat(), avatarMinSize.toFloat(), slowInCollapseFraction).toInt()
             val avatarPlaceable =
                 measurables.fastFirstOrNull { it.layoutId == "avatar" }
                     ?.measure(Constraints.fixed(avatarWidth, avatarWidth))
@@ -527,7 +536,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 lerp(height, 0, (collapsedFraction * 1.5f).coerceAtMost(1f))
             } ?: 0
 
-            val topExpandingOffset = lerp(MinAvatarOffset.roundToPx(), 0, collapsedFraction)
+            val topExpandingOffset = lerp(MinAvatarOffset.roundToPx().toFloat(), 0f, collapsedFraction).toInt()
             val maxElementHeight = max(avatarPlaceable?.height ?: 0, titlePlaceable.height + subtitleExpandingOffset)
             val maxLayoutHeight = max(
                 height.roundToPx(),
