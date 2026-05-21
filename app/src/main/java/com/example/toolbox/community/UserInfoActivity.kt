@@ -9,17 +9,22 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -27,6 +32,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -69,12 +75,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -87,24 +94,52 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.AlignmentLine
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
+import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isFinite
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.fastFirst
+import androidx.compose.ui.util.fastFirstOrNull
+import androidx.compose.ui.util.fastMaxOfOrNull
+import androidx.compose.ui.util.fastRoundToInt
+import androidx.compose.ui.util.fastSumBy
+import androidx.compose.ui.util.lerp
 import coil3.compose.AsyncImage
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.AppJson
 import com.example.toolbox.TokenManager
+import com.example.toolbox.data.community.ResourceItem
 import com.example.toolbox.data.community.UserInfo
 import com.example.toolbox.data.community.UserMessage
 import com.example.toolbox.data.community.UserReferencedMessage
-import com.example.toolbox.data.community.ResourceItem
 import com.example.toolbox.message.MessageDetailActivity
 import com.example.toolbox.mine.getLevelIconRes
 import com.example.toolbox.resourceLib.ResourceDetailActivity
@@ -112,7 +147,6 @@ import com.example.toolbox.settings.UserSettingsActivity
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import com.example.toolbox.utils.MarkdownRenderer
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -124,7 +158,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import androidx.compose.ui.unit.Dp
 
 private fun lerpFloat(start: Float, stop: Float, fraction: Float): Float {
     return start * (1 - fraction) + stop * fraction
@@ -149,8 +182,7 @@ class UserInfoActivity : ComponentActivity() {
             ToolBoxTheme {
                 if (userId == 0) {
                     LaunchedEffect(Unit) {
-                        Toast.makeText(this@UserInfoActivity, "无效的用户ID", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(this@UserInfoActivity, "无效的用户ID", Toast.LENGTH_SHORT).show()
                         finish()
                     }
                 } else {
@@ -162,7 +194,6 @@ class UserInfoActivity : ComponentActivity() {
 
     private fun parseUserId(intent: Intent): Int {
         intent.getIntExtra("userId", 0).takeIf { it != 0 }?.let { return it }
-
         if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
             val uri = intent.data!!
             uri.getQueryParameter("id")?.toIntOrNull()?.let { return it }
@@ -171,10 +202,474 @@ class UserInfoActivity : ComponentActivity() {
     }
 }
 
-@OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class,
-    ExperimentalMaterial3ExpressiveApi::class
+// ======================== CollapsingAvatarTopAppBar 组件及相关代码 ========================
+
+private val TopAppBarColorSpect = spring(stiffness = 1000f)
+private val TopTitleAlphaEasing = CubicBezierEasing(.8f, 0f, .8f, .15f)
+private val TopAppBarHorizontalPadding = 4.dp
+private val TopAppBarTitleInset = 16.dp - TopAppBarHorizontalPadding
+private val MinAvatarOffset = 48.dp
+private val CollapsedAvatarSize = 36.dp
+private val ExpandedAvatarSize = 64.dp
+private val CollapsedAvatarHorizontalPadding = 28.dp
+private val CollapsedAvatarVerticalPadding = 12.dp
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Stable
+private fun TopAppBarColors.containerColor(colorTransitionFraction: Float): Color {
+    return lerp(
+        containerColor,
+        scrolledContainerColor,
+        FastOutSlowInEasing.transform(colorTransitionFraction)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CollapsingAvatarTopAppBar(
+    modifier: Modifier = Modifier,
+    avatar: @Composable (BoxScope.() -> Unit)?,
+    title: @Composable () -> Unit,
+    titleHorizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    subtitle: (@Composable () -> Unit)? = null,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    expandedHeight: Dp = TopAppBarDefaults.LargeAppBarExpandedHeight,
+    avatarMax: Dp = ExpandedAvatarSize,
+    windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
+    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
+    scrollBehavior: TopAppBarScrollBehavior? = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
+    collapsibleExtraContent: Boolean = true,
+    content: (@Composable ColumnScope.() -> Unit)? = null,
+) {
+    val collapsedHeight = TopAppBarDefaults.TopAppBarExpandedHeight
+
+    require(expandedHeight.isSpecified && expandedHeight.isFinite) {
+        "The expandedHeight is expected to be specified and finite"
+    }
+
+    require(expandedHeight > collapsedHeight) {
+        "The expandedHeight ($expandedHeight) is expected to be greater than the collapsedHeight"
+    }
+
+    val targetColor by
+        remember(colors, scrollBehavior) {
+            derivedStateOf {
+                val overlappingFraction = scrollBehavior?.state?.overlappedFraction ?: 0f
+                colors.containerColor(if (overlappingFraction > 0.01f) 1f else 0f)
+            }
+        }
+
+    val appBarContainerColor =
+        animateColorAsState(
+            targetColor,
+            animationSpec = TopAppBarColorSpect
+        )
+
+    val actionsRow =
+        @Composable {
+            Row(
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+                content = actions,
+            )
+        }
+
+    Column(
+        modifier =
+            modifier
+                .drawWithCache {
+                    onDrawBehind {
+                        val color = appBarContainerColor.value
+                        if (color != Color.Unspecified) {
+                            drawRect(color = color)
+                        }
+                    }
+                }
+    ) {
+        CollapsingAvatarTopAppBarLayout(
+            modifier =
+                Modifier
+                    .windowInsetsPadding(windowInsets)
+                    .clipToBounds()
+                    .adjustPinnedHeightOffsetLimit(
+                        scrollBehavior = scrollBehavior,
+                        collapsedHeight = with(LocalDensity.current) { collapsedHeight.toPx() }
+                    ),
+            scrolledOffset = { scrollBehavior?.state?.heightOffset ?: 0f },
+            collapseFraction = { scrollBehavior?.state?.collapsedFraction ?: 0f },
+            navigationIconContentColor = colors.navigationIconContentColor,
+            titleContentColor = colors.titleContentColor,
+            subtitleContentColor = colors.subtitleContentColor,
+            actionIconContentColor = colors.actionIconContentColor,
+            avatar = avatar,
+            title = title,
+            titleVerticalArrangement = Arrangement.Center,
+            titleHorizontalAlignment = titleHorizontalAlignment,
+            titleBottomPadding = 0,
+            subtitle = subtitle,
+            navigationIcon = navigationIcon,
+            actions = actionsRow,
+            extraContent = content.takeIf { collapsibleExtraContent },
+            avatarMax = avatarMax,
+            height = expandedHeight,
+        )
+
+        if (!collapsibleExtraContent && content != null) {
+            content()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+private fun Modifier.adjustPinnedHeightOffsetLimit(scrollBehavior: TopAppBarScrollBehavior?, collapsedHeight: Float) =
+    scrollBehavior?.state?.let {
+        onSizeChanged { size ->
+            val offset = size.height.toFloat() - it.heightOffset - collapsedHeight
+            it.heightOffsetLimit = -offset
+        }
+    } ?: this
+
+@Composable
+private fun CollapsingAvatarTopAppBarLayout(
+    modifier: Modifier,
+    scrolledOffset: () -> Float,
+    collapseFraction: () -> Float,
+    navigationIconContentColor: Color,
+    titleContentColor: Color,
+    subtitleContentColor: Color,
+    actionIconContentColor: Color,
+    avatar: @Composable (BoxScope.() -> Unit)?,
+    title: @Composable () -> Unit,
+    titleVerticalArrangement: Arrangement.Vertical,
+    titleHorizontalAlignment: Alignment.Horizontal,
+    titleBottomPadding: Int,
+    subtitle: (@Composable () -> Unit)?,
+    navigationIcon: @Composable () -> Unit,
+    actions: @Composable () -> Unit,
+    extraContent: (@Composable ColumnScope.() -> Unit)?,
+    avatarMax: Dp,
+    height: Dp,
+) {
+    Layout(
+        {
+            Box(Modifier.layoutId("navigationIcon").padding(start = TopAppBarHorizontalPadding)) {
+                CompositionLocalProvider(
+                    LocalContentColor provides navigationIconContentColor,
+                    content = navigationIcon,
+                )
+            }
+
+            if (avatar != null) {
+                Box(modifier = Modifier.layoutId("avatar"), content = avatar)
+            }
+
+            val titleContentAlignment = if (titleHorizontalAlignment == Alignment.CenterHorizontally) {
+                Alignment.TopCenter
+            } else {
+                Alignment.TopStart
+            }
+            Box(
+                modifier = Modifier.layoutId("title").padding(horizontal = TopAppBarHorizontalPadding),
+                contentAlignment = titleContentAlignment,
+            ) {
+                ProvideCollapseColorTextStyle(
+                    contentColor = titleContentColor,
+                    collapsedTextStyle = MaterialTheme.typography.titleLarge,
+                    expandedTextStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Medium),
+                    collapseFraction = collapseFraction,
+                    content = title,
+                )
+            }
+
+            if (subtitle != null) {
+                Box(
+                    modifier =
+                        Modifier
+                            .layoutId("subtitle")
+                            .padding(horizontal = TopAppBarHorizontalPadding)
+                            .padding(top = TopAppBarHorizontalPadding)
+                            .graphicsLayer {
+                                alpha = TopTitleAlphaEasing.transform(lerp(1f, 0f, collapseFraction()))
+                            },
+                    contentAlignment = titleContentAlignment,
+                ) {
+                    CompositionLocalProvider(
+                        LocalContentColor provides subtitleContentColor,
+                        content = subtitle,
+                    )
+                }
+            }
+
+            Box(Modifier.layoutId("actionIcons").padding(end = TopAppBarHorizontalPadding)) {
+                CompositionLocalProvider(
+                    LocalContentColor provides actionIconContentColor,
+                    content = actions,
+                )
+            }
+
+            if (extraContent != null) {
+                Column(
+                    modifier = Modifier
+                        .layoutId("extra")
+                        .padding(horizontal = TopAppBarHorizontalPadding)
+                        .graphicsLayer { alpha = lerp(1f, 0f, collapseFraction() * 3) },
+                    content = extraContent
+                )
+            }
+        },
+        modifier = modifier,
+        measurePolicy =
+            rememberCollapsingAvatarTopBarMeasurePolicy(
+                scrolledOffset,
+                collapseFraction,
+                titleVerticalArrangement,
+                titleHorizontalAlignment,
+                titleBottomPadding,
+                avatarMax,
+                height,
+            ),
+    )
+}
+
+@Composable
+private fun rememberCollapsingAvatarTopBarMeasurePolicy(
+    scrolledOffset: () -> Float,
+    collapseFractionProducer: () -> Float,
+    titleVerticalArrangement: Arrangement.Vertical,
+    titleHorizontalAlignment: Alignment.Horizontal,
+    titleBottomPadding: Int,
+    avatarMax: Dp,
+    height: Dp,
+): MeasurePolicy = remember(
+    scrolledOffset,
+    collapseFractionProducer,
+    titleVerticalArrangement,
+    titleHorizontalAlignment,
+    titleBottomPadding,
+    avatarMax,
+    height,
+) {
+    object : MeasurePolicy {
+        override fun MeasureScope.measure(
+            measurables: List<Measurable>,
+            constraints: Constraints,
+        ): MeasureResult {
+            val collapsedFraction = collapseFractionProducer()
+            val slowInCollapseFraction = FastOutSlowInEasing.transform(collapsedFraction)
+
+            val navigationIconPlaceable =
+                measurables.fastFirst { it.layoutId == "navigationIcon" }
+                    .measure(constraints.copy(minWidth = 0))
+            val actionIconsPlaceable =
+                measurables.fastFirst { it.layoutId == "actionIcons" }
+                    .measure(constraints.copy(minWidth = 0))
+
+            val extraContentPlaceable = if (collapsedFraction < 0.99f) {
+                measurables.fastFirstOrNull { it.layoutId == "extra" }
+                    ?.measure(constraints.copy(minWidth = 0))
+            } else null
+
+            val avatarMaxSize = min(avatarMax.roundToPx(), constraints.maxWidth)
+            val avatarMinSize = max(CollapsedAvatarSize.roundToPx(), constraints.minWidth)
+            val avatarWidth = lerp(avatarMaxSize, avatarMinSize, slowInCollapseFraction)
+            val avatarPlaceable =
+                measurables.fastFirstOrNull { it.layoutId == "avatar" }
+                    ?.measure(Constraints.fixed(avatarWidth, avatarWidth))
+
+            val avatarPadding = if (avatarPlaceable != null) {
+                androidx.compose.ui.unit.IntSize(
+                    width = lerp(CollapsedAvatarHorizontalPadding.roundToPx(), 0, collapsedFraction),
+                    height = lerp(CollapsedAvatarVerticalPadding.roundToPx(), 0, collapsedFraction)
+                )
+            } else {
+                androidx.compose.ui.unit.IntSize.Zero
+            }
+
+            val maxTitleWidth =
+                if (constraints.maxWidth == Constraints.Infinity) {
+                    constraints.maxWidth
+                } else {
+                    val actionWidth = actionIconsPlaceable.width - 12.dp.roundToPx()
+                    if (collapsedFraction > 0.6f) {
+                        constraints.maxWidth - navigationIconPlaceable.width - avatarMinSize - actionWidth
+                    } else {
+                        val expandedHorizontalPadding = (CollapsedAvatarHorizontalPadding + TopAppBarHorizontalPadding * 2).roundToPx()
+                        constraints.maxWidth - avatarMaxSize - expandedHorizontalPadding
+                    }.coerceAtLeast(0)
+                }
+
+            val titlePlaceable =
+                measurables.fastFirst { it.layoutId == "title" }
+                    .measure(constraints.copy(minWidth = 0, maxWidth = maxTitleWidth))
+
+            val subtitlePlaceable =
+                measurables.fastFirstOrNull { it.layoutId == "subtitle" }
+                    ?.let {
+                        val maxSubtitleWidth = if (constraints.maxWidth == Constraints.Infinity) {
+                            constraints.maxWidth
+                        } else {
+                            (constraints.maxWidth - avatarMax.roundToPx() - avatarPadding.width * 2).coerceAtLeast(0)
+                        }
+                        it.measure(constraints.copy(minWidth = 0, maxWidth = maxSubtitleWidth))
+                    }
+
+            val titleBaseline =
+                if (titlePlaceable[LastBaseline] != AlignmentLine.Unspecified) {
+                    titlePlaceable[LastBaseline]
+                } else 0
+
+            val subtitleExpandingOffset = subtitlePlaceable?.run {
+                lerp(height, 0, LinearOutSlowInEasing.transform(collapsedFraction))
+            } ?: 0
+
+            val extraContentHeight = extraContentPlaceable?.run {
+                lerp(height, 0, (collapsedFraction * 1.5f).coerceAtMost(1f))
+            } ?: 0
+
+            val topExpandingOffset = lerp(MinAvatarOffset.roundToPx(), 0, collapsedFraction)
+            val maxElementHeight = max(avatarPlaceable?.height ?: 0, titlePlaceable.height + subtitleExpandingOffset)
+            val maxLayoutHeight = max(
+                height.roundToPx(),
+                maxElementHeight + topExpandingOffset + avatarPadding.height * 2 + extraContentHeight
+            )
+            val layoutHeight =
+                if (constraints.maxHeight == Constraints.Infinity) {
+                    maxLayoutHeight
+                } else {
+                    (maxLayoutHeight + scrolledOffset().roundToInt()).coerceAtLeast(0)
+                }
+
+            return layout(constraints.maxWidth, layoutHeight) {
+                val collapsedHeight = TopAppBarDefaults.TopAppBarExpandedHeight.roundToPx()
+                val headerLayoutHeight = layoutHeight - topExpandingOffset - extraContentHeight
+
+                navigationIconPlaceable.placeRelative(
+                    x = 0,
+                    y = (collapsedHeight - navigationIconPlaceable.height) / 2,
+                )
+
+                var start = lerp(
+                    avatarPadding.width,
+                    max(TopAppBarTitleInset.roundToPx(), navigationIconPlaceable.width),
+                    collapsedFraction
+                )
+
+                avatarPlaceable?.placeRelative(
+                    x = start,
+                    y = (headerLayoutHeight - avatarPlaceable.height) / 2 + topExpandingOffset
+                )
+
+                val titlePadding = lerp(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
+                start += (avatarPlaceable?.width ?: 0) + titlePadding
+                val end = actionIconsPlaceable.width
+
+                var titleX =
+                    titleHorizontalAlignment.align(
+                        size = titlePlaceable.width,
+                        space = constraints.maxWidth,
+                        layoutDirection = LayoutDirection.Ltr,
+                    )
+                if (titleX < start) titleX += (start - titleX)
+                else if (titleX + titlePlaceable.width > constraints.maxWidth - end) {
+                    titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
+                }
+
+                val titleY =
+                    when (titleVerticalArrangement) {
+                        Arrangement.Center ->
+                            (headerLayoutHeight - titlePlaceable.height - subtitleExpandingOffset) / 2 + topExpandingOffset
+                        Arrangement.Bottom -> {
+                            val bottomElements = subtitleExpandingOffset + extraContentHeight
+                            if (titleBottomPadding == 0) {
+                                layoutHeight - titlePlaceable.height - bottomElements
+                            } else {
+                                val paddingFromBottom = titleBottomPadding - (titlePlaceable.height - titleBaseline)
+                                val heightWithPadding = paddingFromBottom + titlePlaceable.height
+                                val adjustedBottomPadding = if (heightWithPadding > maxLayoutHeight) {
+                                    paddingFromBottom - (heightWithPadding - maxLayoutHeight)
+                                } else paddingFromBottom
+                                layoutHeight - titlePlaceable.height - max(0, adjustedBottomPadding) - bottomElements
+                            }
+                        }
+                        else -> topExpandingOffset
+                    }
+                it.placeRelative(titleX, titleY)
+
+                subtitlePlaceable?.let {
+                    val subtitleX = avatarPadding.width + avatarMax.roundToPx() + titlePadding
+                    it.placeRelative(
+                        x = lerp(subtitleX, (subtitleX * 0.85f).fastRoundToInt(), collapsedFraction),
+                        y = titleY + titlePlaceable.height
+                    )
+                }
+
+                actionIconsPlaceable.placeRelative(
+                    x = constraints.maxWidth - actionIconsPlaceable.width,
+                    y = (collapsedHeight - actionIconsPlaceable.height) / 2,
+                )
+
+                extraContentPlaceable?.placeRelative(
+                    x = 0,
+                    y = layoutHeight - extraContentPlaceable.height
+                )
+            }
+        }
+
+        override fun IntrinsicMeasureScope.minIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int) =
+            measurables.fastSumBy { it.minIntrinsicWidth(height) }
+
+        override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int {
+            return max(height.roundToPx(), measurables.fastMaxOfOrNull { it.minIntrinsicHeight(width) } ?: 0)
+        }
+
+        override fun IntrinsicMeasureScope.maxIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int) =
+            measurables.fastSumBy { it.maxIntrinsicWidth(height) }
+
+        override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int {
+            return max(height.roundToPx(), measurables.fastMaxOfOrNull { it.maxIntrinsicHeight(width) } ?: 0)
+        }
+    }
+}
+
+@Composable
+private fun ProvideCollapseColorTextStyle(
+    contentColor: Color,
+    collapsedTextStyle: TextStyle,
+    expandedTextStyle: TextStyle,
+    collapseFraction: () -> Float,
+    content: @Composable () -> Unit,
+) {
+    val textStyle by remember {
+        derivedStateOf {
+            if (collapseFraction() > 0.6f) collapsedTextStyle else expandedTextStyle
+        }
+    }
+    CompositionLocalProvider(
+        LocalContentColor provides contentColor,
+        LocalTextStyle provides textStyle,
+        content = content
+    )
+}
+
+@Composable
+private fun Modifier.windowInsetsPadding(insets: WindowInsets): Modifier = this.then(
+    Modifier.padding(insets.asPaddingValues())
 )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocalContentColor(contentColor: Color, content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalContentColor provides contentColor, content = content)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocalTextStyle(textStyle: TextStyle, content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalTextStyle provides textStyle, content = content)
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun UserInfoScreen(userId: Int) {
     val context = LocalContext.current
@@ -198,10 +693,8 @@ fun UserInfoScreen(userId: Int) {
     var isMenuExpanded by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val collapsedFraction by remember {
-        derivedStateOf { scrollBehavior.state.collapsedFraction }
-    }
 
+    // 分页加载
     LaunchedEffect(isScrolling) {
         snapshotFlow {
             val lastVisibleItem = isScrolling.layoutInfo.visibleItemsInfo.lastOrNull()
@@ -209,15 +702,13 @@ fun UserInfoScreen(userId: Int) {
         }.collect { shouldLoadMore ->
             if (shouldLoadMore && !isPageLoading && canLoadMore && currentTab == 0) {
                 isPageLoading = true
-
                 scope.launch {
                     try {
                         loadNextPage(context, userId, page) { newMsgs ->
                             if (newMsgs.isEmpty()) {
                                 canLoadMore = false
                             } else {
-                                val filteredMsgs =
-                                    newMsgs.filter { new -> messages.none { it.id == new.id } }
+                                val filteredMsgs = newMsgs.filter { new -> messages.none { it.id == new.id } }
                                 if (filteredMsgs.isEmpty()) {
                                     canLoadMore = false
                                 } else {
@@ -235,16 +726,14 @@ fun UserInfoScreen(userId: Int) {
         }
     }
 
+    // 初始加载
     LaunchedEffect(Unit) {
         val token = TokenManager.get(context) ?: return@LaunchedEffect
-    
-        val info = withContext(Dispatchers.IO) {
-            fetchUserInfo(token, userId)
-        }
+        val info = withContext(Dispatchers.IO) { fetchUserInfo(token, userId) }
         userInfo = info
         info?.let { isFollowing = it.isFollowed }
         isLoading = false
-    
+
         scope.launch {
             val msgs = withContext(Dispatchers.IO) {
                 info?.let { getUserMessages(token, it.userId) } ?: emptyList()
@@ -259,6 +748,7 @@ fun UserInfoScreen(userId: Int) {
         }
     }
 
+    // 封禁对话框
     if (showBanDialog) {
         AlertDialog(
             onDismissRequest = { showBanDialog = false },
@@ -274,11 +764,7 @@ fun UserInfoScreen(userId: Int) {
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
-                        val success = performBanUser(
-                            context,
-                            userInfo?.userId ?: 0,
-                            banHours.toIntOrNull() ?: 0
-                        )
+                        val success = performBanUser(context, userInfo?.userId ?: 0, banHours.toIntOrNull() ?: 0)
                         if (success) {
                             Toast.makeText(context, "封禁成功", Toast.LENGTH_SHORT).show()
                             showBanDialog = false
@@ -292,6 +778,7 @@ fun UserInfoScreen(userId: Int) {
         )
     }
 
+    // 举报对话框
     if (showReportDialog) {
         AlertDialog(
             onDismissRequest = { showReportDialog = false },
@@ -314,11 +801,7 @@ fun UserInfoScreen(userId: Int) {
                     onClick = {
                         if (reportReason.isNotBlank()) {
                             scope.launch {
-                                val success = performReportUser(
-                                    context,
-                                    userInfo?.userId ?: 0,
-                                    reportReason
-                                )
+                                val success = performReportUser(context, userInfo?.userId ?: 0, reportReason)
                                 if (success) {
                                     showReportDialog = false
                                     reportReason = ""
@@ -328,14 +811,10 @@ fun UserInfoScreen(userId: Int) {
                             Toast.makeText(context, "理由不能为空", Toast.LENGTH_SHORT).show()
                         }
                     }
-                ) {
-                    Text("提交")
-                }
+                ) { Text("提交") }
             },
             dismissButton = {
-                TextButton(onClick = { showReportDialog = false }) {
-                    Text("取消")
-                }
+                TextButton(onClick = { showReportDialog = false }) { Text("取消") }
             }
         )
     }
@@ -344,13 +823,10 @@ fun UserInfoScreen(userId: Int) {
         isRefreshing = true
         scope.launch {
             val token = TokenManager.get(context) ?: return@launch
-    
-            val info = withContext(Dispatchers.IO) {
-                fetchUserInfo(token, userId)
-            }
+            val info = withContext(Dispatchers.IO) { fetchUserInfo(token, userId) }
             userInfo = info
             info?.let { isFollowing = it.isFollowed }
-    
+
             val msgsJob = scope.launch {
                 messages = withContext(Dispatchers.IO) {
                     info?.let { getUserMessages(token, it.userId) } ?: emptyList()
@@ -367,14 +843,227 @@ fun UserInfoScreen(userId: Int) {
         }
     }
 
-    Scaffold { paddingValues ->
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            CollapsingAvatarTopAppBar(
+                avatar = {
+                    userInfo?.let {
+                        AsyncImage(
+                            model = it.avatar,
+                            contentDescription = "头像",
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                },
+                title = {
+                    userInfo?.let {
+                        Text(
+                            text = it.username,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } ?: Text("用户信息")
+                },
+                subtitle = {
+                    userInfo?.let {
+                        Row {
+                            Text("${it.followingCount} 关注")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("${it.followersCount} 粉丝")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("${it.gold} 金币")
+                        }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { (context as Activity).finish() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                actions = {
+                    val userStatus = TokenManager.getTagStatus(context)
+                    if (userStatus == 1) {
+                        IconButton(onClick = { showBanDialog = true }) {
+                            Icon(Icons.Default.Block, contentDescription = "封禁")
+                        }
+                    }
+                    Box {
+                        IconButton(onClick = { isMenuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                        }
+                        DropdownMenu(
+                            expanded = isMenuExpanded,
+                            onDismissRequest = { isMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("举报该用户") },
+                                onClick = {
+                                    isMenuExpanded = false
+                                    showReportDialog = true
+                                },
+                                leadingIcon = { Icon(Icons.Default.Flag, contentDescription = null) }
+                            )
+                        }
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                content = {
+                    userInfo?.let { info ->
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            info.backgroundUrl?.let { backgroundUrl ->
+                                AsyncImage(
+                                    model = backgroundUrl,
+                                    contentDescription = "背景",
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .alpha(0.3f)
+                                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                // 等级和经验条
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                ) {
+                                    Image(
+                                        modifier = Modifier.size(16.dp),
+                                        painter = painterResource(getLevelIconRes(info.level.toString())),
+                                        contentDescription = null
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(text = "${info.level}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    LinearProgressIndicator(
+                                        progress = { info.experience.toFloat() / (info.level * 100f) },
+                                        modifier = Modifier.weight(1f).height(8.dp)
+                                    )
+                                }
+                                // 个人简介
+                                if (info.bio.isNotEmpty()) {
+                                    Text(
+                                        text = info.bio,
+                                        fontSize = 13.sp,
+                                        maxLines = 3,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(vertical = 5.dp)
+                                    )
+                                }
+                                // 关注/私信按钮
+                                val notMyself = info.userId != TokenManager.getUserID(context)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (notMyself) {
+                                        Button(
+                                            onClick = {
+                                                scope.launch {
+                                                    toggleFollow(context, info.userId) { success ->
+                                                        if (success) isFollowing = !isFollowing
+                                                    }
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (isFollowing) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                            ),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isFollowing) Icons.Default.PersonRemove else Icons.Default.PersonAddAlt1,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(ButtonDefaults.IconSize)
+                                            )
+                                            Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                                            Text(if (isFollowing) "已关注" else "关注")
+                                        }
+                                        if (isFollowing) {
+                                            Button(
+                                                onClick = {
+                                                    val intent = Intent(context, MessageDetailActivity::class.java)
+                                                    intent.putExtra("user_id", info.userId)
+                                                    context.startActivity(intent)
+                                                },
+                                                modifier = Modifier.weight(1f).padding(start = 10.dp),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                                )
+                                            ) {
+                                                Icon(Icons.AutoMirrored.Filled.Message, contentDescription = "私信", modifier = Modifier.size(ButtonDefaults.IconSize))
+                                                Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                                                Text("私信")
+                                            }
+                                        }
+                                    } else {
+                                        Button(
+                                            onClick = {
+                                                context.startActivity(Intent(context, UserSettingsActivity::class.java))
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        ) {
+                                            Icon(Icons.Default.Edit, contentDescription = "编辑资料", modifier = Modifier.size(ButtonDefaults.IconSize))
+                                            Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                                            Text("编辑资料")
+                                        }
+                                    }
+                                }
+                                // 统计数据行（关注/粉丝/金币）
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(text = info.followingCount.toString(), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                        Text("关注", fontSize = 13.sp)
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(text = info.followersCount.toString(), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                        Text("粉丝", fontSize = 13.sp)
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(text = info.gold.toString(), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                        Text("金币", fontSize = 13.sp)
+                                    }
+                                }
+                                // 封禁提示
+                                if (info.isBanned) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.errorContainer
+                                    ) {
+                                        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.PersonOff, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(text = "该账号已被封禁，于${info.banEndTime ?: "未知时间"}解禁", fontSize = 12.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = onRefresh,
-                modifier = Modifier
-                    .padding(bottom = paddingValues.calculateBottomPadding())
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
                 if (isLoading && !isRefreshing) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -383,50 +1072,10 @@ fun UserInfoScreen(userId: Int) {
                 } else {
                     LazyColumn(
                         state = isScrolling,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = paddingValues,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        item {
-                            userInfo?.let {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    it.backgroundUrl?.let { backgroundUrl ->
-                                        AsyncImage(
-                                            model = backgroundUrl,
-                                            contentDescription = "背景",
-                                            modifier = Modifier
-                                                .matchParentSize()
-                                                .alpha(0.3f),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                    }
-                                    UserInfoHeader(
-                                        userInfo = it,
-                                        isFollowing = isFollowing,
-                                        collapsedFraction = collapsedFraction,
-                                        onMessageClick = {
-                                            val intent =
-                                                Intent(context, MessageDetailActivity::class.java)
-                                            intent.putExtra("user_id", it.userId)
-                                            context.startActivity(intent)
-                                        },
-                                        onFollowClick = {
-                                            scope.launch {
-                                                toggleFollow(context, it.userId) { success ->
-                                                    if (success) {
-                                                        isFollowing = !isFollowing
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-
                         stickyHeader {
                             Surface(
                                 Modifier
@@ -442,9 +1091,7 @@ fun UserInfoScreen(userId: Int) {
                                     Tab(
                                         selected = currentTab == 1,
                                         onClick = { currentTab = 1 },
-                                        text = {
-                                            Text("投稿${if (resources.isNotEmpty()) "(${resources.size})" else ""}")
-                                        }
+                                        text = { Text("投稿${if (resources.isNotEmpty()) "(${resources.size})" else ""}") }
                                     )
                                 }
                             }
@@ -453,12 +1100,7 @@ fun UserInfoScreen(userId: Int) {
                         if (currentTab == 0) {
                             if (messages.isEmpty()) {
                                 item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(200.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
+                                    Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                                         Text("空空如也")
                                     }
                                 }
@@ -469,47 +1111,26 @@ fun UserInfoScreen(userId: Int) {
                                         onLikeClick = {
                                             scope.launch {
                                                 val token = TokenManager.get(context) ?: return@launch
-                                                    
                                                 try {
                                                     val (newIsLiked, newLikeCount) = toggleLike(
-                                                        httpClient,
-                                                        token,
-                                                        userMessage.id,
-                                                        userMessage.is_liked,
-                                                        userMessage.likeCount
+                                                        httpClient, token, userMessage.id, userMessage.is_liked, userMessage.likeCount
                                                     )
-
                                                     messages = messages.map {
-                                                        if (it.id == userMessage.id) {
-                                                            it.copy(
-                                                                is_liked = newIsLiked,
-                                                                likeCount = newLikeCount
-                                                            )
-                                                        } else it
+                                                        if (it.id == userMessage.id) it.copy(is_liked = newIsLiked, likeCount = newLikeCount) else it
                                                     }
                                                 } catch (e: Exception) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        e.message ?: "操作失败",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
+                                                    Toast.makeText(context, e.message ?: "操作失败", Toast.LENGTH_SHORT).show()
                                                 }
                                             }
                                         },
-                                        onMenuClick = {
-                                        }
+                                        onMenuClick = {}
                                     )
                                 }
                             }
                         } else {
                             if (resources.isEmpty()) {
                                 item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(200.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
+                                    Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                                         Text("资源空空")
                                     }
                                 }
@@ -520,10 +1141,7 @@ fun UserInfoScreen(userId: Int) {
                                         onClick = {
                                             val resourceJson = AppJson.json.encodeToString(resource)
                                             Log.e("1", resourceJson)
-                                            val intent = Intent(
-                                                context,
-                                                ResourceDetailActivity::class.java
-                                            ).apply {
+                                            val intent = Intent(context, ResourceDetailActivity::class.java).apply {
                                                 putExtra("item_json", resourceJson)
                                             }
                                             context.startActivity(intent)
@@ -535,316 +1153,11 @@ fun UserInfoScreen(userId: Int) {
 
                         if (canLoadMore && currentTab == 0) {
                             item {
-                                Box(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                                     ContainedLoadingIndicator(modifier = Modifier.size(32.dp))
                                 }
                             }
                         }
-                    }
-                }
-            }
-
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(
-                        alpha = lerpFloat(0f, 1f, (collapsedFraction - 0.05f).coerceIn(0f, 1f) / 0.95f)
-                    )
-                ),
-                title = {
-                    val titleAlpha = lerpFloat(0f, 1f, (collapsedFraction - 0.6f).coerceIn(0f, 1f) / 0.4f)
-                    userInfo?.let {
-                        Text(
-                            it.username,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.alpha(titleAlpha)
-                        )
-                    } ?: Text("用户信息")
-                },
-                navigationIcon = {
-                    IconButton(onClick = { (context as Activity).finish() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
-                        )
-                    }
-                },
-                actions = {
-                    val userStatus = TokenManager.getTagStatus(context)
-                    if (userStatus == 1) {
-                        IconButton(onClick = { showBanDialog = true }) {
-                            Icon(
-                                Icons.Default.Block,
-                                contentDescription = "封禁",
-                                tint = if (collapsedFraction > 0.1f)
-                                    MaterialTheme.colorScheme.error
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-            
-                    Box {
-                        IconButton(onClick = { isMenuExpanded = true }) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = "更多",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = isMenuExpanded,
-                            onDismissRequest = { isMenuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("举报该用户") },
-                                onClick = {
-                                    isMenuExpanded = false
-                                    showReportDialog = true
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Flag, contentDescription = null)
-                                }
-                            )
-                        }
-                    }
-                }
-            )
-        }
-    }
-}
-
-@Composable
-fun UserInfoHeader(
-    userInfo: UserInfo,
-    isFollowing: Boolean,
-    collapsedFraction: Float,
-    onFollowClick: () -> Unit,
-    onMessageClick: () -> Unit
-) {
-    val context = LocalContext.current
-
-    val avatarSize = lerpDp(80.dp, 44.dp, collapsedFraction)
-    val usernameAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1.5f).coerceIn(0f, 1f))
-    val statsAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1.2f).coerceIn(0f, 1f))
-    val headerTopPadding = lerpDp(64.dp, 16.dp, collapsedFraction)
-    val bioAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1.2f).coerceIn(0f, 1f))
-    val levelRowAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1f).coerceIn(0f, 1f))
-    val buttonRowAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1f).coerceIn(0f, 1f))
-    
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(top = headerTopPadding)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 4.dp),
-            ) {
-                AsyncImage(
-                    model = userInfo.avatar,
-                    contentDescription = "头像",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(avatarSize)
-                        .clip(CircleShape)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = userInfo.username,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.alpha(usernameAlpha)
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .alpha(levelRowAlpha)
-                ) {
-                    Image(
-                        modifier = Modifier.size(16.dp),
-                        contentDescription = null,
-                        painter = painterResource(getLevelIconRes(userInfo.level.toString()))
-                    )
-
-                    Spacer(modifier = Modifier.width(3.dp))
-
-                    Text(
-                        text = "${userInfo.level}",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    LinearProgressIndicator(
-                        progress = { userInfo.experience.toFloat() / (userInfo.level * 100f) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(8.dp)
-                    )
-                }
-
-                if (userInfo.bio.isNotEmpty()) {
-                    Text(
-                        text = userInfo.bio,
-                        fontSize = 13.sp,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .padding(vertical = 5.dp)
-                            .alpha(bioAlpha)
-                    )
-                }
-            }
-
-            val notMyself = userInfo.userId != TokenManager.getUserID(context)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(buttonRowAlpha),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (notMyself) {
-                    Button(
-                        onClick = onFollowClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFollowing) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = if (isFollowing) Icons.Default.PersonRemove else Icons.Default.PersonAddAlt1,
-                            contentDescription = null,
-                            modifier = Modifier.size(ButtonDefaults.IconSize)
-                        )
-                        Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-                        Text(if (isFollowing) "已关注" else "关注")
-                    }
-
-                    if (isFollowing) {
-                        Button(
-                            onClick = onMessageClick,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 10.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Message,
-                                contentDescription = "私信",
-                                modifier = Modifier.size(ButtonDefaults.IconSize)
-                            )
-                            Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-                            Text("私信")
-                        }
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            val intent = Intent(context, UserSettingsActivity::class.java)
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "编辑资料",
-                            modifier = Modifier.size(ButtonDefaults.IconSize)
-                        )
-                        Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-                        Text("编辑资料")
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(statsAlpha)
-                    .padding(top = 16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = userInfo.followingCount.toString(),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("关注", fontSize = 13.sp)
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = userInfo.followersCount.toString(),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("粉丝", fontSize = 13.sp)
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = userInfo.gold.toString(),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("金币", fontSize = 13.sp)
-                }
-            }
-
-            if (userInfo.isBanned) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                        .alpha(statsAlpha),
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.errorContainer
-                ) {
-                    Row(
-                        modifier = Modifier.padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.PersonOff, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "该账号已被封禁，于${userInfo.banEndTime ?: "未知时间"}解禁",
-                            fontSize = 12.sp
-                        )
                     }
                 }
             }
