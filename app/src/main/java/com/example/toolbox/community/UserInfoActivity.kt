@@ -9,7 +9,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.lerp
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -123,6 +122,10 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import androidx.compose.ui.unit.Dp
+
+private fun lerpFloat(start: Float, stop: Float, fraction: Float): Float {
+    return start * (1 - fraction) + stop * fraction
+}
 
 private fun lerpDp(start: Dp, stop: Dp, fraction: Float): Dp {
     return Dp(start.value * (1 - fraction) + stop.value * fraction)
@@ -632,8 +635,8 @@ fun UserInfoHeader(
     val context = LocalContext.current
 
     val avatarSize = lerpDp(80.dp, 44.dp, collapsedFraction)
-    val usernameAlpha = (1f * (1 - (collapsedFraction * 2f).coerceIn(0f, 1f)) + 0f * (collapsedFraction * 2f).coerceIn(0f, 1f))
-    val statsAlpha = (1f * (1 - (collapsedFraction * 1.5f).coerceIn(0f, 1f)) + 0f * (collapsedFraction * 1.5f).coerceIn(0f, 1f))
+    val usernameAlpha = lerpFloat(1f, 0f, (collapsedFraction * 2f).coerceIn(0f, 1f))
+    val statsAlpha = lerpFloat(1f, 0f, (collapsedFraction * 1.5f).coerceIn(0f, 1f))
     val headerTopPadding = lerpDp(64.dp, 16.dp, collapsedFraction)
     
     Column(
