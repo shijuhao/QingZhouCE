@@ -1,8 +1,3 @@
-@file:Suppress(
-    "NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS", "PropertyName",
-    "AssignedValueIsNeverRead"
-)
-
 package com.example.toolbox.community
 
 import android.app.Activity
@@ -14,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.lerp
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,7 +27,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -73,7 +68,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -90,6 +86,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -172,7 +169,6 @@ fun UserInfoScreen(userId: Int) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 状态管理
     var userInfo by remember { mutableStateOf<UserInfo?>(null) }
     var messages by remember { mutableStateOf<List<UserMessage>>(emptyList()) }
     var resources: List<ResourceItem> by remember { mutableStateOf(emptyList()) }
@@ -189,6 +185,11 @@ fun UserInfoScreen(userId: Int) {
     var showReportDialog by remember { mutableStateOf(false) }
     var reportReason by remember { mutableStateOf("") }
     var isMenuExpanded by remember { mutableStateOf(false) }
+
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val collapsedFraction by remember {
+        derivedStateOf { scrollBehavior.state.collapsedFraction }
+    }
 
     LaunchedEffect(isScrolling) {
         snapshotFlow {
@@ -223,11 +224,9 @@ fun UserInfoScreen(userId: Int) {
         }
     }
 
-    // 初始化加载数据
     LaunchedEffect(Unit) {
         val token = TokenManager.get(context) ?: return@LaunchedEffect
     
-        // 用户信息先加载
         val info = withContext(Dispatchers.IO) {
             fetchUserInfo(token, userId)
         }
@@ -311,7 +310,7 @@ fun UserInfoScreen(userId: Int) {
                                 )
                                 if (success) {
                                     showReportDialog = false
-                                    reportReason = "" // 清空理由
+                                    reportReason = ""
                                 }
                             }
                         } else {
@@ -357,47 +356,6 @@ fun UserInfoScreen(userId: Int) {
         }
     }
 
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val threshold = with(LocalDensity.current) { (statusBarHeight + 64.dp).toPx() }.toInt()
-    var lastHeaderBottom by remember { mutableIntStateOf(Int.MAX_VALUE) }
-    var isAdjusting by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isScrolling) {
-        snapshotFlow {
-            if (isAdjusting) return@snapshotFlow lastHeaderBottom
-
-            val headerItem = isScrolling.layoutInfo.visibleItemsInfo.find { it.index == 0 }
-            headerItem?.let {
-                it.offset + it.size
-            } ?: -1
-        }.collect { headerBottom ->
-            if (headerBottom > 0 && !isAdjusting) {
-                when (threshold) {
-                    in (headerBottom + 1)..lastHeaderBottom -> {
-                        isAdjusting = true
-                        val targetScroll =
-                            isScrolling.firstVisibleItemScrollOffset + (threshold - headerBottom)
-                        scope.launch {
-                            isScrolling.scrollToItem(0, targetScroll)
-                            isAdjusting = false
-                        }
-                    }
-
-                    in lastHeaderBottom..<headerBottom -> {
-                        isAdjusting = true
-                        val targetScroll =
-                            isScrolling.firstVisibleItemScrollOffset - (headerBottom - threshold)
-                        scope.launch {
-                            isScrolling.scrollToItem(0, targetScroll)
-                            isAdjusting = false
-                        }
-                    }
-                }
-                lastHeaderBottom = headerBottom
-            }
-        }
-    }
-
     Scaffold { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
@@ -414,7 +372,9 @@ fun UserInfoScreen(userId: Int) {
                 } else {
                     LazyColumn(
                         state = isScrolling,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         item {
@@ -435,6 +395,7 @@ fun UserInfoScreen(userId: Int) {
                                     UserInfoHeader(
                                         userInfo = it,
                                         isFollowing = isFollowing,
+                                        collapsedFraction = collapsedFraction,
                                         onMessageClick = {
                                             val intent =
                                                 Intent(context, MessageDetailActivity::class.java)
@@ -456,33 +417,10 @@ fun UserInfoScreen(userId: Int) {
                         }
 
                         stickyHeader {
-                            val localDy = LocalDensity.current
-                            val topPadding = remember(isScrolling) {
-                                derivedStateOf {
-                                    val headerItem =
-                                        isScrolling.layoutInfo.visibleItemsInfo.find { it.index == 0 }
-                                    if (headerItem != null) {
-                                        val headerBottom = headerItem.offset + headerItem.size
-                                        val threshold = paddingValues.calculateTopPadding() + 64.dp
-                                        val thresholdPx = with(localDy) { threshold.toPx() }.toInt()
-
-                                        if (headerBottom < thresholdPx) {
-                                            val neededPadding = thresholdPx - headerBottom
-                                            with(localDy) { neededPadding.toDp() }
-                                        } else {
-                                            0.dp
-                                        }
-                                    } else {
-                                        paddingValues.calculateTopPadding() + 64.dp
-                                    }
-                                }
-                            }
-
                             Surface(
                                 Modifier
                                     .fillMaxWidth()
                                     .background(MaterialTheme.colorScheme.background)
-                                    .padding(top = topPadding.value)
                             ) {
                                 SecondaryTabRow(selectedTabIndex = currentTab) {
                                     Tab(
@@ -501,7 +439,6 @@ fun UserInfoScreen(userId: Int) {
                             }
                         }
 
-                        // 内容区
                         if (currentTab == 0) {
                             if (messages.isEmpty()) {
                                 item {
@@ -549,7 +486,6 @@ fun UserInfoScreen(userId: Int) {
                                             }
                                         },
                                         onMenuClick = {
-                                            // 显示菜单
                                         }
                                     )
                                 }
@@ -601,32 +537,23 @@ fun UserInfoScreen(userId: Int) {
                     }
                 }
             }
-            val shouldShowSolidBar = remember(isScrolling) {
-                derivedStateOf {
-                    val headerItem = isScrolling.layoutInfo.visibleItemsInfo.find { it.index == 0 }
-                    if (headerItem != null) {
-                        headerItem.offset < 0
-                    } else {
-                        true
-                    }
-                }
-            }
 
             TopAppBar(
-                colors = topAppBarColors(
-                    containerColor = if (shouldShowSolidBar.value) {
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = if (collapsedFraction > 0.1f) {
                         MaterialTheme.colorScheme.surface
                     } else {
                         Color.Transparent
                     },
-                    scrolledContainerColor = if (shouldShowSolidBar.value) {
+                    scrolledContainerColor = if (collapsedFraction > 0.1f) {
                         MaterialTheme.colorScheme.surface
                     } else {
                         Color.Transparent
                     }
                 ),
                 title = {
-                    if (shouldShowSolidBar.value) {
+                    if (collapsedFraction > 0.6f) {
                         userInfo?.let {
                             Text(
                                 it.username,
@@ -651,7 +578,7 @@ fun UserInfoScreen(userId: Int) {
                             Icon(
                                 Icons.Default.Block,
                                 contentDescription = "封禁",
-                                tint = if (shouldShowSolidBar.value)
+                                tint = if (collapsedFraction > 0.1f)
                                     MaterialTheme.colorScheme.error
                                 else
                                     MaterialTheme.colorScheme.onSurface
@@ -693,16 +620,22 @@ fun UserInfoScreen(userId: Int) {
 fun UserInfoHeader(
     userInfo: UserInfo,
     isFollowing: Boolean,
+    collapsedFraction: Float,
     onFollowClick: () -> Unit,
     onMessageClick: () -> Unit
 ) {
     val context = LocalContext.current
 
+    val avatarSize = lerp(80.dp, 44.dp, collapsedFraction)
+    val usernameAlpha = lerp(1f, 0f, (collapsedFraction * 2f).coerceIn(0f, 1f))
+    val statsAlpha = lerp(1f, 0f, (collapsedFraction * 1.5f).coerceIn(0f, 1f))
+    val headerTopPadding = lerp(64.dp, 16.dp, collapsedFraction)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(top = 64.dp)
+            .padding(top = headerTopPadding)
     ) {
         Column(
             modifier = Modifier
@@ -719,7 +652,7 @@ fun UserInfoHeader(
                     contentDescription = "头像",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(avatarSize)
                         .clip(CircleShape)
                 )
 
@@ -728,7 +661,8 @@ fun UserInfoHeader(
                 Text(
                     text = userInfo.username,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.alpha(usernameAlpha)
                 )
 
                 Row(
@@ -751,7 +685,6 @@ fun UserInfoHeader(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // 经验条
                     LinearProgressIndicator(
                         progress = { userInfo.experience.toFloat() / (userInfo.level * 100f) },
                         modifier = Modifier
@@ -840,6 +773,7 @@ fun UserInfoHeader(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .alpha(statsAlpha)
                     .padding(top = 16.dp)
             ) {
                 Column(
@@ -879,7 +813,6 @@ fun UserInfoHeader(
                 }
             }
 
-            // 封禁提示
             if (userInfo.isBanned) {
                 Surface(
                     modifier = Modifier
@@ -930,7 +863,6 @@ fun MessageItem(
         }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // 1. 顶部用户信息
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(
                     model = message.avatar,
@@ -965,7 +897,6 @@ fun MessageItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 2. 标题
             if (!message.title.isNullOrEmpty()) {
                 Text(
                     text = message.title,
@@ -975,7 +906,6 @@ fun MessageItem(
                 )
             }
 
-            // 3. 正文 (Markdown 逻辑)
             if (message.content.isNotEmpty()) {
                 if (message.isMarkdown) {
                     MarkdownRenderer.Render(
@@ -990,7 +920,6 @@ fun MessageItem(
                 }
             }
 
-            // 4. 图片展示
             if (message.images.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -1044,14 +973,12 @@ fun MessageItem(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 5. 底部操作栏
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Spacer(modifier = Modifier.weight(1f))
 
-                // 点赞按钮
                 TextButton(
                     onClick = onLikeClick,
                     colors = ButtonDefaults.textButtonColors(
@@ -1121,7 +1048,6 @@ fun ResourceItem(resource: ResourceItem, onClick: () -> Unit) {
     }
 }
 
-// 网络请求相关函数
 suspend fun loadUserInfo(
     context: Context,
     userId: Int,
@@ -1131,15 +1057,12 @@ suspend fun loadUserInfo(
         val token = TokenManager.get(context)
 
         try {
-            // 获取用户信息
             val userInfo = token?.let { fetchUserInfo(it, userId) }
 
-            // 获取用户帖子
             val messages = userInfo?.let {
                 getUserMessages(token, it.userId)
             } ?: emptyList()
 
-            // 获取用户资源
             val resources = userInfo?.let {
                 getUserResources(token, it.userId)
             } ?: emptyList()
@@ -1241,7 +1164,6 @@ private suspend fun getUserMessages(
             val messageType = msgJson.getInt("message_type")
             val isReferenced = msgJson.optBoolean("is_referenced", false)
 
-            // 解析引用消息
             var refMsg: UserReferencedMessage? = null
             if (isReferenced && msgJson.has("referenced_message") && !msgJson.isNull("referenced_message")) {
                 val refJson = msgJson.getJSONObject("referenced_message")
@@ -1253,7 +1175,6 @@ private suspend fun getUserMessages(
                 )
             }
 
-            // 解析内容文本和标题
             val (contentText, title) = when (messageType) {
                 1 -> "" to null
                 2 -> content.optString("text", "") to null
@@ -1261,7 +1182,6 @@ private suspend fun getUserMessages(
                 else -> content.optString("text", "") to null
             }
 
-            // 解析图片
             val images = mutableListOf<String>()
             try {
                 when (val imagesValue = content.opt("images")) {
@@ -1270,7 +1190,6 @@ private suspend fun getUserMessages(
                             images.add(imagesValue.getString(j))
                         }
                     }
-
                     is String -> if (imagesValue.isNotEmpty()) images.add(imagesValue)
                 }
             } catch (_: JSONException) {
@@ -1360,7 +1279,7 @@ private suspend fun performReportUser(
                 .post(
                     JSONObject().apply {
                         put("content", reason)
-                        put("report_type", 1) // 1 通常代表举报用户
+                        put("report_type", 1)
                         put("target_id", targetUserId)
                     }.toString().toRequestBody("application/json".toMediaType())
                 )
