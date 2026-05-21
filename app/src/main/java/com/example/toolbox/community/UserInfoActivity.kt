@@ -100,7 +100,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.IntrinsicMeasurable
@@ -170,6 +169,10 @@ import androidx.compose.ui.unit.roundToInt
 
 private fun lerpFloat(start: Float, stop: Float, fraction: Float): Float {
     return start * (1 - fraction) + stop * fraction
+}
+
+private fun lerpInt(start: Int, stop: Int, fraction: Float): Int {
+    return (start * (1 - fraction) + stop * fraction).toInt()
 }
 
 private fun lerpDp(start: Dp, stop: Dp, fraction: Float): Dp {
@@ -399,7 +402,7 @@ private fun CollapsingAvatarTopAppBarLayout(
                             .padding(horizontal = TopAppBarHorizontalPadding)
                             .padding(top = TopAppBarHorizontalPadding)
                             .graphicsLayer {
-                                alpha = TopTitleAlphaEasing.transform(lerp(1f, 0f, collapseFraction()))
+                                alpha = TopTitleAlphaEasing.transform(lerpFloat(1f, 0f, collapseFraction()))
                             },
                     contentAlignment = titleContentAlignment,
                 ) {
@@ -422,8 +425,8 @@ private fun CollapsingAvatarTopAppBarLayout(
                     modifier = Modifier
                         .layoutId("extra")
                         .padding(horizontal = TopAppBarHorizontalPadding)
-                        .graphicsLayer { alpha = lerp(1f, 0f, collapseFraction() * 3) },
-                    content = extraContent
+                        .graphicsLayer { alpha = lerpFloat(1f, 0f, collapseFraction() * 3) },
+                    content = extraContent+
                 )
             }
         },
@@ -481,15 +484,15 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
 
             val avatarMaxSize = min(avatarMax.roundToPx(), constraints.maxWidth)
             val avatarMinSize = max(CollapsedAvatarSize.roundToPx(), constraints.minWidth)
-            val avatarWidth = lerp(avatarMaxSize.toFloat(), avatarMinSize.toFloat(), slowInCollapseFraction).toInt()
+            val avatarWidth = lerpInt(avatarMaxSize, avatarMinSize, slowInCollapseFraction)
             val avatarPlaceable =
                 measurables.fastFirstOrNull { it.layoutId == "avatar" }
                     ?.measure(Constraints.fixed(avatarWidth, avatarWidth))
 
             val avatarPadding = if (avatarPlaceable != null) {
                 androidx.compose.ui.unit.IntSize(
-                    width = lerp(CollapsedAvatarHorizontalPadding.roundToPx(), 0, collapsedFraction),
-                    height = lerp(CollapsedAvatarVerticalPadding.roundToPx(), 0, collapsedFraction)
+                    width = lerpInt(CollapsedAvatarHorizontalPadding.roundToPx(), 0, collapsedFraction),
+                    height = lerpInt(CollapsedAvatarVerticalPadding.roundToPx(), 0, collapsedFraction)
                 )
             } else {
                 androidx.compose.ui.unit.IntSize.Zero
@@ -536,7 +539,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 lerp(height, 0, (collapsedFraction * 1.5f).coerceAtMost(1f))
             } ?: 0
 
-            val topExpandingOffset = lerp(MinAvatarOffset.roundToPx().toFloat(), 0f, collapsedFraction).toInt()
+            val topExpandingOffset = lerpInt(MinAvatarOffset.roundToPx(), 0, collapsedFraction)
             val maxElementHeight = max(avatarPlaceable?.height ?: 0, titlePlaceable.height + subtitleExpandingOffset)
             val maxLayoutHeight = max(
                 height.roundToPx(),
