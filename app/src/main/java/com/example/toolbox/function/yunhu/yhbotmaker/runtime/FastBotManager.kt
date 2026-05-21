@@ -244,7 +244,7 @@ fun FastBotDialog(
                                 SettingsItemCell(
                                     icon = Icons.Default.PersonRemove,
                                     title = "群成员黑名单",
-                                    subtitle = "屏蔽指定用户发言 (${data.blockedUsers.size})",
+                                    subtitle = "自动撤回指定用户发言",
                                     onClick = { selectedType = "blockedUser" }
                                 )
                             },
@@ -252,7 +252,7 @@ fun FastBotDialog(
                                 SettingsItemCell(
                                     icon = Icons.Default.GppBad,
                                     title = "违禁词",
-                                    subtitle = "自动删除包含违禁词的消息 (${data.bannedWords.size})",
+                                    subtitle = "自动撤回包含违禁词的消息",
                                     onClick = { selectedType = "bannedWord" }
                                 )
                             }

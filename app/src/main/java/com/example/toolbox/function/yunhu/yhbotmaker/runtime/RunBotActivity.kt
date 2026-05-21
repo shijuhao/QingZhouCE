@@ -316,8 +316,8 @@ fun BotRuntimeScreen(
                                 onSuccess = { _, _ ->
                                     viewModel.addMessage(
                                         ChatMessage(
-                                            type = 4,
-                                            text = "🚫 已屏蔽黑名单用户发言: $senderId",
+                                            type = 2,
+                                            text = "已撤回黑名单用户发言: $senderId",
                                             time = timeFormat.format(Date()),
                                             iconColor = Color.Red
                                         )
@@ -350,8 +350,8 @@ fun BotRuntimeScreen(
                                         onSuccess = { _, _ ->
                                             viewModel.addMessage(
                                                 ChatMessage(
-                                                    type = 4,
-                                                    text = "⚠️ 包含违禁词「${bannedWord.word}」，已删除",
+                                                    type = 2,
+                                                    text = "已撤回包含违禁词「${bannedWord.word}」的消息",
                                                     time = timeFormat.format(Date()),
                                                     iconColor = Color.Red
                                                 )
@@ -381,8 +381,8 @@ fun BotRuntimeScreen(
                                         onSuccess = { _, _ ->
                                             viewModel.addMessage(
                                                 ChatMessage(
-                                                    type = 4,
-                                                    text = "⚠️ 已警告包含违禁词「${bannedWord.word}」的用户",
+                                                    type = 2,
+                                                    text = "已警告发送包含违禁词「${bannedWord.word}」消息的用户",
                                                     time = timeFormat.format(Date()),
                                                     iconColor = Color.Yellow
                                                 )
