@@ -122,6 +122,11 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import androidx.compose.ui.unit.Dp
+
+private fun lerpDp(start: Dp, stop: Dp, fraction: Float): Dp {
+    return Dp(start.value * (1 - fraction) + stop.value * fraction)
+}
 
 private val httpClient = OkHttpClient.Builder()
     .connectTimeout(30, TimeUnit.SECONDS)
@@ -626,11 +631,11 @@ fun UserInfoHeader(
 ) {
     val context = LocalContext.current
 
-    val avatarSize = lerp(80.dp, 44.dp, collapsedFraction)
-    val usernameAlpha = lerp(1f, 0f, (collapsedFraction * 2f).coerceIn(0f, 1f))
-    val statsAlpha = lerp(1f, 0f, (collapsedFraction * 1.5f).coerceIn(0f, 1f))
-    val headerTopPadding = lerp(64.dp, 16.dp, collapsedFraction)
-
+    val avatarSize = lerpDp(80.dp, 44.dp, collapsedFraction)
+    val usernameAlpha = (1f * (1 - (collapsedFraction * 2f).coerceIn(0f, 1f)) + 0f * (collapsedFraction * 2f).coerceIn(0f, 1f))
+    val statsAlpha = (1f * (1 - (collapsedFraction * 1.5f).coerceIn(0f, 1f)) + 0f * (collapsedFraction * 1.5f).coerceIn(0f, 1f))
+    val headerTopPadding = lerpDp(64.dp, 16.dp, collapsedFraction)
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
