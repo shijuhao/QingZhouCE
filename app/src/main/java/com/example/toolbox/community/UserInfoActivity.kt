@@ -9,10 +9,11 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.animateValueAsState
+import androidx.compose.animation.core.ColorVectorConverter
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -67,6 +68,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -165,14 +168,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.max
 import kotlin.math.min
-import androidx.compose.ui.unit.roundToInt
+import kotlin.math.roundToInt
 
 private fun lerpFloat(start: Float, stop: Float, fraction: Float): Float {
     return start * (1 - fraction) + stop * fraction
 }
 
 private fun lerpInt(start: Int, stop: Int, fraction: Float): Int {
-    return (start * (1 - fraction) + stop * fraction).toInt()
+    return (start * (1 - fraction) + stop * fraction).roundToInt()
 }
 
 private fun lerpDp(start: Dp, stop: Dp, fraction: Float): Dp {
@@ -227,16 +230,6 @@ private val CollapsedAvatarHorizontalPadding = 28.dp
 private val CollapsedAvatarVerticalPadding = 12.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Stable
-private fun TopAppBarColors.containerColor(colorTransitionFraction: Float): Color {
-    return lerp(
-        containerColor,
-        scrolledContainerColor,
-        FastOutSlowInEasing.transform(colorTransitionFraction)
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollapsingAvatarTopAppBar(
     modifier: Modifier = Modifier,
@@ -268,15 +261,23 @@ fun CollapsingAvatarTopAppBar(
         remember(colors, scrollBehavior) {
             derivedStateOf {
                 val overlappingFraction = scrollBehavior?.state?.overlappedFraction ?: 0f
-                colors.containerColor(if (overlappingFraction > 0.01f) 1f else 0f)
+                val fraction = FastOutSlowInEasing.transform(
+                    if (overlappingFraction > 0.01f) 1f else 0f
+                )
+                
+                androidx.compose.ui.graphics.lerp(
+                    colors.containerColor,
+                    colors.scrolledContainerColor,
+                    fraction
+                )
             }
         }
 
-    val appBarContainerColor =
-        animateColorAsState(
-            targetColor,
-            animationSpec = TopAppBarColorSpect
-        )
+    val appBarContainerColor by animateValueAsState(
+        targetValue = targetColor,
+        animationSpec = TopAppBarColorSpect,
+        typeConverter = ColorVectorConverter
+    )
 
     val actionsRow =
         @Composable {
@@ -292,7 +293,7 @@ fun CollapsingAvatarTopAppBar(
             modifier
                 .drawWithCache {
                     onDrawBehind {
-                        val color = appBarContainerColor.value
+                        val color = appBarContainerColor
                         if (color != Color.Unspecified) {
                             drawRect(color = color)
                         }
@@ -426,7 +427,7 @@ private fun CollapsingAvatarTopAppBarLayout(
                         .layoutId("extra")
                         .padding(horizontal = TopAppBarHorizontalPadding)
                         .graphicsLayer { alpha = lerpFloat(1f, 0f, collapseFraction() * 3) },
-                    content = extraContent+
+                    content = extraContent
                 )
             }
         },
@@ -532,11 +533,11 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 } else 0
 
             val subtitleExpandingOffset = subtitlePlaceable?.run {
-                lerp(height, 0, LinearOutSlowInEasing.transform(collapsedFraction))
+                lerpDp(height, 0.dp, LinearOutSlowInEasing.transform(collapsedFraction)).value.toInt()
             } ?: 0
 
             val extraContentHeight = extraContentPlaceable?.run {
-                lerp(height, 0, (collapsedFraction * 1.5f).coerceAtMost(1f))
+                lerpDp(height, 0.dp, (collapsedFraction * 1.5f).coerceAtMost(1f)).value.toInt()
             } ?: 0
 
             val topExpandingOffset = lerpInt(MinAvatarOffset.roundToPx(), 0, collapsedFraction)
@@ -551,7 +552,9 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 } else {
                     (maxLayoutHeight + scrolledOffset().roundToInt()).coerceAtLeast(0)
                 }
-
+                
+            val titlePlaceableRef = titlePlaceable
+            
             return layout(constraints.maxWidth, layoutHeight) {
                 val collapsedHeight = TopAppBarDefaults.TopAppBarExpandedHeight.roundToPx()
                 val headerLayoutHeight = layoutHeight - topExpandingOffset - extraContentHeight
@@ -561,7 +564,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     y = (collapsedHeight - navigationIconPlaceable.height) / 2,
                 )
 
-                var start = lerp(
+                var start = lerpInt(
                     avatarPadding.width,
                     max(TopAppBarTitleInset.roundToPx(), navigationIconPlaceable.width),
                     collapsedFraction
@@ -572,7 +575,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     y = (headerLayoutHeight - avatarPlaceable.height) / 2 + topExpandingOffset
                 )
 
-                val titlePadding = lerp(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
+                val titlePadding = lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
                 start += (avatarPlaceable?.width ?: 0) + titlePadding
                 val end = actionIconsPlaceable.width
 
@@ -606,12 +609,12 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                         }
                         else -> topExpandingOffset
                     }
-                it.placeRelative(titleX, titleY)
+                titlePlaceableRef.placeRelative(titleX, titleY)
 
                 subtitlePlaceable?.let {
                     val subtitleX = avatarPadding.width + avatarMax.roundToPx() + titlePadding
                     it.placeRelative(
-                        x = lerp(subtitleX, (subtitleX * 0.85f).fastRoundToInt(), collapsedFraction),
+                        x = lerpInt(subtitleX, (subtitleX * 0.85f).fastRoundToInt(), collapsedFraction),
                         y = titleY + titlePlaceable.height
                     )
                 }
@@ -681,7 +684,7 @@ private fun LocalTextStyle(textStyle: TextStyle, content: @Composable () -> Unit
     CompositionLocalProvider(LocalTextStyle provides textStyle, content = content)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UserInfoScreen(userId: Int) {
     val context = LocalContext.current
@@ -1177,6 +1180,7 @@ fun UserInfoScreen(userId: Int) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageItem(
     message: UserMessage,
@@ -1341,6 +1345,7 @@ fun MessageItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResourceItem(resource: ResourceItem, onClick: () -> Unit) {
     Card(
