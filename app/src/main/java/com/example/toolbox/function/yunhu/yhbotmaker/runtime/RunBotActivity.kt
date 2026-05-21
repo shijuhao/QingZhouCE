@@ -42,6 +42,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.core.content.edit
 import com.example.toolbox.AppJson
+import com.example.toolbox.settings.SettingsGroup
+import com.example.toolbox.settings.SettingsItemCell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.*
@@ -654,28 +656,45 @@ fun BotRuntimeScreen(
     if (showCodeTypeSelector) {
         AlertDialog(
             onDismissRequest = { showCodeTypeSelector = false },
-            title = { Text("选择要编辑的代码") },
+            icon = {
+                Icon(Icons.Default.Edit, contentDescription = null)
+            },
+            title = { Text("编辑代码") },
             text = {
-                Column {
-                    TextButton(
-                        onClick = {
-                            currentCodeType = "start"
-                            loadCode("start")
-                            showCodeTypeSelector = false
-                            showCodeEditor = true
-                        }
-                    ) {
-                        Text("初始化代码 (启动前运行)")
-                    }
-                    TextButton(
-                        onClick = {
-                            currentCodeType = "loop"
-                            loadCode("loop")
-                            showCodeTypeSelector = false
-                            showCodeEditor = true
-                        }
-                    ) {
-                        Text("事件处理代码 (WebSocket事件触发)")
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        SettingsGroup(
+                            items = listOf(
+                                {
+                                    SettingsItemCell(
+                                        icon = Icons.Default.Chat,
+                                        title = "初始化代码",
+                                        subtitle = "启动机器人时运行的代码",
+                                        onClick = {
+                                            currentCodeType = "start"
+                                            loadCode("start")
+                                            showCodeTypeSelector = false
+                                            showCodeEditor = true
+                                        }
+                                    )
+                                },
+                                {
+                                    SettingsItemCell(
+                                        icon = Icons.Default.Code,
+                                        title = "事件代码",
+                                        subtitle = "收到事件运行的代码",
+                                        onClick = {
+                                            currentCodeType = "loop"
+                                            loadCode("loop")
+                                            showCodeTypeSelector = false
+                                            showCodeEditor = true
+                                        }
+                                    )
+                                }
+                            )
+                        )
                     }
                 }
             },
@@ -804,8 +823,11 @@ fun BotRuntimeScreen(
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
-            title = { Text("启动代码已修改") },
-            text = { Text("检测到启动代码已变更，是否重新运行初始化代码？") },
+            icon = {
+                Icon(Icons.Default.Info, contentDescription = null)
+            },
+            title = { Text("初始化代码已修改") },
+            text = { Text("检测到初始化代码已变更，是否重新运行初始化代码？") },
             confirmButton = {
                 TextButton(
                     onClick = {
