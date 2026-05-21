@@ -282,9 +282,10 @@ fun HomeScreen(
                     val greeting = remember(currentDate) {
                         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                         when (hour) {
-                            in 5..11 -> "早上好"
-                            in 12..13 -> "中午好"
-                            in 14..17 -> "下午好"
+                            in 5..8 -> "早上好"
+                            in 9..10 -> "上午好"
+                            in 11..12 -> "中午好"
+                            in 13..17 -> "下午好"
                             in 18..22 -> "晚上好"
                             else -> "夜深了"
                         }
