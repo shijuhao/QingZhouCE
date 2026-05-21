@@ -95,24 +95,6 @@ fun HomeScreen(
     val yearWeekFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.ENGLISH) }
     val currentDate = remember { Date() }
     
-    var dayProgress by remember { mutableFloatStateOf(0f) }
-                    
-    LaunchedEffect(Unit) {
-        while (true) {
-            val calendar = Calendar.getInstance()
-            val totalMinutes = 24 * 60
-            val currentMinutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
-            dayProgress = currentMinutes.toFloat() / totalMinutes
-            delay(60000)
-        }
-    }
-    
-    val animatedProgress by animateFloatAsState(
-        targetValue = dayProgress,
-        animationSpec = tween(durationMillis = 500),
-        label = "progress"
-    )
-
     val expandedState = rememberSaveable(
         saver = mapSaver(
             save = { it.toMap() as Map<String, Any?> },
@@ -129,6 +111,14 @@ fun HomeScreen(
     }
     
     var expandedStateInitialized by rememberSaveable { mutableStateOf(false) }
+    
+    var dayProgress by remember { mutableFloatStateOf(0f) }
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = dayProgress,
+        animationSpec = tween(durationMillis = 500),
+        label = "progress"
+    )
 
     LaunchedEffect(Unit) {
         if (!expandedStateInitialized) {
@@ -138,6 +128,13 @@ fun HomeScreen(
             loaded["我的收藏"] = ExpandedStatePrefs.getExpanded(context, "我的收藏", false)
             expandedState.putAll(loaded)
             expandedStateInitialized = true
+        }
+        while (true) {
+            val calendar = Calendar.getInstance()
+            val totalMinutes = 24 * 60
+            val currentMinutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
+            dayProgress = currentMinutes.toFloat() / totalMinutes
+            delay(60000)
         }
     }
 

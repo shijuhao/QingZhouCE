@@ -568,7 +568,7 @@ fun BotRuntimeScreen(
                 viewModel.addMessage(
                     ChatMessage(
                         type = 3,
-                        text = "📝 正在执行启动代码...",
+                        text = "📝 正在执行初始化代码...",
                         time = timeFormat.format(Date()),
                         iconColor = Color.Yellow
                     )
