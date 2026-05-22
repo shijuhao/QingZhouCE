@@ -9,7 +9,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -272,14 +271,7 @@ fun CollapsingAvatarTopAppBar(
             }
         }
 
-    val appBarContainerColor = remember { Animatable(targetColor, Color.VectorConverter) }
-
-    LaunchedEffect(targetColor) {
-        appBarContainerColor.animateTo(
-            targetValue = targetColor,
-            animationSpec = TopAppBarColorSpect
-        )
-    }
+    val appBarContainerColor = targetColor
 
     val actionsRow =
         @Composable {
@@ -295,7 +287,7 @@ fun CollapsingAvatarTopAppBar(
             modifier
                 .drawWithCache {
                     onDrawBehind {
-                        val color = appBarContainerColor.value
+                        val color = appBarContainerColor
                         if (color != Color.Unspecified) {
                             drawRect(color = color)
                         }
