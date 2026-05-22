@@ -332,8 +332,7 @@ fun CollapsingAvatarTopAppBar(
 private fun Modifier.adjustPinnedHeightOffsetLimit(scrollBehavior: TopAppBarScrollBehavior?, collapsedHeight: Float) =
     scrollBehavior?.state?.let {
         onSizeChanged { size ->
-            val offset = size.height.toFloat() - it.heightOffset - collapsedHeight
-            it.heightOffsetLimit = -offset
+            it.heightOffsetLimit = -(size.height.toFloat() - collapsedHeight)
         }
     } ?: this
 
