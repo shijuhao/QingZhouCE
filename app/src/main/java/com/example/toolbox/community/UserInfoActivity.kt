@@ -217,7 +217,7 @@ class UserInfoActivity : ComponentActivity() {
 
 // ======================== CollapsingAvatarTopAppBar 组件及相关代码 ========================
 
-private val TopAppBarColorSpect = spring(stiffness = 1000f)
+private val TopAppBarColorSpect = spring<Color>(stiffness = 1000f)
 private val TopTitleAlphaEasing = CubicBezierEasing(.8f, 0f, .8f, .15f)
 private val TopAppBarHorizontalPadding = 4.dp
 private val TopAppBarTitleInset = 16.dp - TopAppBarHorizontalPadding
@@ -259,11 +259,15 @@ fun CollapsingAvatarTopAppBar(
         remember(colors, scrollBehavior) {
             derivedStateOf {
                 val overlappingFraction = scrollBehavior?.state?.overlappedFraction ?: 0f
-                if (overlappingFraction > 0.01f) {
-                    colors.scrolledContainerColor
-                } else {
-                    colors.containerColor
-                }
+                val fraction = FastOutSlowInEasing.transform(
+                    if (overlappingFraction > 0.01f) 1f else 0f
+                )
+                
+                androidx.compose.ui.graphics.lerp(
+                    colors.containerColor,
+                    colors.scrolledContainerColor,
+                    fraction
+                )
             }
         }
 
