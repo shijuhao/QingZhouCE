@@ -263,7 +263,7 @@ fun CollapsingAvatarTopAppBar(
                     if (overlappingFraction > 0.01f) 1f else 0f
                 )
                 
-                androidx.compose.ui.graphics.lerp(
+                androidx.compose.ui.graphics.lerp<Color>(
                     colors.containerColor,
                     colors.scrolledContainerColor,
                     fraction
