@@ -259,15 +259,11 @@ fun CollapsingAvatarTopAppBar(
         remember(colors, scrollBehavior) {
             derivedStateOf {
                 val overlappingFraction = scrollBehavior?.state?.overlappedFraction ?: 0f
-                val fraction = FastOutSlowInEasing.transform(
-                    if (overlappingFraction > 0.01f) 1f else 0f
-                )
-                
-                androidx.compose.ui.graphics.lerp<Color>(
-                    colors.containerColor,
-                    colors.scrolledContainerColor,
-                    fraction
-                )
+                if (overlappingFraction > 0.01f) {
+                    colors.scrolledContainerColor
+                } else {
+                    colors.containerColor
+                }
             }
         }
 
