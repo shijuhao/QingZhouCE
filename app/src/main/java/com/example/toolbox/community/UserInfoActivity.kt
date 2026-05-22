@@ -272,7 +272,7 @@ fun CollapsingAvatarTopAppBar(
             }
         }
 
-    val appBarContainerColor = remember { Animatable(targetColor) }
+    val appBarContainerColor = remember { Animatable(targetColor, Color.VectorConverter) }
 
     LaunchedEffect(targetColor) {
         appBarContainerColor.animateTo(
