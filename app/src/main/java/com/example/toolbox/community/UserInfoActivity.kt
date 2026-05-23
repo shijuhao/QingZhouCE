@@ -14,6 +14,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -43,14 +46,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PersonAddAlt1
-import androidx.compose.material.icons.filled.PersonOff
-import androidx.compose.material.icons.filled.PersonRemove
-import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CurrencyYen
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -545,7 +542,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
             } ?: 0
 
             val extraContentHeight = extraContentPlaceable?.run {
-                lerpDpToInt(height, 0, (collapsedFraction * 1.5f).coerceAtMost(1f))
+                lerpDpToInt(height, 0, collapsedFraction)
             } ?: 0
 
             val topExpandingOffset = lerpInt(MinAvatarOffset.roundToPx(), 0, collapsedFraction)
@@ -553,7 +550,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 max(avatarPlaceable?.height ?: 0, titlePlaceable.height + subtitleExpandingOffset)
             val maxLayoutHeight = max(
                 height.roundToPx(),
-                maxElementHeight + topExpandingOffset + avatarPadding.height * 2 + extraContentHeight
+                maxElementHeight + avatarPadding.height * 2 + extraContentHeight
             )
             val layoutHeight =
                 if (constraints.maxHeight == Constraints.Infinity) {
@@ -564,68 +561,41 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
 
             return layout(constraints.maxWidth, layoutHeight) {
                 val collapsedHeight = TopAppBarDefaults.TopAppBarExpandedHeight.roundToPx()
-                val headerLayoutHeight = layoutHeight - topExpandingOffset - extraContentHeight
-
+                
                 navigationIconPlaceable.placeRelative(
                     x = 0,
                     y = (collapsedHeight - navigationIconPlaceable.height) / 2,
                 )
-
+            
                 var start = lerpInt(
                     avatarPadding.width,
                     max(TopAppBarTitleInset.roundToPx(), navigationIconPlaceable.width),
                     collapsedFraction
                 )
-
+            
                 avatarPlaceable?.placeRelative(
                     x = start,
-                    y = (headerLayoutHeight - avatarPlaceable.height) / 2 + topExpandingOffset
+                    y = (layoutHeight - avatarPlaceable.height) / 2 - extraContentHeight
                 )
-
-                val titlePadding =
-                    lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
+            
+                val titlePadding = lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
                 start += (avatarPlaceable?.width ?: 0) + titlePadding
                 val end = actionIconsPlaceable.width
-
-                var titleX =
-                    titleHorizontalAlignment.align(
-                        size = titlePlaceable.width,
-                        space = constraints.maxWidth,
-                        layoutDirection = LayoutDirection.Ltr,
-                    )
+            
+                var titleX = titleHorizontalAlignment.align(
+                    size = titlePlaceable.width,
+                    space = constraints.maxWidth,
+                    layoutDirection = LayoutDirection.Ltr,
+                )
                 if (titleX < start) titleX += (start - titleX)
                 else if (titleX + titlePlaceable.width > constraints.maxWidth - end) {
                     titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
                 }
 
-                val titleY =
-                    when (titleVerticalArrangement) {
-                        Arrangement.Center ->
-                            (headerLayoutHeight - titlePlaceable.height - subtitleExpandingOffset) / 2 + topExpandingOffset
-
-                        Arrangement.Bottom -> {
-                            val bottomElements = subtitleExpandingOffset + extraContentHeight
-                            if (titleBottomPadding == 0) {
-                                layoutHeight - titlePlaceable.height - bottomElements
-                            } else {
-                                val paddingFromBottom =
-                                    titleBottomPadding - (titlePlaceable.height - titleBaseline)
-                                val heightWithPadding = paddingFromBottom + titlePlaceable.height
-                                val adjustedBottomPadding =
-                                    if (heightWithPadding > maxLayoutHeight) {
-                                        paddingFromBottom - (heightWithPadding - maxLayoutHeight)
-                                    } else paddingFromBottom
-                                layoutHeight - titlePlaceable.height - max(
-                                    0,
-                                    adjustedBottomPadding
-                                ) - bottomElements
-                            }
-                        }
-
-                        else -> topExpandingOffset
-                    }
+                val titleY = (layoutHeight - titlePlaceable.height - subtitleExpandingOffset) / 2 - extraContentHeight
+                
                 titlePlaceable.placeRelative(titleX, titleY)
-
+            
                 subtitlePlaceable?.let {
                     val subtitleX = avatarPadding.width + avatarMax.roundToPx() + titlePadding
                     it.placeRelative(
@@ -637,12 +607,12 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                         y = titleY + titlePlaceable.height
                     )
                 }
-
+            
                 actionIconsPlaceable.placeRelative(
                     x = constraints.maxWidth - actionIconsPlaceable.width,
                     y = (collapsedHeight - actionIconsPlaceable.height) / 2,
                 )
-
+            
                 extraContentPlaceable?.let {
                     val extraY = if (subtitlePlaceable != null) {
                         titleY + titlePlaceable.height + subtitlePlaceable.height
@@ -870,12 +840,10 @@ fun UserInfoScreen(userId: Int) {
         )
     }
 
-    var appBarHeight by remember { mutableStateOf(120.dp) }
-
     Scaffold(
         topBar = {
             CollapsingAvatarTopAppBar(
-                expandedHeight = appBarHeight,
+                expandedHeight = 256.dp,
                 avatar = {
                     userInfo?.let {
                         AsyncImage(
@@ -925,11 +893,48 @@ fun UserInfoScreen(userId: Int) {
                 },
                 actions = {
                     val userStatus = TokenManager.getTagStatus(context)
-                    if (userStatus == 1) {
+                    val notMyself = userInfo?.userId != TokenManager.getUserID(context)
+                    
+                    if (notMyself) {
+                        if (!isPageLoading) {
+                            IconButton(onClick = {
+                                scope.launch {
+                                    toggleFollow(context, userInfo?.userId ?: 0) { success ->
+                                        if (success) isFollowing = !isFollowing
+                                    }
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = if (isFollowing) Icons.Filled.PersonRemove else Icons.Filled.PersonAddAlt1,
+                                    contentDescription = if (isFollowing) "取消关注" else "关注"
+                                )
+                            }
+                        }
+                        
+                        if (isFollowing) {
+                            IconButton(onClick = {
+                                val intent = Intent(context, MessageDetailActivity::class.java).apply {
+                                    putExtra("user_id", userInfo?.userId)
+                                }
+                                context.startActivity(intent)
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.Message, contentDescription = "私信")
+                            }
+                        }
+                    } else {
+                        IconButton(onClick = {
+                            context.startActivity(Intent(context, UserSettingsActivity::class.java))
+                        }) {
+                            Icon(Icons.Filled.Edit, contentDescription = "编辑资料")
+                        }
+                    }
+                    
+                    if (userStatus == 1 && notMyself) {
                         IconButton(onClick = { showBanDialog = true }) {
                             Icon(Icons.Default.Block, contentDescription = "封禁")
                         }
                     }
+                    
                     Box {
                         IconButton(onClick = { isMenuExpanded = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "更多")
@@ -945,10 +950,7 @@ fun UserInfoScreen(userId: Int) {
                                     showReportDialog = true
                                 },
                                 leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Flag,
-                                        contentDescription = null
-                                    )
+                                    Icon(Icons.Default.Flag, contentDescription = null)
                                 }
                             )
                         }
@@ -958,23 +960,97 @@ fun UserInfoScreen(userId: Int) {
                 collapsibleExtraContent = true,
                 content = {
                     userInfo?.let { info ->
+                        var showFullBioDialog by remember { mutableStateOf(false) }
+                        
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp)
-                                .onSizeChanged { size ->
-                                    val contentHeight = with(density) { size.height.toDp() }
-                                    appBarHeight = 80.dp + contentHeight
-                                }
                         ) {
                             if (info.bio.isNotEmpty()) {
                                 Text(
                                     text = info.bio,
                                     fontSize = 13.sp,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.clickable { showFullBioDialog = true }
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
                             }
+                            
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Image(
+                                            modifier = Modifier.size(14.dp),
+                                            painter = painterResource(getLevelIconRes(info.level.toString())),
+                                            contentDescription = null
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Lv.${info.level}",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                                
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.CurrencyYen,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "${info.gold}",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (showFullBioDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showFullBioDialog = false },
+                                title = { Text("个人简介") },
+                                text = {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .verticalScroll(rememberScrollState())
+                                    ) {
+                                        Text(
+                                            text = info.bio,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = { showFullBioDialog = false }) {
+                                        Text("关闭")
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -993,171 +1069,6 @@ fun UserInfoScreen(userId: Int) {
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
                 contentPadding = paddingValues
             ) {
-                userInfo?.let { info ->
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                info.backgroundUrl?.let { backgroundUrl ->
-                                    AsyncImage(
-                                        model = backgroundUrl,
-                                        contentDescription = "背景",
-                                        modifier = Modifier
-                                            .matchParentSize()
-                                            .alpha(0.2f),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    ) {
-                                        Image(
-                                            modifier = Modifier.size(16.dp),
-                                            painter = painterResource(getLevelIconRes(info.level.toString())),
-                                            contentDescription = null
-                                        )
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text(
-                                            text = "${info.level}",
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        LinearProgressIndicator(
-                                            progress = { info.experience.toFloat() / (info.level * 100f) },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(8.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(text = "${info.gold} 金币", fontSize = 12.sp)
-                                    }
-
-                                    val notMyself = info.userId != TokenManager.getUserID(context)
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        if (notMyself) {
-                                            Button(
-                                                onClick = {
-                                                    scope.launch {
-                                                        toggleFollow(
-                                                            context,
-                                                            info.userId
-                                                        ) { success ->
-                                                            if (success) isFollowing = !isFollowing
-                                                        }
-                                                    }
-                                                },
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = if (isFollowing) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                                ),
-                                                modifier = Modifier.weight(1f)
-                                            ) {
-                                                Icon(
-                                                    imageVector = if (isFollowing) Icons.Default.PersonRemove else Icons.Default.PersonAddAlt1,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(ButtonDefaults.IconSize)
-                                                )
-                                                Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-                                                Text(if (isFollowing) "已关注" else "关注")
-                                            }
-                                            if (isFollowing) {
-                                                Button(
-                                                    onClick = {
-                                                        val intent = Intent(
-                                                            context,
-                                                            MessageDetailActivity::class.java
-                                                        )
-                                                        intent.putExtra("user_id", info.userId)
-                                                        context.startActivity(intent)
-                                                    },
-                                                    modifier = Modifier
-                                                        .weight(1f)
-                                                        .padding(start = 10.dp),
-                                                    colors = ButtonDefaults.buttonColors(
-                                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                                    )
-                                                ) {
-                                                    Icon(
-                                                        Icons.AutoMirrored.Filled.Message,
-                                                        contentDescription = "私信",
-                                                        modifier = Modifier.size(ButtonDefaults.IconSize)
-                                                    )
-                                                    Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-                                                    Text("私信")
-                                                }
-                                            }
-                                        } else {
-                                            Button(
-                                                onClick = {
-                                                    context.startActivity(
-                                                        Intent(
-                                                            context,
-                                                            UserSettingsActivity::class.java
-                                                        )
-                                                    )
-                                                },
-                                                modifier = Modifier.fillMaxWidth(),
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                                )
-                                            ) {
-                                                Icon(
-                                                    Icons.Default.Edit,
-                                                    contentDescription = "编辑资料",
-                                                    modifier = Modifier.size(ButtonDefaults.IconSize)
-                                                )
-                                                Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-                                                Text("编辑资料")
-                                            }
-                                        }
-                                    }
-
-                                    if (info.isBanned) {
-                                        Surface(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(top = 8.dp),
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = MaterialTheme.colorScheme.errorContainer
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(8.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    Icons.Default.PersonOff,
-                                                    contentDescription = null
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "该账号已被封禁，于${info.banEndTime ?: "未知时间"}解禁",
-                                                    fontSize = 12.sp
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
                 stickyHeader {
                     Surface(
                         Modifier
