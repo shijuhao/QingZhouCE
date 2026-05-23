@@ -537,7 +537,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 } else 0
 
             val subtitleExpandingOffset = subtitlePlaceable?.run {
-                lerpDpToInt(0, subtitlePlaceable.height.toDp(), LinearOutSlowInEasing.transform(collapsedFraction))
+                lerpDpToInt(0.dp, subtitlePlaceable.height, LinearOutSlowInEasing.transform(collapsedFraction))
             } ?: 0
 
             val extraContentHeight = extraContentPlaceable?.run {
