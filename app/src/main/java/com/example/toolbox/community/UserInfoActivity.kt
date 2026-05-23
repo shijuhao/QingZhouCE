@@ -573,13 +573,11 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 )
                 
                 val avatarYOffset = lerpInt(collapsedHeight, 0, collapsedFraction)
-                avatarPlaceable?.placeRelative(
-                    x = start,
-                    y = avatarYOffset + (effectiveHeight - avatarPlaceable.height) / 2
-                )
+                val avatarY = avatarYOffset + (effectiveHeight - avatarPlaceable!!.height) / 2
+                avatarPlaceable.placeRelative(x = start, y = avatarY)
                 
                 val titlePadding = lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
-                start += (avatarPlaceable?.width ?: 0) + titlePadding
+                start += (avatarPlaceable.width ?: 0) + titlePadding
                 val end = actionIconsPlaceable.width
                 
                 var titleX = titleHorizontalAlignment.align(
@@ -592,18 +590,17 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
                 }
                 
-                val titleCenterY = lerpInt(effectiveHeight, collapsedHeight, collapsedFraction)
-                val titleY = (titleCenterY - titlePlaceable.height - subtitleExpandingOffset) / 2
+                val foldedTitleY = (collapsedHeight - titlePlaceable.height) / 2
+                val expandedTitleY = avatarY + (avatarPlaceable.height - titlePlaceable.height - subtitleExpandingOffset) / 2
+                val titleY = lerpInt(expandedTitleY, foldedTitleY, collapsedFraction)
                 
-                val contentYOffset = lerpInt(collapsedHeight, 0, collapsedFraction)
-                
-                titlePlaceable.placeRelative(titleX, contentYOffset + titleY)
+                titlePlaceable.placeRelative(titleX, titleY)
                 
                 subtitlePlaceable?.let {
                     val subtitleX = avatarPadding.width + avatarMax.roundToPx() + titlePadding
                     it.placeRelative(
                         x = lerpInt(subtitleX, (subtitleX * 0.85f).fastRoundToInt(), collapsedFraction),
-                        y = contentYOffset + titleY + titlePlaceable.height
+                        y = titleY + titlePlaceable.height
                     )
                 }
                 
@@ -613,7 +610,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 )
                 
                 extraContentPlaceable?.let {
-                    it.placeRelative(x = 0, y = contentYOffset + effectiveHeight)
+                    it.placeRelative(x = 0, y = avatarY + avatarPlaceable.height)
                 }
             }
         }
@@ -834,341 +831,378 @@ fun UserInfoScreen(userId: Int) {
         )
     }
 
-    Scaffold(
-        topBar = {
-            CollapsingAvatarTopAppBar(
-                expandedHeight = 220.dp,
-                avatar = {
-                    userInfo?.let {
-                        AsyncImage(
-                            model = it.avatar,
-                            contentDescription = "头像",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                },
-                title = {
-                    userInfo?.let {
-                        Text(
-                            text = it.username,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    } ?: Text("用户信息")
-                },
-                subtitle = {
-                    userInfo?.let {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Image(
-                                modifier = Modifier.size(14.dp),
-                                painter = painterResource(getLevelIconRes(it.level.toString())),
-                                contentDescription = null
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val topBarHeight = 180.dp
+    val totalTopHeight = statusBarHeight + topBarHeight
+    
+    val backgroundAlpha by remember {
+        derivedStateOf { 1f - scrollBehavior.state.collapsedFraction }
+    }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        userInfo?.backgroundUrl?.let { backgroundUrl ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(totalTopHeight)
+                    .graphicsLayer { alpha = backgroundAlpha }
+            ) {
+                AsyncImage(
+                    model = backgroundUrl,
+                    contentDescription = "用户背景",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.35f))
+                )
+            }
+        }
+        
+        Scaffold(
+            topBar = {
+                CollapsingAvatarTopAppBar(
+                    expandedHeight = topBarHeight,
+                    avatar = {
+                        userInfo?.let {
+                            AsyncImage(
+                                model = it.avatar,
+                                contentDescription = "头像",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
                             )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = "Lv.${it.level}",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("${it.followingCount} 关注", fontSize = 12.sp)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("${it.followersCount} 粉丝", fontSize = 12.sp)
                         }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { (context as Activity).finish() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    val userStatus = TokenManager.getTagStatus(context)
-                    val notMyself = userInfo?.userId != TokenManager.getUserID(context)
-                    
-                    if (notMyself) {
-                        if (!isPageLoading) {
-                            IconButton(onClick = {
-                                scope.launch {
-                                    toggleFollow(context, userInfo?.userId ?: 0) { success ->
-                                        if (success) isFollowing = !isFollowing
+                    },
+                    title = {
+                        userInfo?.let {
+                            Text(
+                                text = it.username,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = Color.White
+                            )
+                        } ?: Text("用户信息")
+                    },
+                    subtitle = {
+                        userInfo?.let {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Image(
+                                    modifier = Modifier.size(14.dp),
+                                    painter = painterResource(getLevelIconRes(it.level.toString())),
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "Lv.${it.level}",
+                                    fontSize = 12.sp,
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("${it.followingCount} 关注", fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("${it.followersCount} 粉丝", fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f))
+                            }
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { (context as Activity).finish() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = Color.White)
+                        }
+                    },
+                    actions = {
+                        val userStatus = TokenManager.getTagStatus(context)
+                        val notMyself = userInfo?.userId != TokenManager.getUserID(context)
+                        
+                        if (notMyself) {
+                            if (!isPageLoading) {
+                                IconButton(onClick = {
+                                    scope.launch {
+                                        toggleFollow(context, userInfo?.userId ?: 0) { success ->
+                                            if (success) isFollowing = !isFollowing
+                                        }
                                     }
+                                }) {
+                                    Icon(
+                                        imageVector = if (isFollowing) Icons.Filled.PersonRemove else Icons.Filled.PersonAddAlt1,
+                                        contentDescription = if (isFollowing) "取消关注" else "关注",
+                                        tint = Color.White
+                                    )
                                 }
+                            }
+                            
+                            if (isFollowing) {
+                                IconButton(onClick = {
+                                    val intent = Intent(context, MessageDetailActivity::class.java).apply {
+                                        putExtra("user_id", userInfo?.userId)
+                                    }
+                                    context.startActivity(intent)
+                                }) {
+                                    Icon(Icons.AutoMirrored.Filled.Message, contentDescription = "私信", tint = Color.White)
+                                }
+                            }
+                        } else {
+                            IconButton(onClick = {
+                                context.startActivity(Intent(context, UserSettingsActivity::class.java))
                             }) {
-                                Icon(
-                                    imageVector = if (isFollowing) Icons.Filled.PersonRemove else Icons.Filled.PersonAddAlt1,
-                                    contentDescription = if (isFollowing) "取消关注" else "关注"
+                                Icon(Icons.Filled.Edit, contentDescription = "编辑资料", tint = Color.White)
+                            }
+                        }
+                        
+                        if (userStatus == 1 && notMyself) {
+                            IconButton(onClick = { showBanDialog = true }) {
+                                Icon(Icons.Default.Block, contentDescription = "封禁", tint = Color.White)
+                            }
+                        }
+                        
+                        Box {
+                            IconButton(onClick = { isMenuExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "更多", tint = Color.White)
+                            }
+                            DropdownMenu(
+                                expanded = isMenuExpanded,
+                                onDismissRequest = { isMenuExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("举报该用户") },
+                                    onClick = {
+                                        isMenuExpanded = false
+                                        showReportDialog = true
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Flag, contentDescription = null)
+                                    }
                                 )
                             }
                         }
-                        
-                        if (isFollowing) {
-                            IconButton(onClick = {
-                                val intent = Intent(context, MessageDetailActivity::class.java).apply {
-                                    putExtra("user_id", userInfo?.userId)
-                                }
-                                context.startActivity(intent)
-                            }) {
-                                Icon(Icons.AutoMirrored.Filled.Message, contentDescription = "私信")
-                            }
-                        }
-                    } else {
-                        IconButton(onClick = {
-                            context.startActivity(Intent(context, UserSettingsActivity::class.java))
-                        }) {
-                            Icon(Icons.Filled.Edit, contentDescription = "编辑资料")
-                        }
-                    }
-                    
-                    if (userStatus == 1 && notMyself) {
-                        IconButton(onClick = { showBanDialog = true }) {
-                            Icon(Icons.Default.Block, contentDescription = "封禁")
-                        }
-                    }
-                    
-                    Box {
-                        IconButton(onClick = { isMenuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "更多")
-                        }
-                        DropdownMenu(
-                            expanded = isMenuExpanded,
-                            onDismissRequest = { isMenuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("举报该用户") },
-                                onClick = {
-                                    isMenuExpanded = false
-                                    showReportDialog = true
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Flag, contentDescription = null)
-                                }
-                            )
-                        }
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                collapsibleExtraContent = true,
-                content = {
-                    userInfo?.let { info ->
-                        var showFullBioDialog by remember { mutableStateOf(false) }
-                        
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        ) {
-                            if (info.bio.isNotEmpty()) {
+                    },
+                    scrollBehavior = scrollBehavior,
+                    collapsibleExtraContent = true,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    content = {
+                        userInfo?.let { info ->
+                            var showFullBioDialog by remember { mutableStateOf(false) }
+                            
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            ) {
                                 Text(
-                                    text = info.bio,
+                                    text = if (info.bio.isNotEmpty()) info.bio else "这个用户很懒，没有简介~",
                                     fontSize = 13.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
+                                    color = Color.White.copy(alpha = 0.9f),
                                     modifier = Modifier.clickable { showFullBioDialog = true }
                                 )
+                                
                                 Spacer(modifier = Modifier.height(8.dp))
+                                
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Image(
+                                                modifier = Modifier.size(14.dp),
+                                                painter = painterResource(getLevelIconRes(info.level.toString())),
+                                                contentDescription = null
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Lv.${info.level}",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        }
+                                    }
+                                    
+                                    // 金币 Chip
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f),
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.MonetizationOn,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp),
+                                                tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "${info.gold}",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                                            )
+                                        }
+                                    }
+                                }
                             }
                             
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Image(
-                                            modifier = Modifier.size(14.dp),
-                                            painter = painterResource(getLevelIconRes(info.level.toString())),
-                                            contentDescription = null
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Lv.${info.level}",
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
-                                }
-                                
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.MonetizationOn,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(14.dp),
-                                            tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "${info.gold}",
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        
-                        if (showFullBioDialog) {
-                            AlertDialog(
-                                onDismissRequest = { showFullBioDialog = false },
-                                title = { Text("个人简介") },
-                                text = {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .verticalScroll(rememberScrollState())
-                                    ) {
-                                        Text(
-                                            text = info.bio,
-                                            fontSize = 14.sp
-                                        )
-                                    }
-                                },
-                                confirmButton = {
-                                    TextButton(onClick = { showFullBioDialog = false }) {
-                                        Text("关闭")
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                ContainedLoadingIndicator()
-            }
-        } else {
-            LazyColumn(
-                state = isScrolling,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = paddingValues
-            ) {
-                stickyHeader {
-                    Surface(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.background)
-                    ) {
-                        SecondaryTabRow(selectedTabIndex = currentTab) {
-                            Tab(
-                                selected = currentTab == 0,
-                                onClick = { currentTab = 0 },
-                                text = { Text("帖子") }
-                            )
-                            Tab(
-                                selected = currentTab == 1,
-                                onClick = { currentTab = 1 },
-                                text = { Text("投稿${if (resources.isNotEmpty()) "(${resources.size})" else ""}") }
-                            )
-                        }
-                    }
-                }
-
-                if (currentTab == 0) {
-                    if (messages.isEmpty()) {
-                        item {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("空空如也")
-                            }
-                        }
-                    } else {
-                        items(messages) { userMessage ->
-                            MessageItem(
-                                message = userMessage,
-                                onLikeClick = {
-                                    scope.launch {
-                                        val token = TokenManager.get(context) ?: return@launch
-                                        try {
-                                            val (newIsLiked, newLikeCount) = toggleLike(
-                                                httpClient,
-                                                token,
-                                                userMessage.id,
-                                                userMessage.is_liked,
-                                                userMessage.likeCount
+                            if (showFullBioDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showFullBioDialog = false },
+                                    title = { Text("个人简介") },
+                                    text = {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .verticalScroll(rememberScrollState())
+                                        ) {
+                                            Text(
+                                                text = info.bio,
+                                                fontSize = 14.sp
                                             )
-                                            messages = messages.map {
-                                                if (it.id == userMessage.id) it.copy(
-                                                    is_liked = newIsLiked,
-                                                    likeCount = newLikeCount
-                                                ) else it
-                                            }
-                                        } catch (e: Exception) {
-                                            Toast.makeText(
-                                                context,
-                                                e.message ?: "操作失败",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = { showFullBioDialog = false }) {
+                                            Text("关闭")
                                         }
                                     }
-                                },
-                                onMenuClick = {}
-                            )
+                                )
+                            }
                         }
                     }
-                } else {
-                    if (resources.isEmpty()) {
+                )
+            }
+        ) { paddingValues ->
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+                    ContainedLoadingIndicator()
+                }
+            } else {
+                LazyColumn(
+                    state = isScrolling,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    contentPadding = paddingValues
+                ) {
+                    stickyHeader {
+                        Surface(
+                            Modifier.fillMaxWidth()
+                        ) {
+                            SecondaryTabRow(selectedTabIndex = currentTab) {
+                                Tab(
+                                    selected = currentTab == 0,
+                                    onClick = { currentTab = 0 },
+                                    text = { Text("帖子") }
+                                )
+                                Tab(
+                                    selected = currentTab == 1,
+                                    onClick = { currentTab = 1 },
+                                    text = { Text("投稿${if (resources.isNotEmpty()) "(${resources.size})" else ""}") }
+                                )
+                            }
+                        }
+                    }
+    
+                    if (currentTab == 0) {
+                        if (messages.isEmpty()) {
+                            item {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("空空如也")
+                                }
+                            }
+                        } else {
+                            items(messages) { userMessage ->
+                                MessageItem(
+                                    message = userMessage,
+                                    onLikeClick = {
+                                        scope.launch {
+                                            val token = TokenManager.get(context) ?: return@launch
+                                            try {
+                                                val (newIsLiked, newLikeCount) = toggleLike(
+                                                    httpClient,
+                                                    token,
+                                                    userMessage.id,
+                                                    userMessage.is_liked,
+                                                    userMessage.likeCount
+                                                )
+                                                messages = messages.map {
+                                                    if (it.id == userMessage.id) it.copy(
+                                                        is_liked = newIsLiked,
+                                                        likeCount = newLikeCount
+                                                    ) else it
+                                                }
+                                            } catch (e: Exception) {
+                                                Toast.makeText(
+                                                    context,
+                                                    e.message ?: "操作失败",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    },
+                                    onMenuClick = {}
+                                )
+                            }
+                        }
+                    } else {
+                        if (resources.isEmpty()) {
+                            item {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("资源空空")
+                                }
+                            }
+                        } else {
+                            items(resources) { resource ->
+                                ResourceItem(
+                                    resource = resource,
+                                    onClick = {
+                                        val resourceJson = AppJson.json.encodeToString(resource)
+                                        Log.e("1", resourceJson)
+                                        val intent =
+                                            Intent(context, ResourceDetailActivity::class.java).apply {
+                                                putExtra("item_json", resourceJson)
+                                            }
+                                        context.startActivity(intent)
+                                    }
+                                )
+                            }
+                        }
+                    }
+    
+                    if (canLoadMore && currentTab == 0) {
                         item {
                             Box(
                                 Modifier
                                     .fillMaxWidth()
-                                    .height(200.dp),
+                                    .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("资源空空")
+                                ContainedLoadingIndicator(modifier = Modifier.size(32.dp))
                             }
-                        }
-                    } else {
-                        items(resources) { resource ->
-                            ResourceItem(
-                                resource = resource,
-                                onClick = {
-                                    val resourceJson = AppJson.json.encodeToString(resource)
-                                    Log.e("1", resourceJson)
-                                    val intent =
-                                        Intent(context, ResourceDetailActivity::class.java).apply {
-                                            putExtra("item_json", resourceJson)
-                                        }
-                                    context.startActivity(intent)
-                                }
-                            )
-                        }
-                    }
-                }
-
-                if (canLoadMore && currentTab == 0) {
-                    item {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            ContainedLoadingIndicator(modifier = Modifier.size(32.dp))
                         }
                     }
                 }
