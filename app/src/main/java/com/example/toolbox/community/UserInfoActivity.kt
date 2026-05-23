@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBars
@@ -591,8 +592,9 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
                 }
                 
+                val totalHeight = titlePlaceable.height + subtitleExpandingOffset
+                val expandedTitleY = avatarY + (avatarPlaceable!!.height - totalHeight) / 2
                 val foldedTitleY = (collapsedHeight - titlePlaceable.height) / 2
-                val expandedTitleY = avatarY + (avatarPlaceable.height - titlePlaceable.height - subtitleExpandingOffset) / 2
                 val titleY = lerpInt(expandedTitleY, foldedTitleY, collapsedFraction)
                 
                 titlePlaceable.placeRelative(titleX, titleY)
@@ -833,7 +835,7 @@ fun UserInfoScreen(userId: Int) {
     }
 
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val topBarHeight = 180.dp
+    val topBarHeight = 200.dp
     val totalTopHeight = statusBarHeight + topBarHeight
     
     val backgroundAlpha by remember {
@@ -1095,9 +1097,15 @@ fun UserInfoScreen(userId: Int) {
                     state = isScrolling,
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(top = paddingValues.calculateTopPadding())
                         .background(MaterialTheme.colorScheme.background)
                         .nestedScroll(scrollBehavior.nestedScrollConnection),
-                    contentPadding = paddingValues
+                    contentPadding = PaddingValues(
+                        start = 0.dp,
+                        top = 0.dp,
+                        end = 0.dp,
+                        bottom = paddingValues.calculateBottomPadding()
+                    )
                 ) {
                     stickyHeader {
                         Surface(
