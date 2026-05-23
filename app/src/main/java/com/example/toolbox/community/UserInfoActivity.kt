@@ -537,7 +537,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 } else 0
 
             val subtitleExpandingOffset = subtitlePlaceable?.run {
-                lerpDpToInt(height, 0, LinearOutSlowInEasing.transform(collapsedFraction))
+                lerpDpToInt(0, subtitlePlaceable.height.toDp(), LinearOutSlowInEasing.transform(collapsedFraction))
             } ?: 0
 
             val extraContentHeight = extraContentPlaceable?.run {
@@ -575,7 +575,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 
                 avatarPlaceable?.placeRelative(
                     x = start,
-                    y = (effectiveHeight - avatarPlaceable.height) / 2  // 使用 effectiveHeight
+                    y = (effectiveHeight - avatarPlaceable.height) / 2
                 )
                 
                 val titlePadding = lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
@@ -592,7 +592,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
                 }
                 
-                val titleY = (effectiveHeight - titlePlaceable.height - subtitleExpandingOffset) / 2  // 使用 effectiveHeight
+                val titleY = (effectiveHeight - titlePlaceable.height - subtitleExpandingOffset) / 2
                 
                 titlePlaceable.placeRelative(titleX, titleY)
                 
@@ -614,12 +614,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 )
                 
                 extraContentPlaceable?.let {
-                    val extraY = if (subtitlePlaceable != null) {
-                        titleY + titlePlaceable.height + subtitlePlaceable.height
-                    } else {
-                        titleY + titlePlaceable.height
-                    }
-                    it.placeRelative(x = 0, y = extraY)
+                    it.placeRelative(x = 0, y = effectiveHeight)
                 }
             }
         }
@@ -843,7 +838,7 @@ fun UserInfoScreen(userId: Int) {
     Scaffold(
         topBar = {
             CollapsingAvatarTopAppBar(
-                expandedHeight = 256.dp,
+                expandedHeight = 220.dp,
                 avatar = {
                     userInfo?.let {
                         AsyncImage(
