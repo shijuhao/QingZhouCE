@@ -645,9 +645,9 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
 
                 extraContentPlaceable?.let {
                     val extraY = if (subtitlePlaceable != null) {
-                        titleY + titlePlaceable.height + subtitlePlaceable.height + 16.dp.roundToPx()
+                        titleY + titlePlaceable.height + subtitlePlaceable.height
                     } else {
-                        titleY + titlePlaceable.height + 16.dp.roundToPx()
+                        titleY + titlePlaceable.height
                     }
                     it.placeRelative(x = 0, y = extraY)
                 }
