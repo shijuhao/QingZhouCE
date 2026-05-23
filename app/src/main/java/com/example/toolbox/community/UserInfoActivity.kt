@@ -595,17 +595,15 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 val titleCenterY = lerpInt(effectiveHeight, collapsedHeight, collapsedFraction)
                 val titleY = (titleCenterY - titlePlaceable.height - subtitleExpandingOffset) / 2
                 
-                titlePlaceable.placeRelative(titleX, collapsedHeight + titleY)
+                val contentYOffset = lerpInt(collapsedHeight, 0, collapsedFraction)
+                
+                titlePlaceable.placeRelative(titleX, contentYOffset + titleY)
                 
                 subtitlePlaceable?.let {
                     val subtitleX = avatarPadding.width + avatarMax.roundToPx() + titlePadding
                     it.placeRelative(
-                        x = lerpInt(
-                            subtitleX,
-                            (subtitleX * 0.85f).fastRoundToInt(),
-                            collapsedFraction
-                        ),
-                        y = collapsedHeight + titleY + titlePlaceable.height
+                        x = lerpInt(subtitleX, (subtitleX * 0.85f).fastRoundToInt(), collapsedFraction),
+                        y = contentYOffset + titleY + titlePlaceable.height
                     )
                 }
                 
@@ -615,7 +613,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 )
                 
                 extraContentPlaceable?.let {
-                    it.placeRelative(x = 0, y = collapsedHeight + effectiveHeight)
+                    it.placeRelative(x = 0, y = contentYOffset + effectiveHeight)
                 }
             }
         }
