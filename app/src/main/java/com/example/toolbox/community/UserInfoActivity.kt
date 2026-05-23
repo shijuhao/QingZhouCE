@@ -472,7 +472,6 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 measurables.fastFirst { it.layoutId == "actionIcons" }
                     .measure(constraints.copy(minWidth = 0))
 
-            // 始终测量 extraContent，避免布局突变
             val extraContentPlaceable = measurables.fastFirstOrNull { it.layoutId == "extra" }
                 ?.measure(constraints.copy(minWidth = 0))
 
@@ -573,9 +572,10 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     collapsedFraction
                 )
                 
+                val avatarYOffset = lerpInt(collapsedHeight, 0, collapsedFraction)
                 avatarPlaceable?.placeRelative(
                     x = start,
-                    y = (effectiveHeight - avatarPlaceable.height) / 2
+                    y = avatarYOffset + (effectiveHeight - avatarPlaceable.height) / 2
                 )
                 
                 val titlePadding = lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
@@ -592,9 +592,10 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
                 }
                 
-                val titleY = (effectiveHeight - titlePlaceable.height - subtitleExpandingOffset) / 2
+                val titleCenterY = lerpInt(effectiveHeight, collapsedHeight, collapsedFraction)
+                val titleY = (titleCenterY - titlePlaceable.height - subtitleExpandingOffset) / 2
                 
-                titlePlaceable.placeRelative(titleX, titleY)
+                titlePlaceable.placeRelative(titleX, collapsedHeight + titleY)
                 
                 subtitlePlaceable?.let {
                     val subtitleX = avatarPadding.width + avatarMax.roundToPx() + titlePadding
@@ -604,7 +605,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                             (subtitleX * 0.85f).fastRoundToInt(),
                             collapsedFraction
                         ),
-                        y = titleY + titlePlaceable.height
+                        y = collapsedHeight + titleY + titlePlaceable.height
                     )
                 }
                 
@@ -614,7 +615,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 )
                 
                 extraContentPlaceable?.let {
-                    it.placeRelative(x = 0, y = effectiveHeight)
+                    it.placeRelative(x = 0, y = collapsedHeight + effectiveHeight)
                 }
             }
         }
