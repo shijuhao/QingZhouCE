@@ -47,7 +47,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.CurrencyYen
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -561,27 +560,28 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
 
             return layout(constraints.maxWidth, layoutHeight) {
                 val collapsedHeight = TopAppBarDefaults.TopAppBarExpandedHeight.roundToPx()
+                val effectiveHeight = layoutHeight - extraContentHeight
                 
                 navigationIconPlaceable.placeRelative(
                     x = 0,
                     y = (collapsedHeight - navigationIconPlaceable.height) / 2,
                 )
-            
+                
                 var start = lerpInt(
                     avatarPadding.width,
                     max(TopAppBarTitleInset.roundToPx(), navigationIconPlaceable.width),
                     collapsedFraction
                 )
-            
+                
                 avatarPlaceable?.placeRelative(
                     x = start,
-                    y = (layoutHeight - avatarPlaceable.height) / 2 - extraContentHeight
+                    y = (effectiveHeight - avatarPlaceable.height) / 2  // 使用 effectiveHeight
                 )
-            
+                
                 val titlePadding = lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
                 start += (avatarPlaceable?.width ?: 0) + titlePadding
                 val end = actionIconsPlaceable.width
-            
+                
                 var titleX = titleHorizontalAlignment.align(
                     size = titlePlaceable.width,
                     space = constraints.maxWidth,
@@ -591,11 +591,11 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 else if (titleX + titlePlaceable.width > constraints.maxWidth - end) {
                     titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
                 }
-
-                val titleY = (layoutHeight - titlePlaceable.height - subtitleExpandingOffset) / 2 - extraContentHeight
+                
+                val titleY = (effectiveHeight - titlePlaceable.height - subtitleExpandingOffset) / 2  // 使用 effectiveHeight
                 
                 titlePlaceable.placeRelative(titleX, titleY)
-            
+                
                 subtitlePlaceable?.let {
                     val subtitleX = avatarPadding.width + avatarMax.roundToPx() + titlePadding
                     it.placeRelative(
@@ -607,12 +607,12 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                         y = titleY + titlePlaceable.height
                     )
                 }
-            
+                
                 actionIconsPlaceable.placeRelative(
                     x = constraints.maxWidth - actionIconsPlaceable.width,
                     y = (collapsedHeight - actionIconsPlaceable.height) / 2,
                 )
-            
+                
                 extraContentPlaceable?.let {
                     val extraY = if (subtitlePlaceable != null) {
                         titleY + titlePlaceable.height + subtitlePlaceable.height
@@ -1013,7 +1013,7 @@ fun UserInfoScreen(userId: Int) {
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Outlined.CurrencyYen,
+                                            imageVector = Icons.Default.MonetizationOn,
                                             contentDescription = null,
                                             modifier = Modifier.size(14.dp),
                                             tint = MaterialTheme.colorScheme.onTertiaryContainer
