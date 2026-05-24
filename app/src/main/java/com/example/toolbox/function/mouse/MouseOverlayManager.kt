@@ -16,13 +16,16 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 
 class AlwaysAliveLifecycle : LifecycleOwner {
-    private val registry = LifecycleRegistry(this)
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    
     init {
-        registry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        registry.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        registry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
-    override fun getLifecycle() = registry
+    
+    override val lifecycle: Lifecycle
+        get() = lifecycleRegistry
 }
 
 class MouseOverlayManager(private val context: Context) {

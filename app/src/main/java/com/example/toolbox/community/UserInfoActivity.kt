@@ -915,15 +915,15 @@ fun UserInfoScreen(userId: Int) {
                 .height(topBarHeight + WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                 .graphicsLayer { alpha = backgroundAlpha }
         ) {
-            if (userInfo?.backgroundUrl != null) {
+            userInfo?.backgroundUrl?.let { backgroundUrl ->
                 AsyncImage(
-                    model = userInfo.backgroundUrl,
+                    model = backgroundUrl,
                     contentDescription = "用户背景",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     error = painterResource(R.drawable.user_background)
                 )
-            } else {
+            } ?: run {
                 Image(
                     painter = painterResource(R.drawable.user_background),
                     contentDescription = "默认背景",

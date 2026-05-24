@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.toolbox.R
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @Composable
 fun MinimizeButtonComposable(
