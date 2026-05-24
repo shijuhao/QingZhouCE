@@ -39,7 +39,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilledIconButton
@@ -70,7 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.toolbox.ui.theme.ToolBoxTheme
-import kotlinx.coroutines.delay
+import com.example.toolbox.utils.RoundedCornerTabIndicator
 import java.util.Locale
 
 class StopWatchActivity : ComponentActivity() {
@@ -133,7 +132,12 @@ fun Greeting(
             }
         )
 
-        SecondaryTabRow(selectedTabIndex = viewModel.selectedTab) {
+        SecondaryTabRow(
+            selectedTabIndex = viewModel.selectedTab,
+            indicator = {
+                RoundedCornerTabIndicator(index = viewModel.selectedTab)
+            }
+        ) {
             Tab(
                 selected = viewModel.selectedTab == 0,
                 onClick = { viewModel.selectTab(0) },

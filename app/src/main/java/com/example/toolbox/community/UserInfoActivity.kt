@@ -38,8 +38,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -61,7 +61,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -87,17 +86,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.IntrinsicMeasurable
 import androidx.compose.ui.layout.IntrinsicMeasureScope
-import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
@@ -151,6 +147,7 @@ import java.util.concurrent.TimeUnit
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.example.toolbox.utils.RoundedCornerTabIndicator
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -208,12 +205,10 @@ class UserInfoActivity : ComponentActivity() {
 private val TopTitleAlphaEasing = CubicBezierEasing(.8f, 0f, .8f, .15f)
 private val TopAppBarHorizontalPadding = 4.dp
 private val TopAppBarTitleInset = 16.dp - TopAppBarHorizontalPadding
-private val MinAvatarOffset = 48.dp
 private val CollapsedAvatarSize = 36.dp
 private val ExpandedAvatarSize = 64.dp
 private val CollapsedAvatarHorizontalPadding = 28.dp
 private val CollapsedAvatarVerticalPadding = 12.dp
-private val UserInfoTopBarExpandedHeight = 160.dp + ExpandedAvatarSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -533,11 +528,6 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                         it.measure(constraints.copy(minWidth = 0, maxWidth = maxSubtitleWidth))
                     }
 
-            val titleBaseline =
-                if (titlePlaceable[LastBaseline] != AlignmentLine.Unspecified) {
-                    titlePlaceable[LastBaseline]
-                } else 0
-
             val subtitleHeight = subtitlePlaceable?.height ?: 0
             val subtitleExpandingOffset = subtitlePlaceable?.run {
                 lerpDpToInt(0.dp, subtitleHeight, LinearOutSlowInEasing.transform(collapsedFraction))
@@ -547,7 +537,6 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 lerpDpToInt(height, 0, collapsedFraction)
             } ?: 0
 
-            val topExpandingOffset = lerpInt(MinAvatarOffset.roundToPx(), 0, collapsedFraction)
             val maxElementHeight =
                 max(avatarPlaceable?.height ?: 0, titlePlaceable.height + subtitleExpandingOffset)
             val maxLayoutHeight = max(
@@ -581,7 +570,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 avatarPlaceable.placeRelative(x = start, y = avatarY)
 
                 val titlePadding = lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
-                start += (avatarPlaceable.width ?: 0) + titlePadding
+                start += avatarPlaceable.width + titlePadding
                 val end = actionIconsPlaceable.width
 
                 var titleX = titleHorizontalAlignment.align(
@@ -595,8 +584,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 }
 
                 val expandedTitleBlockHeight = titlePlaceable.height + subtitleHeight
-                val totalHeight = titlePlaceable.height + subtitleExpandingOffset
-                val expandedTitleY = avatarY + (avatarPlaceable!!.height - expandedTitleBlockHeight) / 2
+                val expandedTitleY = avatarY + (avatarPlaceable.height - expandedTitleBlockHeight) / 2
                 val foldedTitleY = (collapsedHeight - titlePlaceable.height) / 2
                 val titleY = lerpInt(expandedTitleY, foldedTitleY, collapsedFraction)
 
@@ -615,9 +603,7 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     y = (collapsedHeight - actionIconsPlaceable.height) / 2,
                 )
 
-                extraContentPlaceable?.let {
-                    it.placeRelative(x = 0, y = avatarY + avatarPlaceable.height)
-                }
+                extraContentPlaceable?.placeRelative(x = 0, y = avatarY + avatarPlaceable.height)
             }
         }
 
@@ -690,7 +676,7 @@ private fun UserInfoTopBarExtraContent(
             .padding(horizontal = 16.dp, vertical = 4.dp)
     ) {
         Text(
-            text = if (info.bio.isNotEmpty()) info.bio else "这个用户很懒，没有简介~",
+            text = info.bio.ifEmpty { "这个用户很懒，没有简介~" },
             fontSize = 13.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -915,7 +901,7 @@ fun UserInfoScreen(userId: Int) {
         )
     }
 
-    val topBarHeight = UserInfoTopBarExpandedHeight
+    val topBarHeight = 160.dp + ExpandedAvatarSize
 
     val backgroundAlpha by remember {
         derivedStateOf { 1f - scrollBehavior.state.collapsedFraction }
@@ -926,7 +912,7 @@ fun UserInfoScreen(userId: Int) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(topBarHeight)
+                    .height(topBarHeight + WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                     .graphicsLayer { alpha = backgroundAlpha }
             ) {
                 AsyncImage(
@@ -938,7 +924,7 @@ fun UserInfoScreen(userId: Int) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f))
+                        .background(Color.Black.copy(alpha = 0.4f))
                 )
             }
         }
@@ -978,18 +964,6 @@ fun UserInfoScreen(userId: Int) {
                                 modifier = titleModifier,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Image(
-                                    modifier = Modifier.size(14.dp),
-                                    painter = painterResource(getLevelIconRes(it.level.toString())),
-                                    contentDescription = null
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "Lv.${it.level}",
-                                    fontSize = 12.sp,
-                                    color = Color.White.copy(alpha = 0.9f)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
                                 Text("${it.followingCount} 关注", fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("${it.followersCount} 粉丝", fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f))
@@ -1084,129 +1058,143 @@ fun UserInfoScreen(userId: Int) {
                 )
             }
         ) { paddingValues ->
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
-                    ContainedLoadingIndicator()
-                }
-            } else {
-                LazyColumn(
-                    state = isScrolling,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = paddingValues.calculateTopPadding())
-                        .background(MaterialTheme.colorScheme.background)
-                        .nestedScroll(scrollBehavior.nestedScrollConnection),
-                    contentPadding = PaddingValues(
-                        start = 0.dp,
-                        top = 0.dp,
-                        end = 0.dp,
-                        bottom = paddingValues.calculateBottomPadding()
-                    )
-                ) {
-                    stickyHeader {
-                        Surface(
-                            Modifier.fillMaxWidth()
-                        ) {
-                            SecondaryTabRow(selectedTabIndex = currentTab) {
-                                Tab(
-                                    selected = currentTab == 0,
-                                    onClick = { currentTab = 0 },
-                                    text = { Text("帖子") }
-                                )
-                                Tab(
-                                    selected = currentTab == 1,
-                                    onClick = { currentTab = 1 },
-                                    text = { Text("投稿${if (resources.isNotEmpty()) "(${resources.size})" else ""}") }
-                                )
-                            }
-                        }
+            Surface(
+                modifier = Modifier.fillMaxSize().padding(top = paddingValues.calculateTopPadding())
+            ) {
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ContainedLoadingIndicator()
                     }
-
-                    if (currentTab == 0) {
-                        if (messages.isEmpty()) {
-                            item {
-                                Box(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("空空如也")
-                                }
-                            }
-                        } else {
-                            items(messages) { userMessage ->
-                                MessageItem(
-                                    message = userMessage,
-                                    onLikeClick = {
-                                        scope.launch {
-                                            val token = TokenManager.get(context) ?: return@launch
-                                            try {
-                                                val (newIsLiked, newLikeCount) = toggleLike(
-                                                    httpClient,
-                                                    token,
-                                                    userMessage.id,
-                                                    userMessage.is_liked,
-                                                    userMessage.likeCount
-                                                )
-                                                messages = messages.map {
-                                                    if (it.id == userMessage.id) it.copy(
-                                                        is_liked = newIsLiked,
-                                                        likeCount = newLikeCount
-                                                    ) else it
-                                                }
-                                            } catch (e: Exception) {
-                                                Toast.makeText(
-                                                    context,
-                                                    e.message ?: "操作失败",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        }
-                                    },
-                                    onMenuClick = {}
-                                )
-                            }
-                        }
-                    } else {
-                        if (resources.isEmpty()) {
-                            item {
-                                Box(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("资源空空")
-                                }
-                            }
-                        } else {
-                            items(resources) { resource ->
-                                ResourceItem(
-                                    resource = resource,
-                                    onClick = {
-                                        val resourceJson = AppJson.json.encodeToString(resource)
-                                        Log.e("1", resourceJson)
-                                        val intent =
-                                            Intent(context, ResourceDetailActivity::class.java).apply {
-                                                putExtra("item_json", resourceJson)
-                                            }
-                                        context.startActivity(intent)
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    if (canLoadMore && currentTab == 0) {
-                        item {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
+                } else {
+                    LazyColumn(
+                        state = isScrolling,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        contentPadding = PaddingValues(
+                            start = 0.dp,
+                            top = 0.dp,
+                            end = 0.dp,
+                            bottom = paddingValues.calculateBottomPadding()
+                        )
+                    ) {
+                        stickyHeader {
+                            Surface(
+                                Modifier.fillMaxWidth()
                             ) {
-                                ContainedLoadingIndicator(modifier = Modifier.size(32.dp))
+                                SecondaryTabRow(
+                                    selectedTabIndex = currentTab,
+                                    indicator = {
+                                        RoundedCornerTabIndicator(index = currentTab)
+                                    }
+                                ) {
+                                    Tab(
+                                        selected = currentTab == 0,
+                                        onClick = { currentTab = 0 },
+                                        text = { Text("帖子") }
+                                    )
+                                    Tab(
+                                        selected = currentTab == 1,
+                                        onClick = { currentTab = 1 },
+                                        text = { Text("投稿${if (resources.isNotEmpty()) "(${resources.size})" else ""}") }
+                                    )
+                                }
+                            }
+                        }
+
+                        if (currentTab == 0) {
+                            if (messages.isEmpty()) {
+                                item {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("空空如也")
+                                    }
+                                }
+                            } else {
+                                items(messages) { userMessage ->
+                                    MessageItem(
+                                        message = userMessage,
+                                        onLikeClick = {
+                                            scope.launch {
+                                                val token =
+                                                    TokenManager.get(context) ?: return@launch
+                                                try {
+                                                    val (newIsLiked, newLikeCount) = toggleLike(
+                                                        httpClient,
+                                                        token,
+                                                        userMessage.id,
+                                                        userMessage.is_liked,
+                                                        userMessage.likeCount
+                                                    )
+                                                    messages = messages.map {
+                                                        if (it.id == userMessage.id) it.copy(
+                                                            is_liked = newIsLiked,
+                                                            likeCount = newLikeCount
+                                                        ) else it
+                                                    }
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        e.message ?: "操作失败",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        },
+                                        onMenuClick = {}
+                                    )
+                                }
+                            }
+                        } else {
+                            if (resources.isEmpty()) {
+                                item {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("资源空空")
+                                    }
+                                }
+                            } else {
+                                items(resources) { resource ->
+                                    ResourceItem(
+                                        resource = resource,
+                                        onClick = {
+                                            val resourceJson = AppJson.json.encodeToString(resource)
+                                            Log.e("1", resourceJson)
+                                            val intent =
+                                                Intent(
+                                                    context,
+                                                    ResourceDetailActivity::class.java
+                                                ).apply {
+                                                    putExtra("item_json", resourceJson)
+                                                }
+                                            context.startActivity(intent)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        if (canLoadMore && currentTab == 0) {
+                            item {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    ContainedLoadingIndicator(modifier = Modifier.size(32.dp))
+                                }
                             }
                         }
                     }
