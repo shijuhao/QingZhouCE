@@ -902,7 +902,7 @@ fun UserInfoScreen(userId: Int) {
         )
     }
 
-    val topBarHeight = 160.dp + ExpandedAvatarSize
+    val topBarHeight = 170.dp + ExpandedAvatarSize
 
     val backgroundAlpha by remember {
         derivedStateOf { 1f - scrollBehavior.state.collapsedFraction * 0.5f }

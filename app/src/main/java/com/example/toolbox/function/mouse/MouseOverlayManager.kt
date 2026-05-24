@@ -8,12 +8,14 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
-import androidx.lifecycle.setViewTreeLifecycleOwner
-import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 
 class AlwaysAliveLifecycle : LifecycleOwner {
     private val lifecycleRegistry = LifecycleRegistry(this)
@@ -28,6 +30,17 @@ class AlwaysAliveLifecycle : LifecycleOwner {
         get() = lifecycleRegistry
 }
 
+class AlwaysAliveSavedStateRegistryOwner : SavedStateRegistryOwner {
+    private val controller = SavedStateRegistryController.create(this)
+    
+    init {
+        controller.performRestore(null)
+    }
+    
+    override val savedStateRegistry: SavedStateRegistry
+        get() = controller.savedStateRegistry
+}
+
 class MouseOverlayManager(private val context: Context) {
     private var windowManager: WindowManager? = null
     private var mousePointerView: View? = null
@@ -38,24 +51,21 @@ class MouseOverlayManager(private val context: Context) {
     
     private var mouseX = 0f
     private var mouseY = 0f
-    private var controlPanelX = 0
-    private var controlPanelY = 100
-    
-    private var lifecycleOwner: LifecycleOwner? = null
     
     private var lastUpdateX = 0
     private var lastUpdateY = 0
     
+    private val appContext = context.applicationContext
+    private val alwaysAliveLifecycle = AlwaysAliveLifecycle()
+    private val alwaysAliveSavedStateRegistry = AlwaysAliveSavedStateRegistryOwner()
+    
     init {
-        windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        if (context is LifecycleOwner) {
-            lifecycleOwner = context
-        }
+        windowManager = appContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     }
 
     fun hasOverlayPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Settings.canDrawOverlays(context)
+            Settings.canDrawOverlays(appContext)
         } else {
             true
         }
@@ -72,7 +82,7 @@ class MouseOverlayManager(private val context: Context) {
         
         if (isRunning) return
         
-        val displayMetrics = context.resources.displayMetrics
+        val displayMetrics = appContext.resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
         
@@ -89,9 +99,9 @@ class MouseOverlayManager(private val context: Context) {
     }
 
     private fun createMousePointer(viewModel: MouseViewModel) {
-        val composeView = ComposeView(context.applicationContext)
-        
-        composeView.setViewTreeLifecycleOwner(AlwaysAliveLifecycle())
+        val composeView = ComposeView(appContext)
+        composeView.setViewTreeLifecycleOwner(alwaysAliveLifecycle)
+        composeView.setViewTreeSavedStateRegistryOwner(alwaysAliveSavedStateRegistry)
         
         composeView.setContent {
             MousePointerComposable(
@@ -112,7 +122,6 @@ class MouseOverlayManager(private val context: Context) {
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE
             }
-            // 关键修复：FLAG_NOT_TOUCHABLE 让鼠标指针不拦截触摸事件
             flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
@@ -132,40 +141,40 @@ class MouseOverlayManager(private val context: Context) {
         screenWidth: Int,
         screenHeight: Int
     ) {
-        val composeView = ComposeView(context.applicationContext)
-        
-        composeView.setViewTreeLifecycleOwner(AlwaysAliveLifecycle())
+        val composeView = ComposeView(appContext)
+        composeView.setViewTreeLifecycleOwner(alwaysAliveLifecycle)
+        composeView.setViewTreeSavedStateRegistryOwner(alwaysAliveSavedStateRegistry)
 
         composeView.setContent {
-                ControlPanelComposable(
-                    onMove = { dx, dy ->
-                        mouseX += dx
-                        mouseY += dy
-                        
-                        mouseX = mouseX.coerceIn(0f, screenWidth.toFloat())
-                        mouseY = mouseY.coerceIn(0f, screenHeight.toFloat())
-                        
-                        updateMousePosition()
-                    },
-                    onClick = { performClick() },
-                    onLongClick = { performLongClick() },
-                    onSwipe = { direction ->
-                        when (direction) {
-                            SwipeDirection.UP -> performSwipe(0f, -200f)
-                            SwipeDirection.DOWN -> performSwipe(0f, 200f)
-                            SwipeDirection.LEFT -> performSwipe(-200f, 0f)
-                            SwipeDirection.RIGHT -> performSwipe(200f, 0f)
-                        }
-                    },
-                    onMinimize = {
-                        toggleMinimize()
-                    },
-                    onClose = {
-                        stopOverlay()
-                        onDismiss()
-                    },
-                    speed = viewModel.mouseSpeed
-                )
+            ControlPanelComposable(
+                onMove = { dx, dy ->
+                    mouseX += dx
+                    mouseY += dy
+                    
+                    mouseX = mouseX.coerceIn(0f, screenWidth.toFloat())
+                    mouseY = mouseY.coerceIn(0f, screenHeight.toFloat())
+                    
+                    updateMousePosition()
+                },
+                onClick = { performClick() },
+                onLongClick = { performLongClick() },
+                onSwipe = { direction ->
+                    when (direction) {
+                        SwipeDirection.UP -> performSwipe(0f, -200f)
+                        SwipeDirection.DOWN -> performSwipe(0f, 200f)
+                        SwipeDirection.LEFT -> performSwipe(-200f, 0f)
+                        SwipeDirection.RIGHT -> performSwipe(200f, 0f)
+                    }
+                },
+                onMinimize = {
+                    toggleMinimize()
+                },
+                onClose = {
+                    stopOverlay()
+                    onDismiss()
+                },
+                speed = viewModel.mouseSpeed
+            )
         }
         
         val params = WindowManager.LayoutParams().apply {
@@ -177,14 +186,13 @@ class MouseOverlayManager(private val context: Context) {
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE
             }
-            // 允许拖动和布局调整
             flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             format = PixelFormat.TRANSLUCENT
             gravity = Gravity.TOP or Gravity.START
-            x = screenWidth / 2 - 140 // 居中偏左
-            y = screenHeight / 4 // 屏幕上方 1/4 处
+            x = screenWidth / 2 - 140
+            y = screenHeight / 4
         }
         
         controlPanelView = composeView
@@ -205,9 +213,9 @@ class MouseOverlayManager(private val context: Context) {
     private fun createMinimizeButton() {
         if (minimizeButtonView != null) return
         
-        val composeView = ComposeView(context.applicationContext)
-        
-        composeView.setViewTreeLifecycleOwner(AlwaysAliveLifecycle())
+        val composeView = ComposeView(appContext)
+        composeView.setViewTreeLifecycleOwner(alwaysAliveLifecycle)
+        composeView.setViewTreeSavedStateRegistryOwner(alwaysAliveSavedStateRegistry)
         
         composeView.setContent {
             MinimizeButtonComposable(
@@ -255,7 +263,6 @@ class MouseOverlayManager(private val context: Context) {
     }
 
     private fun performClick() {
-        // 使用无障碍服务执行点击
         if (MouseAccessibilityService.isServiceRunning()) {
             MouseAccessibilityService.instance?.performClick(mouseX, mouseY) {
                 android.util.Log.d("MouseOverlay", "Click executed at ($mouseX, $mouseY)")
@@ -266,7 +273,6 @@ class MouseOverlayManager(private val context: Context) {
     }
 
     private fun performLongClick() {
-        // 使用无障碍服务执行长按
         if (MouseAccessibilityService.isServiceRunning()) {
             MouseAccessibilityService.instance?.performLongClick(mouseX, mouseY) {
                 android.util.Log.d("MouseOverlay", "Long click executed at ($mouseX, $mouseY)")
@@ -277,7 +283,6 @@ class MouseOverlayManager(private val context: Context) {
     }
 
     private fun performSwipe(dx: Float, dy: Float) {
-        // 使用无障碍服务执行滑动
         if (MouseAccessibilityService.isServiceRunning()) {
             val toX = mouseX + dx
             val toY = mouseY + dy
