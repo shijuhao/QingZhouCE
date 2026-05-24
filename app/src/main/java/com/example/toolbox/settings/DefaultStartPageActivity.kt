@@ -114,7 +114,8 @@ fun DefaultStartPageScreen(
         AppDestinations.HOME,
         TopLevelDestinations.LFCommunity,
         TopLevelDestinations.YHBotMaker,
-        TopLevelDestinations.MusicPlayer
+        TopLevelDestinations.MusicPlayer,
+        TopLevelDestinations.MouseSimulator
     )
 
     LazyColumn(

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.Games
 import androidx.compose.material.icons.filled.MarkunreadMailbox
@@ -125,6 +126,7 @@ val functionData = listOf(
             FunctionItem("BMI指数", "com.example.toolbox.function.daily.BMIActivity", Icons.Outlined.Percent, "yellow"),
             FunctionItem("随机抽选", "com.example.toolbox.function.daily.randomChoose.RandomChooseActivity", Icons.Default.Casino, "red"),
             FunctionItem("计分板", "com.example.toolbox.function.daily.MarkBoardActivity", Icons.Default.MarkunreadMailbox, "gray"),
+            FunctionItem("模拟鼠标", "com.example.toolbox.function.mouse.MouseSimulatorActivity", Icons.Default.Computer, "blue"),
         )
     ),
     FunctionCategory(

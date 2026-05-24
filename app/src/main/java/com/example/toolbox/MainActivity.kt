@@ -36,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Person
@@ -89,6 +90,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.toolbox.function.yunhu.yhbotmaker.BotManagerScreen
+import com.example.toolbox.function.mouse.MouseSimulatorScreen
 import com.example.toolbox.functionPage.HomeScreen
 import com.example.toolbox.guide.GuideActivity
 import com.example.toolbox.liFangCommunity.AuthManager
@@ -371,7 +373,8 @@ fun MyApplicationApp() {
             AppDestinations.HOME.route,
             TopLevelDestinations.LFCommunity.route,
             TopLevelDestinations.YHBotMaker.route,
-            TopLevelDestinations.MusicPlayer.route
+            TopLevelDestinations.MusicPlayer.route,
+            TopLevelDestinations.MouseSimulator.route
         )
         val isTopLevel = currentRoute in topLevelRoutes
 
@@ -567,6 +570,12 @@ fun MainContentNavHost(
                 viewModel = musicPlayerViewModel,
             )
         }
+        composable(TopLevelDestinations.MouseSimulator.route) {
+            MouseSimulatorScreen(
+                isMain = true,
+                onMenuClick = onMenuClick,
+            )
+        }
     }
 }
 
@@ -585,7 +594,8 @@ enum class TopLevelDestinations(
 ) : NavDestination {
     LFCommunity("lfcommunity", "立方论坛", Icons.Default.ChatBubbleOutline, "主要作为立方论坛客户端"),
     YHBotMaker("yhbotmaker", "YHBotMaker", Icons.Default.Android, "主要作为云湖机器人制作器"),
-    MusicPlayer("musicplayer", "音乐", Icons.Default.MusicNote, "本地音乐播放器")
+    MusicPlayer("musicplayer", "音乐", Icons.Default.MusicNote, "本地音乐播放器"),
+    MouseSimulator("mousesimulator", "模拟鼠标", Icons.Default.Computer, "屏幕鼠标模拟器")
 }
 
 enum class AppDestinations(
@@ -610,6 +620,7 @@ fun getStartDestination(context: Context): String {
         "立方论坛" -> TopLevelDestinations.LFCommunity.route
         "YHBotMaker" -> TopLevelDestinations.YHBotMaker.route
         "音乐" -> TopLevelDestinations.MusicPlayer.route
+        "模拟鼠标" -> TopLevelDestinations.MouseSimulator.route
         else -> AppDestinations.HOME.route
     }
 }
