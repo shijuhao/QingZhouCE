@@ -100,6 +100,7 @@ import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.layoutId
+import com.example.toolbox.R
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -904,29 +905,38 @@ fun UserInfoScreen(userId: Int) {
     val topBarHeight = 160.dp + ExpandedAvatarSize
 
     val backgroundAlpha by remember {
-        derivedStateOf { 1f - scrollBehavior.state.collapsedFraction }
+        derivedStateOf { 1f - scrollBehavior.state.collapsedFraction * 0.5f }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        userInfo?.backgroundUrl?.let { backgroundUrl ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(topBarHeight + WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
-                    .graphicsLayer { alpha = backgroundAlpha }
-            ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topBarHeight + WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+                .graphicsLayer { alpha = backgroundAlpha }
+        ) {
+            if (userInfo?.backgroundUrl != null) {
                 AsyncImage(
-                    model = backgroundUrl,
+                    model = userInfo.backgroundUrl,
                     contentDescription = "用户背景",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(R.drawable.user_background)
+                )
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.user_background),
+                    contentDescription = "默认背景",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f))
-                )
             }
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+            )
         }
 
         Scaffold(

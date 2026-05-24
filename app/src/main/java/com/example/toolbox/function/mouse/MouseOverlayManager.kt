@@ -8,10 +8,22 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+
+class AlwaysAliveLifecycle : LifecycleOwner {
+    private val registry = LifecycleRegistry(this)
+    init {
+        registry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        registry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        registry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    }
+    override fun getLifecycle() = registry
+}
 
 class MouseOverlayManager(private val context: Context) {
     private var windowManager: WindowManager? = null
@@ -28,9 +40,11 @@ class MouseOverlayManager(private val context: Context) {
     
     private var lifecycleOwner: LifecycleOwner? = null
     
+    private var lastUpdateX = 0
+    private var lastUpdateY = 0
+    
     init {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        // 如果 context 是 Activity，获取其 LifecycleOwner
         if (context is LifecycleOwner) {
             lifecycleOwner = context
         }
@@ -64,21 +78,17 @@ class MouseOverlayManager(private val context: Context) {
         
         createMousePointer(mouseViewModel)
         createControlPanel(mouseViewModel, onDismiss, screenWidth, screenHeight)
+        createMinimizeButton()
+        minimizeButtonView?.visibility = View.GONE
         
         isRunning = true
         isMinimized = false
     }
 
     private fun createMousePointer(viewModel: MouseViewModel) {
-        val composeView = ComposeView(context)
+        val composeView = ComposeView(context.applicationContext)
         
-        // 关键修复：手动设置 LifecycleOwner 和 SavedStateRegistryOwner
-        if (context is LifecycleOwner) {
-            composeView.setViewTreeLifecycleOwner(context)
-        }
-        if (context is SavedStateRegistryOwner) {
-            composeView.setViewTreeSavedStateRegistryOwner(context)
-        }
+        composeView.setViewTreeLifecycleOwner(AlwaysAliveLifecycle())
         
         composeView.setContent {
             MousePointerComposable(
@@ -119,16 +129,10 @@ class MouseOverlayManager(private val context: Context) {
         screenWidth: Int,
         screenHeight: Int
     ) {
-        val composeView = ComposeView(context)
+        val composeView = ComposeView(context.applicationContext)
         
-        // 关键修复：手动设置 LifecycleOwner 和 SavedStateRegistryOwner
-        if (context is LifecycleOwner) {
-            composeView.setViewTreeLifecycleOwner(context)
-        }
-        if (context is SavedStateRegistryOwner) {
-            composeView.setViewTreeSavedStateRegistryOwner(context)
-        }
-        
+        composeView.setViewTreeLifecycleOwner(AlwaysAliveLifecycle())
+
         composeView.setContent {
                 ControlPanelComposable(
                     onMove = { dx, dy ->
@@ -187,28 +191,20 @@ class MouseOverlayManager(private val context: Context) {
     private fun toggleMinimize() {
         isMinimized = !isMinimized
         if (isMinimized) {
-            // 隐藏控制面板，显示最小化按钮
             controlPanelView?.visibility = View.GONE
-            createMinimizeButton()
+            minimizeButtonView?.visibility = View.VISIBLE
         } else {
-            // 显示控制面板，隐藏最小化按钮
             controlPanelView?.visibility = View.VISIBLE
-            minimizeButtonView?.let {
-                windowManager?.removeView(it)
-                minimizeButtonView = null
-            }
+            minimizeButtonView?.visibility = View.GONE
         }
     }
 
     private fun createMinimizeButton() {
-        val composeView = ComposeView(context)
+        if (minimizeButtonView != null) return
         
-        if (context is LifecycleOwner) {
-            composeView.setViewTreeLifecycleOwner(context)
-        }
-        if (context is SavedStateRegistryOwner) {
-            composeView.setViewTreeSavedStateRegistryOwner(context)
-        }
+        val composeView = ComposeView(context.applicationContext)
+        
+        composeView.setViewTreeLifecycleOwner(AlwaysAliveLifecycle())
         
         composeView.setContent {
             MinimizeButtonComposable(
@@ -240,11 +236,18 @@ class MouseOverlayManager(private val context: Context) {
     }
 
     private fun updateMousePosition() {
-        mousePointerView?.let { view ->
-            val params = view.layoutParams as WindowManager.LayoutParams
-            params.x = mouseX.toInt()
-            params.y = mouseY.toInt()
-            windowManager?.updateViewLayout(view, params)
+        val newX = mouseX.toInt()
+        val newY = mouseY.toInt()
+        
+        if (newX != lastUpdateX || newY != lastUpdateY) {
+            lastUpdateX = newX
+            lastUpdateY = newY
+            mousePointerView?.let { view ->
+                val params = view.layoutParams as WindowManager.LayoutParams
+                params.x = newX
+                params.y = newY
+                windowManager?.updateViewLayout(view, params)
+            }
         }
     }
 

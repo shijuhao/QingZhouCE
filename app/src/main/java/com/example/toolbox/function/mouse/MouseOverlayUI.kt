@@ -1,5 +1,11 @@
 package com.example.toolbox.function.mouse
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -108,11 +114,9 @@ private fun MouseImage(resourceId: Int) {
 
 @Composable
 private fun ClockDisplay() {
-    var currentTime by remember { mutableStateOf(getCurrentTime()) }
-    
-    LaunchedEffect(Unit) {
+    val currentTime by produceState(initialValue = getCurrentTime()) {
         while (true) {
-            currentTime = getCurrentTime()
+            value = getCurrentTime()
             kotlinx.coroutines.delay(1000)
         }
     }
@@ -126,7 +130,7 @@ private fun ClockDisplay() {
 
 @Composable
 private fun BatteryDisplay() {
-    val batteryLevel by remember { mutableIntStateOf(80) }
+    val batteryLevel by rememberBatteryLevel()
     
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -136,13 +140,44 @@ private fun BatteryDisplay() {
             progress = { batteryLevel / 100f },
             modifier = Modifier.size(16.dp),
             strokeWidth = 2.dp,
-            color = Color.Green
+            color = when {
+                batteryLevel > 50 -> Color.Green
+                batteryLevel > 20 -> Color.Yellow
+                else -> Color.Red
+            }
         )
         Text(
             text = "$batteryLevel%",
             color = Color.White,
             style = MaterialTheme.typography.labelSmall
         )
+    }
+}
+
+@Composable
+fun rememberBatteryLevel(): State<Int> {
+    val context = LocalContext.current
+    return produceState(initialValue = 80) {
+        val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        val updateBattery = {
+            val level = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            if (level in 0..100) {
+                value = level
+            }
+        }
+        updateBattery()
+        
+        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                updateBattery()
+            }
+        }
+        context.registerReceiver(receiver, filter)
+        
+        awaitDispose {
+            context.unregisterReceiver(receiver)
+        }
     }
 }
 
@@ -288,12 +323,26 @@ private fun DirectionPad(
     val animOffsetX = remember { Animatable(0f) }
     val animOffsetY = remember { Animatable(0f) }
     
+    var pendingDeltaX by remember { mutableFloatStateOf(0f) }
+    var pendingDeltaY by remember { mutableFloatStateOf(0f) }
+    
     LaunchedEffect(offsetX, offsetY) {
         launch {
             animOffsetX.snapTo(offsetX)
         }
         launch {
             animOffsetY.snapTo(offsetY)
+        }
+    }
+    
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(16)
+            if (pendingDeltaX != 0f || pendingDeltaY != 0f) {
+                onMove(pendingDeltaX, pendingDeltaY)
+                pendingDeltaX = 0f
+                pendingDeltaY = 0f
+            }
         }
     }
     
@@ -312,7 +361,8 @@ private fun DirectionPad(
                         offsetX += scaledDx
                         offsetY += scaledDy
                         
-                        onMove(scaledDx, scaledDy)
+                        pendingDeltaX += scaledDx
+                        pendingDeltaY += scaledDy
                     }
                 )
             },
