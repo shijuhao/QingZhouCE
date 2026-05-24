@@ -8,38 +8,10 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
-import androidx.savedstate.SavedStateRegistry
-import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-
-class AlwaysAliveLifecycle : LifecycleOwner {
-    private val lifecycleRegistry = LifecycleRegistry(this)
-    
-    init {
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-    }
-    
-    override val lifecycle: Lifecycle
-        get() = lifecycleRegistry
-}
-
-class AlwaysAliveSavedStateRegistryOwner : SavedStateRegistryOwner {
-    private val controller = SavedStateRegistryController.create(this)
-    
-    init {
-        controller.performRestore(null)
-    }
-    
-    override val savedStateRegistry: SavedStateRegistry
-        get() = controller.savedStateRegistry
-}
 
 class MouseOverlayManager(private val context: Context) {
     private var windowManager: WindowManager? = null
@@ -56,8 +28,7 @@ class MouseOverlayManager(private val context: Context) {
     private var lastUpdateY = 0
     
     private val appContext = context.applicationContext
-    private val alwaysAliveLifecycle = AlwaysAliveLifecycle()
-    private val alwaysAliveSavedStateRegistry = AlwaysAliveSavedStateRegistryOwner()
+    private val lifecycleOwner = ProcessLifecycleOwner.get()
     
     init {
         windowManager = appContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -100,8 +71,7 @@ class MouseOverlayManager(private val context: Context) {
 
     private fun createMousePointer(viewModel: MouseViewModel) {
         val composeView = ComposeView(appContext)
-        composeView.setViewTreeLifecycleOwner(alwaysAliveLifecycle)
-        composeView.setViewTreeSavedStateRegistryOwner(alwaysAliveSavedStateRegistry)
+        composeView.setViewTreeLifecycleOwner(lifecycleOwner)
         
         composeView.setContent {
             MousePointerComposable(
@@ -142,8 +112,7 @@ class MouseOverlayManager(private val context: Context) {
         screenHeight: Int
     ) {
         val composeView = ComposeView(appContext)
-        composeView.setViewTreeLifecycleOwner(alwaysAliveLifecycle)
-        composeView.setViewTreeSavedStateRegistryOwner(alwaysAliveSavedStateRegistry)
+        composeView.setViewTreeLifecycleOwner(lifecycleOwner)
 
         composeView.setContent {
             ControlPanelComposable(
@@ -214,8 +183,7 @@ class MouseOverlayManager(private val context: Context) {
         if (minimizeButtonView != null) return
         
         val composeView = ComposeView(appContext)
-        composeView.setViewTreeLifecycleOwner(alwaysAliveLifecycle)
-        composeView.setViewTreeSavedStateRegistryOwner(alwaysAliveSavedStateRegistry)
+        composeView.setViewTreeLifecycleOwner(lifecycleOwner)
         
         composeView.setContent {
             MinimizeButtonComposable(
