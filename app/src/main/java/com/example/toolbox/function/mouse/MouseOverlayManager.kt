@@ -8,22 +8,10 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
-
-class PermanentLifecycleOwner : LifecycleOwner {
-    private val registry = LifecycleRegistry(this)
-    
-    init {
-        registry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        registry.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        registry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-    }
-    
-    override fun getLifecycle(): Lifecycle = registry
-}
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 
 class MouseOverlayManager(private val context: Context) {
     private var windowManager: WindowManager? = null
@@ -40,7 +28,7 @@ class MouseOverlayManager(private val context: Context) {
     private var lastUpdateY = 0
     
     private val appContext = context.applicationContext
-    private val permanentLifecycle = PermanentLifecycleOwner()
+    private val lifecycleOwner = ProcessLifecycleOwner.get()
     
     init {
         windowManager = appContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -83,7 +71,7 @@ class MouseOverlayManager(private val context: Context) {
 
     private fun createMousePointer(viewModel: MouseViewModel) {
         val composeView = ComposeView(appContext)
-        composeView.setViewTreeLifecycleOwner(permanentLifecycle)
+        composeView.setViewTreeLifecycleOwner(lifecycleOwner)
         
         composeView.setContent {
             MousePointerComposable(
@@ -124,7 +112,7 @@ class MouseOverlayManager(private val context: Context) {
         screenHeight: Int
     ) {
         val composeView = ComposeView(appContext)
-        composeView.setViewTreeLifecycleOwner(permanentLifecycle)
+        composeView.setViewTreeLifecycleOwner(lifecycleOwner)
 
         composeView.setContent {
             ControlPanelComposable(
@@ -195,7 +183,7 @@ class MouseOverlayManager(private val context: Context) {
         if (minimizeButtonView != null) return
         
         val composeView = ComposeView(appContext)
-        composeView.setViewTreeLifecycleOwner(permanentLifecycle)
+        composeView.setViewTreeLifecycleOwner(lifecycleOwner)
         
         composeView.setContent {
             MinimizeButtonComposable(

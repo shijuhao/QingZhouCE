@@ -119,6 +119,7 @@ dependencies {
     implementation(libs.exp4j)
     implementation(libs.zxing.core)
     implementation(libs.androidx.media)
+    implementation("androidx.lifecycle:lifecycle-process:2.6.2")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
