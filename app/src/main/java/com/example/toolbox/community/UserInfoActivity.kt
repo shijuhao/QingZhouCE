@@ -213,6 +213,7 @@ private val CollapsedAvatarSize = 36.dp
 private val ExpandedAvatarSize = 64.dp
 private val CollapsedAvatarHorizontalPadding = 28.dp
 private val CollapsedAvatarVerticalPadding = 12.dp
+private val UserInfoTopBarExpandedHeight = 160.dp + ExpandedAvatarSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -537,8 +538,9 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                     titlePlaceable[LastBaseline]
                 } else 0
 
+            val subtitleHeight = subtitlePlaceable?.height ?: 0
             val subtitleExpandingOffset = subtitlePlaceable?.run {
-                lerpDpToInt(0.dp, subtitlePlaceable.height, LinearOutSlowInEasing.transform(collapsedFraction))
+                lerpDpToInt(0.dp, subtitleHeight, LinearOutSlowInEasing.transform(collapsedFraction))
             } ?: 0
 
             val extraContentHeight = extraContentPlaceable?.run {
@@ -562,26 +564,26 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
             return layout(constraints.maxWidth, layoutHeight) {
                 val collapsedHeight = TopAppBarDefaults.TopAppBarExpandedHeight.roundToPx()
                 val effectiveHeight = layoutHeight - extraContentHeight
-                
+
                 navigationIconPlaceable.placeRelative(
                     x = 0,
                     y = (collapsedHeight - navigationIconPlaceable.height) / 2,
                 )
-                
+
                 var start = lerpInt(
                     avatarPadding.width,
                     max(TopAppBarTitleInset.roundToPx(), navigationIconPlaceable.width),
                     collapsedFraction
                 )
-                
+
                 val avatarYOffset = lerpInt(collapsedHeight, 0, collapsedFraction)
                 val avatarY = avatarYOffset + (effectiveHeight - avatarPlaceable!!.height) / 2
                 avatarPlaceable.placeRelative(x = start, y = avatarY)
-                
+
                 val titlePadding = lerpInt(TopAppBarHorizontalPadding.roundToPx() * 2, 0, collapsedFraction)
                 start += (avatarPlaceable.width ?: 0) + titlePadding
                 val end = actionIconsPlaceable.width
-                
+
                 var titleX = titleHorizontalAlignment.align(
                     size = titlePlaceable.width,
                     space = constraints.maxWidth,
@@ -591,14 +593,15 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                 else if (titleX + titlePlaceable.width > constraints.maxWidth - end) {
                     titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
                 }
-                
+
+                val expandedTitleBlockHeight = titlePlaceable.height + subtitleHeight
                 val totalHeight = titlePlaceable.height + subtitleExpandingOffset
-                val expandedTitleY = avatarY + (avatarPlaceable!!.height - totalHeight) / 2
+                val expandedTitleY = avatarY + (avatarPlaceable!!.height - expandedTitleBlockHeight) / 2
                 val foldedTitleY = (collapsedHeight - titlePlaceable.height) / 2
                 val titleY = lerpInt(expandedTitleY, foldedTitleY, collapsedFraction)
-                
+
                 titlePlaceable.placeRelative(titleX, titleY)
-                
+
                 subtitlePlaceable?.let {
                     val subtitleX = avatarPadding.width + avatarMax.roundToPx() + titlePadding
                     it.placeRelative(
@@ -606,12 +609,12 @@ private fun rememberCollapsingAvatarTopBarMeasurePolicy(
                         y = titleY + titlePlaceable.height
                     )
                 }
-                
+
                 actionIconsPlaceable.placeRelative(
                     x = constraints.maxWidth - actionIconsPlaceable.width,
                     y = (collapsedHeight - actionIconsPlaceable.height) / 2,
                 )
-                
+
                 extraContentPlaceable?.let {
                     it.placeRelative(x = 0, y = avatarY + avatarPlaceable.height)
                 }
@@ -675,6 +678,84 @@ private fun Modifier.windowInsetsPadding(insets: WindowInsets): Modifier = this.
     Modifier.padding(insets.asPaddingValues())
 )
 
+@Composable
+private fun UserInfoTopBarExtraContent(
+    info: UserInfo,
+    modifier: Modifier = Modifier,
+    onBioClick: (() -> Unit)? = null
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = if (info.bio.isNotEmpty()) info.bio else "这个用户很懒，没有简介~",
+            fontSize = 13.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = Color.White.copy(alpha = 0.9f),
+            modifier = if (onBioClick != null) {
+                Modifier.clickable { onBioClick() }
+            } else {
+                Modifier
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        modifier = Modifier.size(14.dp),
+                        painter = painterResource(getLevelIconRes(info.level.toString())),
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Lv.${info.level}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MonetizationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${info.gold}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(
     ExperimentalMaterial3Api::class,
     ExperimentalFoundationApi::class,
@@ -683,7 +764,6 @@ private fun Modifier.windowInsetsPadding(insets: WindowInsets): Modifier = this.
 @Composable
 fun UserInfoScreen(userId: Int) {
     val context = LocalContext.current
-    val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
     var userInfo by remember { mutableStateOf<UserInfo?>(null) }
@@ -701,6 +781,7 @@ fun UserInfoScreen(userId: Int) {
     var showReportDialog by remember { mutableStateOf(false) }
     var reportReason by remember { mutableStateOf("") }
     var isMenuExpanded by remember { mutableStateOf(false) }
+    var showFullBioDialog by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -834,20 +915,18 @@ fun UserInfoScreen(userId: Int) {
         )
     }
 
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val topBarHeight = 200.dp
-    val totalTopHeight = statusBarHeight + topBarHeight
-    
+    val topBarHeight = UserInfoTopBarExpandedHeight
+
     val backgroundAlpha by remember {
         derivedStateOf { 1f - scrollBehavior.state.collapsedFraction }
     }
-    
+
     Box(modifier = Modifier.fillMaxSize()) {
         userInfo?.backgroundUrl?.let { backgroundUrl ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(totalTopHeight)
+                    .height(topBarHeight)
                     .graphicsLayer { alpha = backgroundAlpha }
             ) {
                 AsyncImage(
@@ -863,9 +942,11 @@ fun UserInfoScreen(userId: Int) {
                 )
             }
         }
-        
+
         Scaffold(
+            containerColor = Color.Transparent,
             topBar = {
+                val titleModifier = Modifier.padding(start = 2.dp)
                 CollapsingAvatarTopAppBar(
                     expandedHeight = topBarHeight,
                     avatar = {
@@ -884,6 +965,7 @@ fun UserInfoScreen(userId: Int) {
                         userInfo?.let {
                             Text(
                                 text = it.username,
+                                modifier = titleModifier,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 color = Color.White
@@ -892,7 +974,10 @@ fun UserInfoScreen(userId: Int) {
                     },
                     subtitle = {
                         userInfo?.let {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = titleModifier,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Image(
                                     modifier = Modifier.size(14.dp),
                                     painter = painterResource(getLevelIconRes(it.level.toString())),
@@ -919,7 +1004,7 @@ fun UserInfoScreen(userId: Int) {
                     actions = {
                         val userStatus = TokenManager.getTagStatus(context)
                         val notMyself = userInfo?.userId != TokenManager.getUserID(context)
-                        
+
                         if (notMyself) {
                             if (!isPageLoading) {
                                 IconButton(onClick = {
@@ -936,7 +1021,7 @@ fun UserInfoScreen(userId: Int) {
                                     )
                                 }
                             }
-                            
+
                             if (isFollowing) {
                                 IconButton(onClick = {
                                     val intent = Intent(context, MessageDetailActivity::class.java).apply {
@@ -954,13 +1039,13 @@ fun UserInfoScreen(userId: Int) {
                                 Icon(Icons.Filled.Edit, contentDescription = "编辑资料", tint = Color.White)
                             }
                         }
-                        
+
                         if (userStatus == 1 && notMyself) {
                             IconButton(onClick = { showBanDialog = true }) {
                                 Icon(Icons.Default.Block, contentDescription = "封禁", tint = Color.White)
                             }
                         }
-                        
+
                         Box {
                             IconButton(onClick = { isMenuExpanded = true }) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "更多", tint = Color.White)
@@ -990,99 +1075,10 @@ fun UserInfoScreen(userId: Int) {
                     ),
                     content = {
                         userInfo?.let { info ->
-                            var showFullBioDialog by remember { mutableStateOf(false) }
-                            
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = if (info.bio.isNotEmpty()) info.bio else "这个用户很懒，没有简介~",
-                                    fontSize = 13.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    modifier = Modifier.clickable { showFullBioDialog = true }
-                                )
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Image(
-                                                modifier = Modifier.size(14.dp),
-                                                painter = painterResource(getLevelIconRes(info.level.toString())),
-                                                contentDescription = null
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(
-                                                text = "Lv.${info.level}",
-                                                fontSize = 12.sp,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                        }
-                                    }
-                                    
-                                    // 金币 Chip
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f),
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.MonetizationOn,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(14.dp),
-                                                tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(
-                                                text = "${info.gold}",
-                                                fontSize = 12.sp,
-                                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            if (showFullBioDialog) {
-                                AlertDialog(
-                                    onDismissRequest = { showFullBioDialog = false },
-                                    title = { Text("个人简介") },
-                                    text = {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .verticalScroll(rememberScrollState())
-                                        ) {
-                                            Text(
-                                                text = info.bio,
-                                                fontSize = 14.sp
-                                            )
-                                        }
-                                    },
-                                    confirmButton = {
-                                        TextButton(onClick = { showFullBioDialog = false }) {
-                                            Text("关闭")
-                                        }
-                                    }
-                                )
-                            }
+                            UserInfoTopBarExtraContent(
+                                info = info,
+                                onBioClick = { showFullBioDialog = true }
+                            )
                         }
                     }
                 )
@@ -1125,7 +1121,7 @@ fun UserInfoScreen(userId: Int) {
                             }
                         }
                     }
-    
+
                     if (currentTab == 0) {
                         if (messages.isEmpty()) {
                             item {
@@ -1201,7 +1197,7 @@ fun UserInfoScreen(userId: Int) {
                             }
                         }
                     }
-    
+
                     if (canLoadMore && currentTab == 0) {
                         item {
                             Box(
@@ -1216,6 +1212,30 @@ fun UserInfoScreen(userId: Int) {
                     }
                 }
             }
+        }
+
+        userInfo?.takeIf { showFullBioDialog }?.let { info ->
+            AlertDialog(
+                onDismissRequest = { showFullBioDialog = false },
+                title = { Text("个人简介") },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        Text(
+                            text = info.bio,
+                            fontSize = 14.sp
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showFullBioDialog = false }) {
+                        Text("关闭")
+                    }
+                }
+            )
         }
     }
 }
