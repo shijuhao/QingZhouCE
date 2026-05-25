@@ -217,7 +217,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Text(
-                                            text = "你正在使用预发布版本，请随时关注更新频道",
+                                            text = if (context.getAppVersionInfo().commitHash == "dev") "你正在使用开发版本，检查更新已禁用" else "你正在使用预发布版本，请随时关注更新频道",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -254,6 +254,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                             SettingsItemCell(
                                 icon = Icons.Default.Update,
                                 title = "检查更新",
+                                isEnabled = context.getAppVersionInfo().commitHash == "dev",
                                 subtitle = "检测是否有新版本",
                                 onClick = {
                                     lifecycleScope?.launch {

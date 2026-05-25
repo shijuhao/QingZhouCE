@@ -152,7 +152,7 @@ fun MyApplicationApp() {
     
     LaunchedEffect(Unit) {
         val autoCheckEnabled = prefs.getBoolean("autoCheckUpdate", true)
-        if (autoCheckEnabled) {
+        if (autoCheckEnabled && context.getAppVersionInfo().commitHash == "dev") {
             val updateChannel = prefs.getString("update_channel", "stable") ?: "stable"
             val includePreRelease = updateChannel == "prerelease"
             

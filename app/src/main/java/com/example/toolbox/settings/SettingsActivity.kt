@@ -566,13 +566,15 @@ fun SettingsItemCell(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
-    isDestructive: Boolean = false
+    isDestructive: Boolean = false,
+    isEnabled: Boolean = true
 ) {
-    SettingsCustomItem(onClick = onClick) {
+    SettingsCustomItem(onClick = { if (isEnabled) onClick() }) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                .alpha(if (isEnabled) 1.0f else 0.38f),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -618,7 +620,7 @@ fun SettingsSwitchItem(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     isError: Boolean = false,
-    isEnabled: Boolean = true // 新增参数
+    isEnabled: Boolean = true
 ) {
     SettingsCustomItem(onClick = { if (isEnabled) onCheckedChange(!checked) }) {
         Row(

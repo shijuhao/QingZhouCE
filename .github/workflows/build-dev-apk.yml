@@ -1,4 +1,4 @@
-name: Build Test APK
+name: Build Dev APK
 
 on:
   push:
@@ -39,9 +39,15 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Get commit hash
+      - name: Get version and commit hash
         id: commit
-        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: |
+          BASE_VERSION=$(grep -E '^\s*versionName\s*=\s*"' app/build.gradle.kts | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          FINAL_VERSION="${BASE_VERSION}-dev"
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "final_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
 
       - name: Get commit list
         id: commits
@@ -54,7 +60,19 @@ jobs:
 
       - name: Build and Sign APK
         run: |
+          cat > ci-version.gradle << 'EOF'
+          allprojects { project ->
+            project.afterEvaluate {
+              if (project.hasProperty('android')) {
+                project.android.defaultConfig.versionName = project.findProperty('customVersion') ?: project.android.defaultConfig.versionName
+              }
+            }
+          }
+          EOF
+
           ./gradlew assembleRelease \
+            -I ci-version.gradle \
+            -PcustomVersion="${{ steps.commit.outputs.final_version }}" \
             -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
