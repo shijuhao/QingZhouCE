@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - beta
+  workflow_dispatch:
 
 jobs:
   build:
@@ -37,6 +39,19 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Get commit hash
+        id: commit
+        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Get commit list
+        id: commits
+        run: |
+          {
+            echo 'list<<EOF'
+            git log -1 --format='- %s (%an)'
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and Sign APK
         run: |
           ./gradlew assembleRelease \
@@ -51,17 +66,24 @@ jobs:
           name: app-release
           path: app/build/outputs/apk/release/*.apk
 
-      - name: Get commit hash
-        id: commit
-        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Get latest commit message
-        id: commit_msg
+      - name: Prepare build message
         run: |
-          MSG=$(git log -1 --format='%s')
-          echo "msg=$MSG" >> $GITHUB_OUTPUT
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          cat > build-body.md <<EOF
+          ### 构建完成
 
-      - name: Notify bot about build
+          **分支**: ${{ github.ref_name }}
+          **提交**: ${{ steps.commit.outputs.hash }}
+          **触发者**: ${{ github.actor }}
+
+          ### 最近提交
+          ${{ steps.commits.outputs.list }}
+
+          ### 下载
+          [点击下载 APK](${RUN_URL})
+          EOF
+
+      - name: Notify bot
         continue-on-error: true
         env:
           BOT_SEND_TOKEN_VAR: ${{ vars.YHCHAT_BOT_SEND_TOKEN }}
@@ -139,15 +161,9 @@ jobs:
               -d "$payload"
           }
 
-          MESSAGE="**🔨 构建完成**
+          BUILD_MESSAGE="$(cat build-body.md)"
 
-**提交**: ${{ steps.commit.outputs.hash }}
-**信息**: ${{ steps.commit_msg.outputs.msg }}
-**触发者**: ${{ github.actor }}
-
-**下载**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          if ! send_markdown "$MESSAGE"; then
+          if ! send_markdown "$BUILD_MESSAGE"; then
             echo "Markdown bot notification failed"
             exit 0
           fi
