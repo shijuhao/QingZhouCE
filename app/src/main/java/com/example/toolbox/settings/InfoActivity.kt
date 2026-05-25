@@ -254,7 +254,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                             SettingsItemCell(
                                 icon = Icons.Default.Update,
                                 title = "检查更新",
-                                isEnabled = context.getAppVersionInfo().commitHash == "dev",
+                                isEnabled = context.getAppVersionInfo().commitHash != "dev",
                                 subtitle = "检测是否有新版本",
                                 onClick = {
                                     lifecycleScope?.launch {
