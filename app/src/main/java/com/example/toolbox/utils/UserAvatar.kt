@@ -25,7 +25,6 @@ fun UserAvatar(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val token = TokenManager.get(context)
     
     AsyncImage(
         model = if (avatarUrl.isNotEmpty() && avatarUrl != "null") avatarUrl else null,
@@ -36,7 +35,7 @@ fun UserAvatar(
             .size(36.dp)
             .clip(CircleShape)
             .clickable {
-                if (token != null) {
+                if (TokenManager.get(context) != null) {
                     val intent = Intent(context, UserInfoActivity::class.java).apply {
                         putExtra("userId", userId)
                     }

@@ -833,6 +833,52 @@ fun MessageBubble(
                                     modifier = Modifier.padding(bottom = 2.dp)
                                 )
                             }
+                            
+                            if (message.quoteMsgInfo != null) {
+                                val ref = message.quoteMsgInfo
+ 
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(3.dp)
+                                            .weight(1f)
+                                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = ref.senderUsername,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        if (ref.content.isNotBlank()) {
+                                            Text(
+                                                text = ref.content,
+                                                fontSize = 12.sp,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        if (ref.images.isNotEmpty()) {
+                                            AsyncImage(
+                                                model = ref.images.first(),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(100.dp)
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .padding(top = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }                            
                     
                             if (message.content.isNotBlank()) {
                                 if (message.isMarkdown) {
@@ -865,59 +911,7 @@ fun MessageBubble(
                                     }
                                 }
                             }
-                            
-                            if (message.quoteMsgInfo != null) {
-                                val ref = message.quoteMsgInfo
-                                Surface(
-                                    modifier = Modifier
-                                        .padding(bottom = 4.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(8.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .width(3.dp)
-                                                .height(32.dp)
-                                                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text(
-                                                text = ref.senderUsername,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                            if (ref.content.isNotBlank()) {
-                                                Text(
-                                                    text = ref.content,
-                                                    fontSize = 12.sp,
-                                                    maxLines = 2,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                            if (ref.images.isNotEmpty()) {
-                                                AsyncImage(
-                                                    model = ref.images.first(),
-                                                    contentDescription = null,
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(100.dp)
-                                                        .clip(RoundedCornerShape(4.dp))
-                                                        .padding(top = 4.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                    
+                                              
                             Row(
                                 modifier = Modifier.align(if (isMine) Alignment.End else Alignment.Start)
                             ) {
