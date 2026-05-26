@@ -747,8 +747,8 @@ fun MessageBubble(
             contentAlignment = Alignment.Center
         ) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.widthIn(max = 250.dp)
             ) {
@@ -767,8 +767,8 @@ fun MessageBubble(
             contentAlignment = Alignment.Center
         ) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.widthIn(max = 300.dp)
             ) {
@@ -844,7 +844,7 @@ fun MessageBubble(
                                     Box(
                                         modifier = Modifier
                                             .width(3.dp)
-                                            .weight(1f)
+                                            .height(32.dp)
                                             .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
