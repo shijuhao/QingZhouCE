@@ -22,7 +22,6 @@ multiplatformMarkdownRendererCoil3 = "0.40.2"
 navigationCompose = "2.7.7"
 okhttp = "5.3.2"
 persistentcookiejar = "v1.0.1"
-material = "1.10.0"
 socketIoClient = "2.1.2"
 uiText = "1.10.6"
 
@@ -54,7 +53,6 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 luaj-jse = { module = "org.luaj:luaj-jse", version.ref = "luajJse" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 multiplatform-markdown-renderer-coil3 = { module = "com.mikepenz:multiplatform-markdown-renderer-coil3", version.ref = "multiplatformMarkdownRendererCoil3" }
 multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRendererM3" }
 multiplatform-markdown-renderer = { module = "com.mikepenz:multiplatform-markdown-renderer", version.ref = "multiplatformMarkdownRenderer" }

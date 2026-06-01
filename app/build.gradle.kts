@@ -94,7 +94,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.foundation.layout)
-    implementation(libs.material)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.kotlinx.serialization.json)
