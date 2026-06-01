@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.ToolBox" parent="Theme.Material3.DayNight.NoActionBar" />
+    <style name="Theme.ToolBox" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="colorSurface">@android:color/white</item>
+        <item name="isLightTheme">true</item>
+    </style>
 
     <style name="Theme.App.Starting" parent="Theme.ToolBox">
         <item name="android:windowBackground">@drawable/launch_background</item>
-
         <item name="android:statusBarColor">?attr/colorSurface</item>
         <item name="android:navigationBarColor">?attr/colorSurface</item>
         <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
