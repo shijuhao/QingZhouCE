@@ -113,7 +113,6 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
     implementation(libs.coil.network)
-    implementation(libs.customactivityoncrash)
     implementation(libs.luaj.jse)
     implementation(libs.exp4j)
     implementation(libs.zxing.core)

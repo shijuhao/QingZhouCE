@@ -4,7 +4,6 @@ agp = "9.1.0"
 coil = "3.4.0"
 media = "1.7.0"
 zxingCore = "3.5.4"
-customactivityoncrash = "2.4.0"
 exp4j = "0.4.8"
 jsoup = "1.22.2"
 kotlin = "2.3.21"
@@ -34,7 +33,6 @@ androidx-material3-adaptive-navigation-suite = { module = "androidx.compose.mate
 androidx-media = { module = "androidx.media:media", version.ref = "media" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxingCore" }
-customactivityoncrash = { module = "cat.ereza:customactivityoncrash", version.ref = "customactivityoncrash" }
 exp4j = { module = "net.objecthunter:exp4j", version.ref = "exp4j" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }

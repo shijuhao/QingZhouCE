@@ -1,7 +1,6 @@
 package com.example.toolbox
 
 import android.app.Application
-import cat.ereza.customactivityoncrash.config.CaocConfig
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.request.crossfade
@@ -30,21 +29,6 @@ object AppJson {
 }
 
 class MyApplication : Application(), SingletonImageLoader.Factory {
-    override fun onCreate() {
-        super.onCreate()
-
-        CaocConfig.Builder.create()
-            .backgroundMode(CaocConfig.BACKGROUND_MODE_SHOW_CUSTOM)
-            .enabled(true)
-            .showErrorDetails(true)
-            .showRestartButton(true)
-            .trackActivities(true)
-            .errorActivity(CustomErrorActivity::class.java)
-            .minTimeBetweenCrashesMs(2000)
-            .restartActivity(MainActivity::class.java)
-            .apply()
-    }
-
     override fun onTerminate() {
         super.onTerminate()
         ChatSocketManager.disconnect()

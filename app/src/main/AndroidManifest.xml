@@ -430,16 +430,6 @@
             android:exported="true"
             android:theme="@style/Theme.ToolBox" />
         <activity
-            android:name=".CustomErrorActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize"
-            android:exported="false"
-            android:process=":error_activity"
-            android:theme="@style/Theme.ToolBox">
-            <intent-filter>
-                <action android:name="cat.ereza.customactivityoncrash.ERROR" />
-            </intent-filter>
-        </activity>
-        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.App.Starting">
