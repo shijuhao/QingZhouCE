@@ -211,7 +211,7 @@ fun MessageItem(
                                 append(" " + message.tag)
                             }
                         }.trim()
-                        
+
                         if (levelTag.isNotEmpty()) {
                             Surface(
                                 color = colorScheme.primaryContainer,
@@ -275,7 +275,7 @@ fun MessageItem(
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, null, modifier = Modifier.size(20.dp))
                     }
-                    
+
                     DropdownMenu(
                         expanded = showMenu, 
                         onDismissRequest = { showMenu = false }
@@ -318,7 +318,7 @@ fun MessageItem(
                                 Icon(Icons.Default.AddCircle, null, Modifier.size(18.dp))
                             }
                         )
-                        
+
                         if (message.userid == currentUserId) {
                             DropdownMenuItem(
                                 text = { Text("编辑留言") },
@@ -406,8 +406,8 @@ fun MessageItem(
                                 }
                                 .clip(RoundedCornerShape(8.dp)),
                             contentScale = ContentScale.Crop,
-                            placeholder = painterResource(R.drawable.user),
-                            error = painterResource(R.drawable.user)
+                            placeholder = painterResource(R.drawable.place_img),
+                            error = painterResource(R.drawable.place_img)
                         )
                     }
                 }
