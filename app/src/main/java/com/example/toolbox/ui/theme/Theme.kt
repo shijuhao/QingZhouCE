@@ -18,7 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
 
 // 定义颜色主题枚举
 enum class ColorTheme {
@@ -101,22 +102,15 @@ fun ToolBoxTheme(
         }
     }
 
-    val systemUiController = rememberSystemUiController()
-    val useDarkIcons = !darkTheme
     val view = LocalView.current
-
-    SideEffect {
-        systemUiController.run {
-            setStatusBarColor(color = Color.Transparent, darkIcons = useDarkIcons)
-            setNavigationBarColor(
-                color = Color.Transparent,
-                darkIcons = useDarkIcons,
-                navigationBarContrastEnforced = false
-            )
-        }
-        
-        if (!view.isInEditMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            (context as Activity).window.isNavigationBarContrastEnforced = false
+    if (!view.isInEditMode) {
+        val window = (view.context as Activity).window
+        window.statusBarColor = Color.Transparent.toArgb()
+        window.navigationBarColor = Color.Transparent.toArgb()
+        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
         }
     }
     

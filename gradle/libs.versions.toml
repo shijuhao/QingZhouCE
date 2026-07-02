@@ -1,6 +1,5 @@
 [versions]
-accompanistSwiperefresh = "0.36.0"
-agp = "9.1.0"
+agp = "9.2.1"
 coil = "3.4.0"
 media = "1.7.0"
 zxingCore = "3.5.4"
@@ -25,7 +24,6 @@ socketIoClient = "2.1.2"
 uiText = "1.10.6"
 
 [libraries]
-accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanistSwiperefresh" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.16.0" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelKtx" }

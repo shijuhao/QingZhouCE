@@ -98,7 +98,6 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
-    implementation(libs.accompanist.systemuicontroller)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.jsoup)
