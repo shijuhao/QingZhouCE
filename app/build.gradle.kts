@@ -118,8 +118,6 @@ dependencies {
     implementation(libs.zxing.core)
     implementation(libs.androidx.media)
     implementation("androidx.lifecycle:lifecycle-process:2.9.4")
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
 configurations.all {
