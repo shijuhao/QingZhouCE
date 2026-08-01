@@ -18,10 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Functions
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Functions
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -95,7 +95,7 @@ fun SearchFunctionItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = function.function.icon ?: Icons.Default.Person,
+                    imageVector = function.function.icon ?: Icons.Rounded.Person,
                     contentDescription = "${function.function.name}图标",
                     tint = iconTint,
                     modifier = Modifier.size(24.dp)
@@ -120,7 +120,7 @@ fun SearchFunctionItem(
                     // 收藏图标指示
                     if (isFavorite) {
                         Icon(
-                            imageVector = Icons.Default.Favorite,
+                            imageVector = Icons.Rounded.Favorite,
                             contentDescription = "已收藏",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
@@ -134,7 +134,7 @@ fun SearchFunctionItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = function.categoryIcon?.toPainter() ?: rememberVectorPainter(Icons.Default.Functions),
+                        painter = function.categoryIcon?.toPainter() ?: rememberVectorPainter(Icons.Rounded.Functions),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                         modifier = Modifier.size(12.dp)
@@ -149,7 +149,7 @@ fun SearchFunctionItem(
             }
 
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
                 contentDescription = "进入",
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 modifier = Modifier.size(16.dp)
@@ -217,13 +217,13 @@ fun GridFunctionItem(
                         contentAlignment = Alignment.TopEnd
                     ) {
                         Icon(
-                            imageVector = function.icon ?: Icons.Default.Functions,
+                            imageVector = function.icon ?: Icons.Rounded.Functions,
                             contentDescription = "${function.name}图标",
                             tint = iconTint,
                             modifier = Modifier.size(24.dp)
                         )
                         Icon(
-                            imageVector = Icons.Default.Favorite,
+                            imageVector = Icons.Rounded.Favorite,
                             contentDescription = "已收藏",
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(12.dp)
@@ -231,7 +231,7 @@ fun GridFunctionItem(
                     }
                 } else {
                     Icon(
-                        imageVector = function.icon ?: Icons.Default.Functions,
+                        imageVector = function.icon ?: Icons.Rounded.Functions,
                         contentDescription = "${function.name}图标",
                         tint = iconTint,
                         modifier = Modifier.size(24.dp)

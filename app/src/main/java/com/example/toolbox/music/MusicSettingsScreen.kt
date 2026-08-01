@@ -12,14 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Equalizer
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Subtitles
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Subtitles
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +60,7 @@ fun MusicSettingsScreen(
                 items = listOf(
                     {
                         SettingsItemCell(
-                            icon = Icons.Default.Refresh,
+                            icon = Icons.Rounded.Refresh,
                             title = "手动扫描音乐",
                             subtitle = "重新扫描设备上的音乐文件",
                             onClick = onScanClick
@@ -68,7 +68,7 @@ fun MusicSettingsScreen(
                     },
                     {
                         SettingsItemCell(
-                            icon = Icons.Default.DeleteSweep,
+                            icon = Icons.Rounded.DeleteSweep,
                             title = "清除扫描缓存",
                             subtitle = "清除已缓存的文件夹扫描结果",
                             onClick = { viewModel.clearCache() }
@@ -76,7 +76,7 @@ fun MusicSettingsScreen(
                     },
                     {
                         SettingsItemCell(
-                            icon = Icons.Default.FolderOpen,
+                            icon = Icons.Rounded.FolderOpen,
                             title = "选择扫描文件夹",
                             subtitle = if (state.customFolders.isEmpty()) "未设置" else "已设置 ${state.customFolders.size} 个文件夹",
                             onClick = { showFolderPicker = true }
@@ -99,7 +99,7 @@ fun MusicSettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.AutoAwesome,
+                                    Icons.Rounded.AutoAwesome,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -131,7 +131,7 @@ fun MusicSettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.LibraryMusic,
+                                    Icons.Rounded.LibraryMusic,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -163,7 +163,7 @@ fun MusicSettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.FolderOpen,
+                                    Icons.Rounded.FolderOpen,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -196,7 +196,7 @@ fun MusicSettingsScreen(
                 items = listOf(
                     {
                         SettingsItemCell(
-                            icon = Icons.Default.MusicNote,
+                            icon = Icons.Rounded.MusicNote,
                             title = "音质选择",
                             subtitle = "标准音质",
                             onClick = { showQualityDialog = true }
@@ -212,7 +212,7 @@ fun MusicSettingsScreen(
                 items = listOf(
                     {
                         SettingsItemCell(
-                            icon = Icons.Default.Equalizer,
+                            icon = Icons.Rounded.Equalizer,
                             title = "均衡器设置",
                             subtitle = "未启用",
                             onClick = { showEqualizerDialog = true }
@@ -235,7 +235,7 @@ fun MusicSettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Subtitles,
+                                    Icons.Rounded.Subtitles,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )

@@ -29,9 +29,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -165,7 +165,7 @@ fun ResourceLibScreen(
                         placeholder = { Text("搜索全区资源") },
                         leadingIcon = {
                             IconButton(onClick = { isSearchActive = false }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                             }
                         },
                         trailingIcon = {
@@ -176,7 +176,7 @@ fun ResourceLibScreen(
                                     viewModel.searchResources(searchQuery, categoryId = null)
                                 }
                             }) {
-                                Icon(Icons.Default.Search, "搜索")
+                                Icon(Icons.Rounded.Search, "搜索")
                             }
                         }
                     ) {
@@ -246,7 +246,7 @@ fun ResourceLibScreen(
                         title = { Text("资源库") },
                         actions = {
                             IconButton(onClick = { isSearchActive = true }) {
-                                Icon(Icons.Default.Search, contentDescription = "搜索")
+                                Icon(Icons.Rounded.Search, contentDescription = "搜索")
                             }
                             
                             if (mainViewModel != null) {
@@ -261,7 +261,7 @@ fun ResourceLibScreen(
                             IconButton(onClick = {
                                  onMenuClick()
                             }) {
-                                Icon(Icons.Default.Menu, null)
+                                Icon(Icons.Rounded.Menu, null)
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(

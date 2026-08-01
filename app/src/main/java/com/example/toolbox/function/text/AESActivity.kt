@@ -22,13 +22,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -290,7 +290,7 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
             title = { Text("AES加解密") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -330,7 +330,7 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                         value = keyText,
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.Key,
+                                imageVector = Icons.Rounded.Key,
                                 contentDescription = "密钥"
                             )
                         },
@@ -356,7 +356,7 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                             onCheckedChange = { useOpenSslFormat = it },
                             thumbContent = {
                                 Icon(
-                                    imageVector = if (useOpenSslFormat) Icons.Default.Check else Icons.Default.Close,
+                                    imageVector = if (useOpenSslFormat) Icons.Rounded.Check else Icons.Rounded.Close,
                                     contentDescription = null,
                                     modifier = Modifier.size(SwitchDefaults.IconSize),
                                     tint = if (useOpenSslFormat) {
@@ -398,7 +398,7 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Filled.LockOpen,
+                                    Icons.Rounded.LockOpen,
                                     contentDescription = "解密",
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )
@@ -417,7 +417,7 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Filled.Lock,
+                                    Icons.Rounded.Lock,
                                     contentDescription = "加密",
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )
@@ -467,7 +467,7 @@ fun AesCryptoScreen(modifier: Modifier = Modifier) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Filled.ContentCopy,
+                                Icons.Rounded.ContentCopy,
                                 contentDescription = "复制",
                                 modifier = Modifier.size(ButtonDefaults.IconSize)
                             )

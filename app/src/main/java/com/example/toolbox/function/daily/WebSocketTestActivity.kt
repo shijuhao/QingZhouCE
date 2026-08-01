@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.CallMade
-import androidx.compose.material.icons.automirrored.filled.CallReceived
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.CallMade
+import androidx.compose.material.icons.automirrored.rounded.CallReceived
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -64,7 +64,7 @@ fun WebSocketTestScreen(
                 title = { Text("WebSocket 测试") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                     }
                 },
                 actions = {
@@ -72,7 +72,7 @@ fun WebSocketTestScreen(
                         viewModel.clearMessages()
                         Toast.makeText(context, "已清空消息", Toast.LENGTH_SHORT).show()
                     }) {
-                        Icon(Icons.Default.Delete, "清空")
+                        Icon(Icons.Rounded.Delete, "清空")
                     }
                 }
             )
@@ -107,7 +107,7 @@ fun WebSocketTestScreen(
                             },
                             enabled = messageInput.isNotBlank()
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, null)
+                            Icon(Icons.AutoMirrored.Rounded.Send, null)
                         }
                     }
                 }
@@ -229,12 +229,12 @@ fun MessageItem(message: WebSocketMessage) {
     
     // 根据消息类型选择图标
     val (icon, iconColor) = when (message.type) {
-        MessageType.SUCCESS -> Icons.Default.CheckCircle to Color(0xFF4CAF50)
-        MessageType.RECEIVED -> Icons.AutoMirrored.Filled.CallReceived to Color(0xFF2196F3)
-        MessageType.ERROR -> Icons.Default.Error to Color(0xFFF44336)
-        MessageType.WARNING -> Icons.Default.Warning to Color(0xFFFF9800)
-        MessageType.SENT -> Icons.AutoMirrored.Filled.CallMade to Color(0xFF4CAF50)
-        MessageType.INFO -> Icons.Default.Info to Color(0xFF9E9E9E)
+        MessageType.SUCCESS -> Icons.Rounded.CheckCircle to Color(0xFF4CAF50)
+        MessageType.RECEIVED -> Icons.AutoMirrored.Rounded.CallReceived to Color(0xFF2196F3)
+        MessageType.ERROR -> Icons.Rounded.Error to Color(0xFFF44336)
+        MessageType.WARNING -> Icons.Rounded.Warning to Color(0xFFFF9800)
+        MessageType.SENT -> Icons.AutoMirrored.Rounded.CallMade to Color(0xFF4CAF50)
+        MessageType.INFO -> Icons.Rounded.Info to Color(0xFF9E9E9E)
     }
     
     Card(
@@ -281,7 +281,7 @@ fun MessageItem(message: WebSocketMessage) {
                 }
             ) {
                 Icon(
-                    Icons.Default.ContentCopy,
+                    Icons.Rounded.ContentCopy,
                     "复制",
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.primary

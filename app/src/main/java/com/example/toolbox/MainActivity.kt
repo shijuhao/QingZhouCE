@@ -33,18 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.ChatBubble
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Inbox
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.rounded.*
 import com.example.toolbox.utils.UpdateInfo
 import com.example.toolbox.utils.checkForUpdateWithDetails
 import com.example.toolbox.settings.UpdateDialog
@@ -90,12 +79,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.toolbox.function.yunhu.yhbotmaker.BotManagerScreen
-import com.example.toolbox.function.mouse.MouseSimulatorScreen
 import com.example.toolbox.functionPage.HomeScreen
 import com.example.toolbox.guide.GuideActivity
-import com.example.toolbox.liFangCommunity.AuthManager
-import com.example.toolbox.liFangCommunity.CubeNetworkManager
-import com.example.toolbox.liFangCommunity.ProfileScreen_LF
 import com.example.toolbox.message.MessageScreen
 import com.example.toolbox.mine.ProfileScreen
 import com.example.toolbox.mine.UserBottomSheet
@@ -371,10 +356,8 @@ fun MyApplicationApp() {
     
         val topLevelRoutes = setOf(
             AppDestinations.HOME.route,
-            TopLevelDestinations.LFCommunity.route,
             TopLevelDestinations.YHBotMaker.route,
-            TopLevelDestinations.MusicPlayer.route,
-            TopLevelDestinations.MouseSimulator.route
+            TopLevelDestinations.MusicPlayer.route
         )
         val isTopLevel = currentRoute in topLevelRoutes
 
@@ -515,11 +498,6 @@ fun MainContentNavHost(
     val context = LocalContext.current
     val onMenuClick: () -> Unit = remember { { scope.launch { drawerState.open() } } }
 
-    LaunchedEffect(Unit) {
-        AuthManager.initialize(context.applicationContext)
-        CubeNetworkManager.initialize(context.applicationContext)
-    }
-
     NavHost(
         navController = navController,
         startDestination = getStartDestination(context),
@@ -553,11 +531,6 @@ fun MainContentNavHost(
                 mainViewModel = mainViewModel
             )
         }
-        composable(TopLevelDestinations.LFCommunity.route) {
-            ProfileScreen_LF(
-                onMenuClick = onMenuClick,
-            )
-        }
         composable(TopLevelDestinations.YHBotMaker.route) {
             BotManagerScreen(
                 isMain = true,
@@ -568,12 +541,6 @@ fun MainContentNavHost(
             MusicPlayerScreen(
                 onMenuClick = onMenuClick,
                 viewModel = musicPlayerViewModel,
-            )
-        }
-        composable(TopLevelDestinations.MouseSimulator.route) {
-            MouseSimulatorScreen(
-                isMain = true,
-                onMenuClick = onMenuClick,
             )
         }
     }
@@ -592,10 +559,8 @@ enum class TopLevelDestinations(
     override val icon: ImageVector,
     override val description: String
 ) : NavDestination {
-    LFCommunity("lfcommunity", "立方论坛", Icons.Default.ChatBubbleOutline, "主要作为立方论坛客户端"),
-    YHBotMaker("yhbotmaker", "YHBotMaker", Icons.Default.Android, "主要作为云湖机器人制作器"),
-    MusicPlayer("musicplayer", "音乐", Icons.Default.MusicNote, "本地音乐播放器"),
-    MouseSimulator("mousesimulator", "模拟鼠标", Icons.Default.Computer, "屏幕鼠标模拟器")
+    YHBotMaker("yhbotmaker", "YHBotMaker", Icons.Rounded.Android, "主要作为云湖机器人制作器"),
+    MusicPlayer("musicplayer", "音乐", Icons.Rounded.MusicNote, "本地音乐播放器")
 }
 
 enum class AppDestinations(
@@ -605,10 +570,10 @@ enum class AppDestinations(
     val iconOutlined: ImageVector,
     override val description: String
 ) : NavDestination {
-    HOME("home", "主页", Icons.Filled.Home, Icons.Outlined.Home, "主要使用轻昼实用功能"),
-    CHAT("chat", "会话", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline, ""),
-    RESOURCE("resource", "资源库", Icons.Filled.Inbox, Icons.Outlined.Inbox, ""),
-    PROFILE("profile", "我", Icons.Filled.Person, Icons.Outlined.Person, "");
+    HOME("home", "主页", Icons.Rounded.HomeWork, Icons.Rounded.Home, "主要使用轻昼实用功能"),
+    CHAT("chat", "会话", Icons.Rounded.ChatBubble, Icons.Rounded.ChatBubbleOutline, ""),
+    RESOURCE("resource", "资源库", Icons.Rounded.AllInbox, Icons.Rounded.Inbox, ""),
+    PROFILE("profile", "我", Icons.Rounded.People, Icons.Rounded.Person, "");
 }
 
 fun getStartDestination(context: Context): String {
@@ -617,10 +582,8 @@ fun getStartDestination(context: Context): String {
     
     return when (defaultStartPageName) {
         "主页" -> AppDestinations.HOME.route
-        "立方论坛" -> TopLevelDestinations.LFCommunity.route
         "YHBotMaker" -> TopLevelDestinations.YHBotMaker.route
         "音乐" -> TopLevelDestinations.MusicPlayer.route
-        "模拟鼠标" -> TopLevelDestinations.MouseSimulator.route
         else -> AppDestinations.HOME.route
     }
 }

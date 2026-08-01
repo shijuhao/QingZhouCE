@@ -13,9 +13,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -64,7 +64,7 @@ fun UUIDGeneratorScreen(modifier: Modifier = Modifier) {
             title = { Text("UUID生成器") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -96,7 +96,7 @@ fun UUIDGeneratorScreen(modifier: Modifier = Modifier) {
                         singleLine = true
                     )
                     Button(onClick = { generateUUIDs() }) {
-                        Icon(Icons.Filled.Refresh, null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                        Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(ButtonDefaults.IconSize))
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                         Text("生成")
                     }
@@ -127,7 +127,7 @@ fun UUIDGeneratorScreen(modifier: Modifier = Modifier) {
                             )
                         }
                         IconButton(onClick = { copyToClipboard(uuid) }) {
-                            Icon(Icons.Filled.ContentCopy, "复制")
+                            Icon(Icons.Rounded.ContentCopy, "复制")
                         }
                     }
                 }

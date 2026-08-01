@@ -40,18 +40,18 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FormatQuote
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FormatQuote
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.PersonAdd
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -281,7 +281,7 @@ class MessageDetailActivity : ComponentActivity() {
                             navigationIcon = {
                                 FilledTonalIconButton(onClick = { finish() }) {
                                     Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        Icons.AutoMirrored.Rounded.ArrowBack,
                                         contentDescription = "返回"
                                     )
                                 }
@@ -450,7 +450,7 @@ fun MessageDetailScreen(
                         }
                     ) {
                         Icon(
-                            Icons.Default.PersonAdd,
+                            Icons.Rounded.PersonAdd,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -538,7 +538,7 @@ fun MessageDetailScreen(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Warning,
+                        imageVector = Icons.Rounded.Warning,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -591,7 +591,7 @@ fun MessageDetailScreen(
                                 onClick = { viewModel.clearReplyTo() },
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "取消引用", modifier = Modifier.size(16.dp))
+                                Icon(Icons.Rounded.Close, contentDescription = "取消引用", modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -704,7 +704,7 @@ fun AnimatedScrollToBottomButton(
                 elevation = FloatingActionButtonDefaults.elevation(6.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
                     contentDescription = "滚动到底部"
                 )
             }
@@ -950,7 +950,7 @@ fun MessageBubble(
                             },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.ContentCopy,
+                                    Icons.Rounded.ContentCopy,
                                     null,
                                     Modifier.size(18.dp)
                                 )
@@ -965,7 +965,7 @@ fun MessageBubble(
                             onReply()
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.FormatQuote, null, Modifier.size(18.dp))
+                            Icon(Icons.Rounded.FormatQuote, null, Modifier.size(18.dp))
                         }
                     )
                     
@@ -977,7 +977,7 @@ fun MessageBubble(
                                 onRecall()
                             },
                             leadingIcon = {
-                                Icon(Icons.AutoMirrored.Filled.Undo, null, Modifier.size(18.dp))
+                                Icon(Icons.AutoMirrored.Rounded.Undo, null, Modifier.size(18.dp))
                             }
                         )
                     }
@@ -992,7 +992,7 @@ fun MessageBubble(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Edit,
+                                        Icons.Rounded.Edit,
                                         null,
                                         Modifier.size(18.dp)
                                     )
@@ -1077,7 +1077,7 @@ fun MessageInput(
                                     )
                             ) {
                                 Icon(
-                                    Icons.Default.Close,
+                                    Icons.Rounded.Close,
                                     contentDescription = "移除",
                                     modifier = Modifier.size(12.dp)
                                 )
@@ -1097,7 +1097,7 @@ fun MessageInput(
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
-                        Icons.Default.Image,
+                        Icons.Rounded.Image,
                         contentDescription = "添加图片",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
@@ -1142,7 +1142,7 @@ fun MessageInput(
                     modifier = Modifier.size(40.dp),
                     enabled = inputText.isNotBlank() || selectedImages.isNotEmpty()
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "发送")
+                    Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "发送")
                 }
             }
         }
@@ -1181,7 +1181,7 @@ fun EditMessageDialog(
                         onCheckedChange = { onToggleMarkdown() },
                         thumbContent = {
                             Icon(
-                                imageVector = if (state.isMarkdown) Icons.Default.Check else Icons.Default.Close,
+                                imageVector = if (state.isMarkdown) Icons.Rounded.Check else Icons.Rounded.Close,
                                 contentDescription = null,
                                 modifier = Modifier.size(SwitchDefaults.IconSize),
                                 tint = if (state.isMarkdown) MaterialTheme.colorScheme.primary

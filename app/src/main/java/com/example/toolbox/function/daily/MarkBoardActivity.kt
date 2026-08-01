@@ -10,8 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,7 +60,7 @@ fun MarkBoardScreen(
             title = { Text("计分板") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as ComponentActivity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -254,14 +254,14 @@ fun TimerControls(
             if (!timerRunning) {
                 ActionButton(
                     onClick = onStart,
-                    icon = { Icon(Icons.Default.PlayArrow, "开始") },
+                    icon = { Icon(Icons.Rounded.PlayArrow, "开始") },
                     text = "开始",
                     modifier = Modifier.weight(1f)
                 )
             } else {
                 ActionButton(
                     onClick = onPause,
-                    icon = { Icon(Icons.Default.Pause, "暂停") },
+                    icon = { Icon(Icons.Rounded.Pause, "暂停") },
                     text = "暂停",
                     modifier = Modifier.weight(1f)
                 )
@@ -269,7 +269,7 @@ fun TimerControls(
 
             ActionButton(
                 onClick = onRecordLap,
-                icon = { Icon(Icons.Default.Flag, "分段") },
+                icon = { Icon(Icons.Rounded.Flag, "分段") },
                 text = "分段",
                 containerColor = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f)
@@ -297,7 +297,7 @@ fun ResetControls(
         ) {
             ActionButton(
                 onClick = onResetScores,
-                icon = { Icon(Icons.Default.Delete, "重置分数") },
+                icon = { Icon(Icons.Rounded.Delete, "重置分数") },
                 text = "重置所有分数",
                 containerColor = MaterialTheme.colorScheme.error,
                 modifier = Modifier.fillMaxWidth()
@@ -310,7 +310,7 @@ fun ResetControls(
             )
             ActionButton(
                 onClick = onResetTimer,
-                icon = { Icon(Icons.Default.RestartAlt, "重置计时器") },
+                icon = { Icon(Icons.Rounded.RestartAlt, "重置计时器") },
                 text = "重置计时器",
                 containerColor = MaterialTheme.colorScheme.error,
                 modifier = Modifier.fillMaxWidth()

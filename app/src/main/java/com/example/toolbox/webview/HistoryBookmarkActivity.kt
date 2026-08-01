@@ -20,12 +20,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -124,7 +124,7 @@ fun HistoryBookmarkScreen(onBackClick: () -> Unit) {
                     title = { Text("浏览记录与书签") },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                         }
                     },
                     actions = {
@@ -133,7 +133,7 @@ fun HistoryBookmarkScreen(onBackClick: () -> Unit) {
                                 historyManager.clearHistory()
                                 historyList = emptyList()
                             }) {
-                                Icon(Icons.Default.Clear, contentDescription = "清空历史")
+                                Icon(Icons.Rounded.Clear, contentDescription = "清空历史")
                             }
                         }
                     }
@@ -144,13 +144,13 @@ fun HistoryBookmarkScreen(onBackClick: () -> Unit) {
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
                         text = { Text("历史记录") },
-                        icon = { Icon(Icons.Default.History, null) }
+                        icon = { Icon(Icons.Rounded.History, null) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
                         text = { Text("书签") },
-                        icon = { Icon(Icons.Default.Bookmark, null) }
+                        icon = { Icon(Icons.Rounded.Bookmark, null) }
                     )
                 }
             }
@@ -307,7 +307,7 @@ fun HistoryItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.History,
+                Icons.Rounded.History,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -338,7 +338,7 @@ fun HistoryItem(
 
             IconButton(onClick = onToggleBookmark) {
                 Icon(
-                    if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                    if (isBookmarked) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
                     contentDescription = if (isBookmarked) "取消书签" else "添加书签",
                     modifier = Modifier.size(20.dp),
                     tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -347,7 +347,7 @@ fun HistoryItem(
 
             IconButton(onClick = onDelete) {
                 Icon(
-                    Icons.Default.Delete,
+                    Icons.Rounded.Delete,
                     contentDescription = "删除",
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.error
@@ -372,7 +372,7 @@ fun BookmarkItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.Bookmark,
+                Icons.Rounded.Bookmark,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -398,7 +398,7 @@ fun BookmarkItem(
 
             IconButton(onClick = onDelete) {
                 Icon(
-                    Icons.Default.Delete,
+                    Icons.Rounded.Delete,
                     contentDescription = "删除",
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.error

@@ -22,10 +22,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.RotateLeft
-import androidx.compose.material.icons.automirrored.filled.RotateRight
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.RotateLeft
+import androidx.compose.material.icons.automirrored.rounded.RotateRight
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -150,7 +150,7 @@ fun HTMLEntityScreen(modifier: Modifier = Modifier) {
             title = { Text("HTML实体编解码") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -218,7 +218,7 @@ fun HTMLEntityScreen(modifier: Modifier = Modifier) {
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.RotateLeft,
+                                    Icons.AutoMirrored.Rounded.RotateLeft,
                                     null,
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )
@@ -235,7 +235,7 @@ fun HTMLEntityScreen(modifier: Modifier = Modifier) {
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.RotateRight,
+                                    Icons.AutoMirrored.Rounded.RotateRight,
                                     null,
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )
@@ -280,7 +280,7 @@ fun HTMLEntityScreen(modifier: Modifier = Modifier) {
                             onClick = { copyToClipboard() },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Filled.ContentCopy, null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                            Icon(Icons.Rounded.ContentCopy, null, modifier = Modifier.size(ButtonDefaults.IconSize))
                             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                             Text("复制结果")
                         }

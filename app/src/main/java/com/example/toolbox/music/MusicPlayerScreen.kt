@@ -16,8 +16,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -68,7 +68,7 @@ fun MusicPlayerScreen(
                         title = { Text("播放器设置") },
                         navigationIcon = {
                             FilledTonalIconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                             }
                         }
                     )
@@ -78,12 +78,12 @@ fun MusicPlayerScreen(
                         title = { Text("正在播放") },
                         navigationIcon = {
                             FilledTonalIconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                             }
                         },
                         actions = {
                             IconButton(onClick = { /* 更多功能 */ }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                                Icon(Icons.Rounded.MoreVert, contentDescription = "更多")
                             }
                         }
                     )
@@ -93,12 +93,12 @@ fun MusicPlayerScreen(
                         title = { Text("音乐") },
                         navigationIcon = {
                             FilledTonalIconButton(onClick = onMenuClick) {
-                                Icon(Icons.Default.Menu, contentDescription = "菜单")
+                                Icon(Icons.Rounded.Menu, contentDescription = "菜单")
                             }
                         },
                         actions = {
                             IconButton(onClick = { navController.navigate("settings") }) {
-                                Icon(Icons.Default.Settings, contentDescription = "设置")
+                                Icon(Icons.Rounded.Settings, contentDescription = "设置")
                             }
                         }
                     )
@@ -238,7 +238,7 @@ fun MusicListScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    Icons.Default.Lock,
+                    Icons.Rounded.Lock,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -257,7 +257,7 @@ fun MusicListScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onRequestPermission) {
-                    Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Security, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("授予权限")
                 }
@@ -273,7 +273,7 @@ fun MusicListScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    Icons.Default.MusicOff,
+                    Icons.Rounded.MusicOff,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -292,7 +292,7 @@ fun MusicListScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onScanClick) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("手动扫描")
                 }
@@ -355,7 +355,7 @@ fun MusicListItem(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.MusicNote,
+                    imageVector = Icons.Rounded.MusicNote,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(48.dp)
@@ -388,7 +388,7 @@ fun MusicListItem(
 
             if (isCurrentPlaying) {
                 Icon(
-                    imageVector = Icons.Default.MusicNote,
+                    imageVector = Icons.Rounded.MusicNote,
                     contentDescription = if (isActuallyPlaying) "播放中" else "已暂停",
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(24.dp)
@@ -447,7 +447,7 @@ fun MiniPlayer(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.MusicNote,
+                    imageVector = Icons.Rounded.MusicNote,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp)
                 )
@@ -477,7 +477,7 @@ fun MiniPlayer(
             
             IconButton(onClick = onPlayPauseClick) {
                 Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = if (isPlaying) "暂停" else "播放"
                 )
             }
@@ -598,7 +598,7 @@ fun FolderPickerDialog(
                                     )
                                     IconButton(onClick = { onRemoveFolder(folder) }) {
                                         Icon(
-                                            Icons.Default.Close,
+                                            Icons.Rounded.Close,
                                             contentDescription = "删除",
                                             tint = MaterialTheme.colorScheme.error
                                         )
@@ -619,7 +619,7 @@ fun FolderPickerDialog(
         },
         confirmButton = {
             Button(onClick = { showDirectoryChooser = true }) {
-                Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("选择文件夹")
             }
@@ -676,7 +676,7 @@ fun DirectoryChooserDialog(
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.ArrowUpward, contentDescription = null)
+                            Icon(Icons.Rounded.ArrowUpward, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("..", style = MaterialTheme.typography.titleMedium)
                         }
@@ -710,7 +710,7 @@ fun DirectoryChooserDialog(
                                 modifier = Modifier.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Folder, contentDescription = null)
+                                Icon(Icons.Rounded.Folder, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(dir.name, style = MaterialTheme.typography.bodyLarge)
                             }

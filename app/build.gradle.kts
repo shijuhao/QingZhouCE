@@ -4,13 +4,15 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.kotlin.plugin.parcelize")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
 }
 
 android {
     namespace = "com.example.toolbox"
 
-    compileSdk = 36
+    compileSdk {
+        version = release(37)
+    }
 
     defaultConfig {
         applicationId = "com.juhao.toolbox.kotlin"
@@ -100,7 +102,6 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.ui.text)
-    implementation(libs.jsoup)
     implementation(libs.persistentcookiejar)
     implementation(libs.socket.io.client)
 
@@ -116,9 +117,7 @@ dependencies {
     implementation(libs.exp4j)
     implementation(libs.zxing.core)
     implementation(libs.androidx.media)
-    implementation("androidx.lifecycle:lifecycle-process:2.6.2")
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    implementation("androidx.lifecycle:lifecycle-process:2.9.4")
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

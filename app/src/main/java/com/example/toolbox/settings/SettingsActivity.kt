@@ -15,13 +15,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.List
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,9 +83,7 @@ fun clearCache(context: android.content.Context) {
     }
 }
 
-/**
- * 递归删除文件或目录
- */
+
 fun deleteRecursively(file: java.io.File) {
     if (file.isDirectory) {
         val files = file.listFiles()
@@ -169,15 +166,11 @@ fun SettingsScreen(
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "返回"
                         )
                     }
                 },
-                colors = topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                ),
                 scrollBehavior = scrollBehavior
             )
         },
@@ -285,7 +278,7 @@ fun SettingsScreen(
                     items = listOf(
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Home,
+                                icon = Icons.Rounded.Home,
                                 title = "默认启动页",
                                 subtitle = "设置应用启动时默认显示的页面",
                                 onClick = {
@@ -296,7 +289,7 @@ fun SettingsScreen(
                         },
                         {
                             SettingsSwitchItem(
-                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                icon = Icons.AutoMirrored.Rounded.ArrowBack,
                                 title = "返回二次确认",
                                 subtitle = "在主页面按返回键退出时二次确认",
                                 checked = isOpenCancelTips,
@@ -311,7 +304,7 @@ fun SettingsScreen(
                         },
                         {
                             SettingsSwitchItem(
-                                icon = Icons.Default.Notifications,
+                                icon = Icons.Rounded.Notifications,
                                 title = "禁用社区通知",
                                 subtitle = "不再显示通知按钮",
                                 checked = isDisabledNotice,
@@ -334,7 +327,7 @@ fun SettingsScreen(
                     items = listOf(
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Draw,
+                                icon = Icons.Rounded.Draw,
                                 title = "外观设置",
                                 subtitle = "设置应用外观",
                                 onClick = {
@@ -353,7 +346,7 @@ fun SettingsScreen(
                     items = listOf(
                         {
                             SettingsSwitchItem(
-                                icon = Icons.Default.Update,
+                                icon = Icons.Rounded.Update,
                                 title = "自动检查更新",
                                 subtitle = "在应用启动时自动检查更新",
                                 checked = isEnabledAutoCheckUpdate,
@@ -368,7 +361,7 @@ fun SettingsScreen(
                         },
                         {
                             SettingsDropdownItem(
-                                icon = Icons.AutoMirrored.Filled.List,
+                                icon = Icons.AutoMirrored.Rounded.List,
                                 title = "更新频道",
                                 subtitle = if (updateChannel == "stable") "仅检查正式版本" else "检查预发布版本",
                                 options = listOf("stable" to "仅正式版", "prerelease" to "正式版 + 预发布版"),
@@ -392,7 +385,7 @@ fun SettingsScreen(
                     items = buildList {
                         add {
                             SettingsItemCell(
-                                icon = Icons.Default.Person,
+                                icon = Icons.Rounded.Person,
                                 title = "账号设置",
                                 subtitle = "设置你的轻昼账号",
                                 onClick = {
@@ -403,7 +396,7 @@ fun SettingsScreen(
                         }
                         add {
                             SettingsItemCell(
-                                icon = Icons.Default.Cloud,
+                                icon = Icons.Rounded.Cloud,
                                 title = "蓝奏云账号登录",
                                 subtitle = if (isLanzouLoggedIn) "已登录" else "未登录",
                                 onClick = {
@@ -418,7 +411,7 @@ fun SettingsScreen(
                         if (isLanzouLoggedIn) {
                             add {
                                 SettingsItemCell(
-                                    icon = Icons.AutoMirrored.Filled.Logout,
+                                    icon = Icons.AutoMirrored.Rounded.Logout,
                                     title = "退出蓝奏云账号",
                                     subtitle = "清除本地保存的蓝奏云登录状态",
                                     onClick = {
@@ -439,7 +432,7 @@ fun SettingsScreen(
                     items = listOf(
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Info,
+                                icon = Icons.Rounded.Info,
                                 title = "关于应用",
                                 subtitle = "版本号 ${context.getAppVersionInfo().versionName}",
                                 onClick = {
@@ -458,7 +451,7 @@ fun SettingsScreen(
                     items = listOf(
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Storage,
+                                icon = Icons.Rounded.Storage,
                                 title = "缓存设置",
                                 subtitle = if (cacheMaxSize == 0) "缓存已关闭" else "当前限制: ${cacheMaxSize}MB",
                                 onClick = {
@@ -468,7 +461,7 @@ fun SettingsScreen(
                         },
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.DeleteSweep,
+                                icon = Icons.Rounded.DeleteSweep,
                                 title = "清除缓存",
                                 subtitle = "清除所有应用缓存数据",
                                 onClick = {
@@ -486,7 +479,7 @@ fun SettingsScreen(
                     items = listOf(
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Delete,
+                                icon = Icons.Rounded.Delete,
                                 title = "清空已完成引导页状态",
                                 subtitle = "重启应用后将会重新前往引导页",
                                 onClick = {
@@ -601,7 +594,7 @@ fun SettingsItemCell(
             }
 
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -667,7 +660,7 @@ fun SettingsSwitchItem(
                 enabled = isEnabled,
                 thumbContent = {
                     Icon(
-                        imageVector = if (checked) Icons.Default.Check else Icons.Default.Close,
+                        imageVector = if (checked) Icons.Rounded.Check else Icons.Rounded.Close,
                         contentDescription = null,
                         modifier = Modifier.size(SwitchDefaults.IconSize),
                         tint = if (checked) {
@@ -723,7 +716,7 @@ fun SettingsDropdownItem(
             }
 
             Icon(
-                imageVector = Icons.Default.ArrowDropDown,
+                imageVector = Icons.Rounded.ArrowDropDown,
                 contentDescription = "选择",
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -748,7 +741,7 @@ fun SettingsDropdownItem(
                 trailingIcon = {
                     if (selectedValue == value) {
                         Icon(
-                            Icons.Default.Check,
+                            Icons.Rounded.Check,
                             contentDescription = "已选中"
                         )
                     }

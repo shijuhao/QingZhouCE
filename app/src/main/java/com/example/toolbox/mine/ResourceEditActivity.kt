@@ -18,8 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -171,7 +171,7 @@ fun ResourceEditScreen(
         topBar = {
             TopAppBar(
                 title = { Text("编辑资源") },
-                navigationIcon = { FilledTonalIconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }
+                navigationIcon = { FilledTonalIconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, null) } }
             )
         },
         floatingActionButton = {
@@ -213,7 +213,7 @@ fun ResourceEditScreen(
                         })
                     }
                 },
-                icon = { Icon(Icons.Default.Check, null) },
+                icon = { Icon(Icons.Rounded.Check, null) },
                 text = { Text("保存修改") }
             )
         }
@@ -287,9 +287,9 @@ fun ResourceEditScreen(
     if (showIconSheet) {
         ModalBottomSheet(onDismissRequest = { showIconSheet = false }) {
             Column(modifier = Modifier.navigationBarsPadding().padding(bottom = 20.dp)) {
-                ListItem(headlineContent = { Text("上传图片") }, leadingContent = { Icon(Icons.Default.Photo, null) },
+                ListItem(headlineContent = { Text("上传图片") }, leadingContent = { Icon(Icons.Rounded.Photo, null) },
                     modifier = Modifier.clickable { showIconSheet = false; photoPicker.launch("image/*") })
-                ListItem(headlineContent = { Text("修改直链") }, leadingContent = { Icon(Icons.Default.Link, null) },
+                ListItem(headlineContent = { Text("修改直链") }, leadingContent = { Icon(Icons.Rounded.Link, null) },
                     modifier = Modifier.clickable { showIconSheet = false; showUrlDialog = true })
             }
         }

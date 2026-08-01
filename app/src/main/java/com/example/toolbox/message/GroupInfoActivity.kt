@@ -26,23 +26,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -322,7 +322,7 @@ fun GroupInfoScreen(
                                         .clip(CircleShape)
                                 )
                             } else {
-                                Icon(Icons.Default.Add, contentDescription = "选择头像")
+                                Icon(Icons.Rounded.Add, contentDescription = "选择头像")
                             }
                         }
 
@@ -357,7 +357,7 @@ fun GroupInfoScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.VerifiedUser,
+                            imageVector = Icons.Rounded.VerifiedUser,
                             contentDescription = "进群审核",
                             modifier = Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -381,7 +381,7 @@ fun GroupInfoScreen(
                             onCheckedChange = null,
                             thumbContent = {
                                 Icon(
-                                    imageVector = if (uiState.editingJoinVerification) Icons.Default.Check else Icons.Default.Close,
+                                    imageVector = if (uiState.editingJoinVerification) Icons.Rounded.Check else Icons.Rounded.Close,
                                     contentDescription = null,
                                     modifier = Modifier.size(SwitchDefaults.IconSize),
                                     tint = if (uiState.editingJoinVerification) {
@@ -403,7 +403,7 @@ fun GroupInfoScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Share,
+                            imageVector = Icons.Rounded.Share,
                             contentDescription = "允许分享",
                             modifier = Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -427,7 +427,7 @@ fun GroupInfoScreen(
                             onCheckedChange = null,
                             thumbContent = {
                                 Icon(
-                                    imageVector = if (uiState.editingShareEnabled) Icons.Default.Check else Icons.Default.Close,
+                                    imageVector = if (uiState.editingShareEnabled) Icons.Rounded.Check else Icons.Rounded.Close,
                                     contentDescription = null,
                                     modifier = Modifier.size(SwitchDefaults.IconSize),
                                     tint = if (uiState.editingShareEnabled) {
@@ -475,7 +475,7 @@ fun GroupInfoScreen(
                 title = { Text("群聊信息") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -487,7 +487,7 @@ fun GroupInfoScreen(
                             intent.putExtra("group_name", "${group.name} - 入群申请")
                             context.startActivity(intent)
                         }) {
-                            Icon(Icons.Default.Group, contentDescription = "入群申请")
+                            Icon(Icons.Rounded.Group, contentDescription = "入群申请")
                         }
                     }
                     var showMenu by remember { mutableStateOf(false) }
@@ -497,19 +497,19 @@ fun GroupInfoScreen(
                         // 如果是群主或管理员，显示编辑按钮
                         if (uiState.myRole > 0) {
                             IconButton(onClick = { viewModel.showEditDialog() }) {
-                                Icon(Icons.Default.Edit, contentDescription = "编辑群信息")
+                                Icon(Icons.Rounded.Edit, contentDescription = "编辑群信息")
                             }
                         }
 
                         IconButton(onClick = { 
                             showShareDialog = true
                         }) {
-                            Icon(Icons.Default.Share, contentDescription = "分享群聊")
+                            Icon(Icons.Rounded.Share, contentDescription = "分享群聊")
                         }
 
                         Box {
                             IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                                Icon(Icons.Rounded.MoreVert, contentDescription = "更多")
                             }
                             DropdownMenu(
                                 expanded = showMenu,
@@ -522,7 +522,7 @@ fun GroupInfoScreen(
                                             showMenu = false
                                             viewModel.showDissolveDialog()
                                         },
-                                        leadingIcon = { Icon(Icons.Default.Delete, null) }
+                                        leadingIcon = { Icon(Icons.Rounded.Delete, null) }
                                     )
                                 } else {
                                     DropdownMenuItem(
@@ -533,7 +533,7 @@ fun GroupInfoScreen(
                                         },
                                         leadingIcon = {
                                             Icon(
-                                                Icons.AutoMirrored.Filled.ExitToApp,
+                                                Icons.AutoMirrored.Rounded.ExitToApp,
                                                 null
                                             )
                                         }
@@ -577,7 +577,7 @@ fun GroupInfoScreen(
                                                 )
                                                 Toast.makeText(context, "链接已复制", Toast.LENGTH_SHORT).show()
                                             }) {
-                                                Icon(Icons.Default.ContentCopy, contentDescription = "复制外链")
+                                                Icon(Icons.Rounded.ContentCopy, contentDescription = "复制外链")
                                             }
                                         },
                                         singleLine = true
@@ -603,7 +603,7 @@ fun GroupInfoScreen(
                                                 )
                                                 Toast.makeText(context, "链接已复制", Toast.LENGTH_SHORT).show()
                                             }) {
-                                                Icon(Icons.Default.ContentCopy, contentDescription = "复制内链")
+                                                Icon(Icons.Rounded.ContentCopy, contentDescription = "复制内链")
                                             }
                                         },
                                         singleLine = true
@@ -688,7 +688,7 @@ fun GroupInfoScreen(
                                 items = listOf(
                                     {
                                         SettingsItemCell(
-                                            icon = Icons.Default.Person,
+                                            icon = Icons.Rounded.Person,
                                             title = "成员数",
                                             subtitle = "${group.membersCount} 名成员",
                                             onClick = {
@@ -704,7 +704,7 @@ fun GroupInfoScreen(
                                     },
                                     {
                                         SettingsItemCell(
-                                            icon = Icons.Default.DateRange,
+                                            icon = Icons.Rounded.DateRange,
                                             title = "创建时间",
                                             subtitle = formatGroupTime(group.createdAt),
                                             onClick = {}
@@ -713,7 +713,7 @@ fun GroupInfoScreen(
                                     {
                                         if (group.isPrivate) {
                                             SettingsItemCell(
-                                                icon = Icons.Default.Lock,
+                                                icon = Icons.Rounded.Lock,
                                                 title = "群类型",
                                                 subtitle = "私有群",
                                                 onClick = {},
@@ -721,7 +721,7 @@ fun GroupInfoScreen(
                                             )
                                         } else {
                                             SettingsItemCell(
-                                                icon = Icons.Default.Public,
+                                                icon = Icons.Rounded.Public,
                                                 title = "群类型",
                                                 subtitle = "公开群",
                                                 onClick = {}
@@ -841,7 +841,7 @@ fun GroupInfoScreen(
                                                             }
                                                             if (uiState.myRole > 0) {
                                                                 Icon(
-                                                                    Icons.Default.Delete,
+                                                                    Icons.Rounded.Delete,
                                                                     contentDescription = "删除标签",
                                                                     modifier = Modifier
                                                                         .size(20.dp)
@@ -864,7 +864,7 @@ fun GroupInfoScreen(
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         Icon(
-                                                            Icons.Default.Add,
+                                                            Icons.Rounded.Add,
                                                             contentDescription = null,
                                                             tint = MaterialTheme.colorScheme.primary,
                                                             modifier = Modifier.size(24.dp)

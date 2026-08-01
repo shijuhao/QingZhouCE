@@ -25,12 +25,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Comment
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.rounded.Comment
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.outlined.AssignmentTurnedIn
 import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.outlined.Notifications
@@ -61,7 +61,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -168,7 +167,7 @@ fun UserCard(
                         Icon(
                             modifier = Modifier.size(14.dp),
                             contentDescription = null,
-                            imageVector = Icons.Default.CheckCircle,
+                            imageVector = Icons.Rounded.CheckCircle,
                             tint = when (userInfo.tagStatus) {
                                 1 -> MaterialTheme.colorScheme.error
                                 2 -> MaterialTheme.colorScheme.tertiary
@@ -290,7 +289,7 @@ fun ProfileScreen(
                 title = { Text("我的") },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, null)
+                        Icon(Icons.Rounded.Menu, null)
                     }
                 },
                 actions = {
@@ -304,7 +303,7 @@ fun ProfileScreen(
                                 modifier = Modifier.padding(end = 4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.NotificationsActive,
+                                    imageVector = Icons.Rounded.NotificationsActive,
                                     contentDescription = "通知",
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -333,7 +332,7 @@ fun ProfileScreen(
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Settings,
+                            imageVector = Icons.Rounded.Settings,
                             contentDescription = "设置"
                         )
                     }
@@ -357,7 +356,9 @@ fun ProfileScreen(
         ) {
             LazyColumn(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
             ) {
                 item {
                     ItemGroup(
@@ -477,9 +478,6 @@ fun ProfileScreen(
 
                                 add {
                                     ListItem(
-                                        headlineContent = {
-                                            Text(text = if (userInfo.signed == 0) "签到" else "已签到")
-                                        },
                                         leadingContent = {
                                             Icon(
                                                 imageVector = Icons.Outlined.AssignmentTurnedIn,
@@ -495,7 +493,9 @@ fun ProfileScreen(
                                             .clickable {
                                                 isShowSignInDialog = true
                                             }
-                                    )
+                                    ) {
+                                        Text(text = if (userInfo.signed == 0) "签到" else "已签到")
+                                    }
                                 }
                             }
                         }
@@ -508,11 +508,10 @@ fun ProfileScreen(
                             items = buildList<@Composable () -> Unit> {
                                 add {
                                     ListItem(
-                                        headlineContent = { Text("查看社区") },
                                         supportingContent = { Text("查看轻昼社区") },
                                         leadingContent = {
                                             Icon(
-                                                imageVector = Icons.AutoMirrored.Filled.Comment,
+                                                imageVector = Icons.AutoMirrored.Rounded.Comment,
                                                 contentDescription = "社区",
                                                 modifier = Modifier.size(24.dp)
                                             )
@@ -533,15 +532,16 @@ fun ProfileScreen(
                                                 }
                                                 context.startActivity(intent)
                                             }
-                                    )
+                                    ) {
+                                        Text("查看社区")
+                                    }
                                 }
                                 add {
                                     ListItem(
-                                        headlineContent = { Text("我的资源") },
                                         supportingContent = { Text("查看我的资源、投稿资源") },
                                         leadingContent = {
                                             Icon(
-                                                imageVector = Icons.Default.Category,
+                                                imageVector = Icons.Rounded.Category,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(24.dp)
                                             )
@@ -558,13 +558,12 @@ fun ProfileScreen(
                                                 )
                                                 context.startActivity(intent)
                                             }
-                                    )
+                                    ) {
+                                        Text("我的资源")
+                                    }
                                 }
                                 add {
                                     ListItem(
-                                        headlineContent = {
-                                            Text("排行榜")
-                                        },
                                         leadingContent = {
                                             Icon(
                                                 imageVector = Icons.Outlined.Leaderboard,
@@ -582,7 +581,9 @@ fun ProfileScreen(
                                                     Intent(context, RankActivity::class.java)
                                                 context.startActivity(intent)
                                             }
-                                    )
+                                    ) {
+                                        Text("排行榜")
+                                    }
                                 }
                             }
                         )

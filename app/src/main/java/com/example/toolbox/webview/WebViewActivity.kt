@@ -28,17 +28,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.WebAsset
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.WebAsset
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -160,7 +160,7 @@ fun WebViewScreen(
         AlertDialog(
             onDismissRequest = { showSchemeDialog = false },
             icon = {
-                Icon(Icons.Default.OpenInNew, contentDescription = null)
+                Icon(Icons.Rounded.OpenInNew, contentDescription = null)
             },
             title = { Text("跳转应用") },
             text = {
@@ -216,12 +216,12 @@ fun WebViewScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "关闭")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "关闭")
                         }
                     },
                     actions = {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "更多")
+                            Icon(Icons.Rounded.MoreVert, contentDescription = "更多")
                         }
                         DropdownMenu(
                             expanded = showMenu,
@@ -247,7 +247,7 @@ fun WebViewScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        if (isCurrentUrlBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                        if (isCurrentUrlBookmarked) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
                                         null,
                                         Modifier.size(18.dp)
                                     )
@@ -262,7 +262,7 @@ fun WebViewScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.History,
+                                        Icons.Rounded.History,
                                         null,
                                         Modifier.size(18.dp)
                                     )
@@ -277,7 +277,7 @@ fun WebViewScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.WebAsset,
+                                        Icons.Rounded.WebAsset,
                                         null,
                                         Modifier.size(18.dp)
                                     )
@@ -296,7 +296,7 @@ fun WebViewScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.ContentCopy,
+                                        Icons.Rounded.ContentCopy,
                                         null,
                                         Modifier.size(18.dp)
                                     )
@@ -324,14 +324,14 @@ fun WebViewScreen(
                     enabled = uiState.canGoBack,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "后退")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "后退")
                 }
                 IconButton(
                     onClick = { webView?.goForward() },
                     enabled = uiState.canGoForward,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "前进")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "前进")
                 }
                 IconButton(
                     onClick = {
@@ -344,7 +344,7 @@ fun WebViewScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
-                        imageVector = if (uiState.progress < 1.0f) Icons.Filled.Close else Icons.Filled.Refresh,
+                        imageVector = if (uiState.progress < 1.0f) Icons.Rounded.Close else Icons.Rounded.Refresh,
                         contentDescription = if (uiState.progress < 1.0f) "停止" else "刷新"
                     )
                 }

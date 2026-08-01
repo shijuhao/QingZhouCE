@@ -22,8 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -260,7 +260,7 @@ fun DrawerContent(
             title = { Text(text = "切换分区") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = onCloseDrawer) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -326,7 +326,7 @@ fun DrawerContent(
                                     showCreateDialog = true
                                 }
                             ) {
-                                Icon(Icons.Default.Add, "新建分区")
+                                Icon(Icons.Rounded.Add, "新建分区")
                             }
                         }
                     }
@@ -478,7 +478,7 @@ fun CommunityScreen(
                             onCheckedChange = { replyPrivate = it },
                             thumbContent = {
                                 Icon(
-                                    imageVector = if (replyPrivate) Icons.Default.Check else Icons.Default.Close,
+                                    imageVector = if (replyPrivate) Icons.Rounded.Check else Icons.Rounded.Close,
                                     contentDescription = null,
                                     modifier = Modifier.size(SwitchDefaults.IconSize),
                                     tint = if (replyPrivate) {
@@ -585,12 +585,12 @@ fun CommunityScreen(
             },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             },
             actions = {
                 IconButton(onClick = { viewModel.fetchMessages(token, 1, true) }) {
-                    Icon(Icons.Default.Refresh, "刷新")
+                    Icon(Icons.Rounded.Refresh, "刷新")
                 }
             }
         )
@@ -717,7 +717,7 @@ fun CommunityScreen(
                     onClick = { scope.launch { drawerState.open() } },
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
                 ) {
-                    Icon(Icons.Default.Menu, "分类")
+                    Icon(Icons.Rounded.Menu, "分类")
                 }
 
                 FloatingActionButton(
@@ -729,7 +729,7 @@ fun CommunityScreen(
                         postArticleLauncher.launch(intent)
                     }
                 ) {
-                    Icon(Icons.Default.Add, "发帖")
+                    Icon(Icons.Rounded.Add, "发帖")
                 }
             }
         }

@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.TextSnippet
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -50,7 +50,7 @@ fun Greeting() {
                 title = { Text("更多信息") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                     }
                 }
             )
@@ -69,7 +69,7 @@ fun Greeting() {
                     items = listOf(
                         {
                             SettingsItemCell(
-                                icon = Icons.AutoMirrored.Filled.TextSnippet,
+                                icon = Icons.AutoMirrored.Rounded.TextSnippet,
                                 title = "Apache License 2.0",
                                 subtitle = "点击查看官方网站",
                                 onClick = {
@@ -80,7 +80,7 @@ fun Greeting() {
                         },
                         {
                             SettingsItemCell(
-                                icon = Icons.AutoMirrored.Filled.TextSnippet,
+                                icon = Icons.AutoMirrored.Rounded.TextSnippet,
                                 title = "GNU General Public License v3.0",
                                 subtitle = "点击查看官方网站",
                                 onClick = {

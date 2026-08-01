@@ -27,15 +27,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.GroupAdd
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.GroupAdd
+import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.PersonAdd
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
@@ -167,14 +167,14 @@ fun MessageScreen(
                 title = { Text(if (isAuth) "会话" else "连接中...") },
                 navigationIcon = {
                     IconButton(onClick = { onMenuClick() }) {
-                        Icon(Icons.Default.Menu, contentDescription = "菜单")
+                        Icon(Icons.Rounded.Menu, contentDescription = "菜单")
                     }
                 },
                 actions = {
                     if (token != "null") {
                         Box {
                             IconButton(onClick = { groupViewModel.showDropdownMenu() }) {
-                                Icon(Icons.Default.Add, contentDescription = "添加")
+                                Icon(Icons.Rounded.Add, contentDescription = "添加")
                             }
                             
                             DropdownMenu(
@@ -184,7 +184,7 @@ fun MessageScreen(
                                 DropdownMenuItem(
                                     text = { Text("请求列表") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.PersonAdd, contentDescription = null)
+                                        Icon(Icons.Rounded.PersonAdd, contentDescription = null)
                                     },
                                     onClick = {
                                         groupViewModel.hideDropdownMenu()
@@ -195,7 +195,7 @@ fun MessageScreen(
                                 DropdownMenuItem(
                                     text = { Text("创建群聊") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.GroupAdd, contentDescription = null)
+                                        Icon(Icons.Rounded.GroupAdd, contentDescription = null)
                                     },
                                     onClick = {
                                         groupViewModel.showCreateDialog()
@@ -204,7 +204,7 @@ fun MessageScreen(
                                 DropdownMenuItem(
                                     text = { Text("加入群") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Group, contentDescription = null)
+                                        Icon(Icons.Rounded.Group, contentDescription = null)
                                     },
                                     onClick = {
                                         groupViewModel.showJoinDialog()
@@ -346,7 +346,7 @@ fun JoinGroupDialog(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("搜索")
                 }
@@ -395,7 +395,7 @@ fun CreateGroupDialog(
                         )
                     } else {
                         IconButton(onClick = onSelectAvatar) {
-                            Icon(Icons.Default.Add, contentDescription = "选择头像")
+                            Icon(Icons.Rounded.Add, contentDescription = "选择头像")
                         }
                     }
 
@@ -435,7 +435,7 @@ fun CreateGroupDialog(
                         onCheckedChange = onPrivateChange,
                         thumbContent = {
                             Icon(
-                                imageVector = if (isPrivate) Icons.Default.Check else Icons.Default.Close,
+                                imageVector = if (isPrivate) Icons.Rounded.Check else Icons.Rounded.Close,
                                 contentDescription = null,
                                 modifier = Modifier.size(SwitchDefaults.IconSize),
                                 tint = if (isPrivate) {
@@ -526,7 +526,7 @@ fun FriendItem(friend: Friend) {
                     Icon(
                         modifier = Modifier.size(14.dp),
                         contentDescription = null,
-                        imageVector = Icons.Default.CheckCircle,
+                        imageVector = Icons.Rounded.CheckCircle,
                         tint = when (friend.titleStatus) {
                             1 -> MaterialTheme.colorScheme.error
                             2 -> MaterialTheme.colorScheme.tertiary
@@ -538,7 +538,7 @@ fun FriendItem(friend: Friend) {
                 Spacer(modifier = Modifier.weight(1f))
                 if (friend.type == "group") {
                     Icon(
-                        imageVector = Icons.Default.Group,
+                        imageVector = Icons.Rounded.Group,
                         contentDescription = "群聊",
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

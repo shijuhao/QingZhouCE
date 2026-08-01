@@ -36,9 +36,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -411,7 +411,7 @@ fun AntiOCRScreen() {
                 title = { Text("防OCR图片生成器") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as? ComponentActivity)?.finish() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
@@ -544,7 +544,7 @@ fun AntiOCRScreen() {
                                     }
                                 }
                             ) {
-                                Icon(Icons.Default.Save, contentDescription = null)
+                                Icon(Icons.Rounded.Save, contentDescription = null)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("保存到相册")
                             }
@@ -574,7 +574,7 @@ fun AntiOCRScreen() {
                                     }
                                 }
                             ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null)
+                                Icon(Icons.Rounded.Refresh, contentDescription = null)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("重新生成")
                             }

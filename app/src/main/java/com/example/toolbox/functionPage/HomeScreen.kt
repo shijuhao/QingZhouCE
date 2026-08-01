@@ -22,9 +22,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.AddToHomeScreen
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,6 +55,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.core.content.edit
 import androidx.core.graphics.createBitmap
+import kotlin.time.Duration.Companion.milliseconds
 
 object ExpandedStatePrefs {
     private const val PREFS_NAME = "functionCategory_expanded"
@@ -134,7 +135,7 @@ fun HomeScreen(
             val totalMinutes = 24 * 60
             val currentMinutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
             dayProgress = currentMinutes.toFloat() / totalMinutes
-            delay(60000)
+            delay(60000.milliseconds)
         }
     }
 
@@ -183,12 +184,12 @@ fun HomeScreen(
                         title = { Text(stringResource(id = R.string.app_name)) },
                         navigationIcon = {
                             IconButton(onClick = { onMenuClick() }) {
-                                Icon(Icons.Default.Menu, contentDescription = "菜单")
+                                Icon(Icons.Rounded.Menu, contentDescription = "菜单")
                             }
                         },
                         actions = {
                             IconButton(onClick = { isSearching = true }) {
-                                Icon(Icons.Default.Search, contentDescription = "搜索")
+                                Icon(Icons.Rounded.Search, contentDescription = "搜索")
                             }
                             
                             if (mainViewModel != null) {
@@ -218,16 +219,16 @@ fun HomeScreen(
                         leadingIcon = {
                             if (isSearching) {
                                 IconButton(onClick = { isSearching = false; searchText = "" }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                                 }
                             } else {
-                                Icon(Icons.Default.Search, null)
+                                Icon(Icons.Rounded.Search, null)
                             }
                         },
                         trailingIcon = {
                             if (searchText.isNotEmpty()) {
                                 IconButton(onClick = { searchText = "" }) {
-                                    Icon(Icons.Default.Close, "清除")
+                                    Icon(Icons.Rounded.Close, "清除")
                                 }
                             }
                         }
@@ -348,9 +349,9 @@ fun HomeScreen(
                                 )
                             }
                         }
-                        
+
                         LinearProgressIndicator(
-                            progress = animatedProgress,
+                            progress = { animatedProgress },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(3.dp)
@@ -424,10 +425,9 @@ fun HomeScreen(
             text = {
                 Column {
                     ListItem(
-                        headlineContent = { Text("创建快捷方式") },
                         leadingContent = {
                             Icon(
-                                Icons.AutoMirrored.Filled.AddToHomeScreen,
+                                Icons.AutoMirrored.Rounded.AddToHomeScreen,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -437,18 +437,14 @@ fun HomeScreen(
                             showFavoriteDialog = false
                             functionToFavorite = null
                         }
-                    )
+                    ) {
+                        Text("创建快捷方式")
+                    }
     
                     ListItem(
-                        headlineContent = {
-                            Text(
-                                if (isFavorite) "取消收藏" else "添加到收藏",
-                                color = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                            )
-                        },
                         leadingContent = {
                             Icon(
-                                if (isFavorite) Icons.Default.HeartBroken else Icons.Default.FavoriteBorder,
+                                if (isFavorite) Icons.Rounded.HeartBroken else Icons.Rounded.FavoriteBorder,
                                 contentDescription = null,
                                 tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                             )
@@ -464,7 +460,12 @@ fun HomeScreen(
                             showFavoriteDialog = false
                             functionToFavorite = null
                         }
-                    )
+                    ) {
+                        Text(
+                            if (isFavorite) "取消收藏" else "添加到收藏",
+                            color = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             },
             confirmButton = {},
@@ -526,7 +527,7 @@ private fun FavoriteCategoryCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Favorite,
+                        Icons.Rounded.Favorite,
                         null,
                         tint = iconTint,
                         modifier = Modifier.size(22.dp)
@@ -549,7 +550,7 @@ private fun FavoriteCategoryCard(
 
                 val rotation by animateFloatAsState(if (favoritesExpanded) 0f else 90f, label = "")
                 Icon(
-                    Icons.Default.ExpandLess,
+                    Icons.Rounded.ExpandLess,
                     null,
                     modifier = Modifier
                         .rotate(rotation)
@@ -655,7 +656,7 @@ private fun CategoryCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = category.icon?.toPainter() ?: rememberVectorPainter(Icons.Default.Functions),
+                        painter = category.icon?.toPainter() ?: rememberVectorPainter(Icons.Rounded.Functions),
                         null,
                         tint = iconTint,
                         modifier = Modifier.size(22.dp)
@@ -678,7 +679,7 @@ private fun CategoryCard(
                 Spacer(modifier = Modifier.width(6.dp))
                 val rotation by animateFloatAsState(if (isExpanded) 0f else 90f, label = "")
                 Icon(
-                    Icons.Default.ExpandLess,
+                    Icons.Rounded.ExpandLess,
                     null,
                     modifier = Modifier
                         .rotate(rotation)

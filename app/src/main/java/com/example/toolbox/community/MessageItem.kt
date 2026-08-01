@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -273,7 +273,7 @@ fun MessageItem(
                 // 更多菜单
                 Box {
                     IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, null, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.MoreVert, null, modifier = Modifier.size(20.dp))
                     }
 
                     DropdownMenu(
@@ -290,7 +290,7 @@ fun MessageItem(
                                 Toast.makeText(context, "复制成功", Toast.LENGTH_SHORT).show()
                             },
                             leadingIcon = { 
-                                Icon(Icons.Default.ContentCopy, null, Modifier.size(18.dp)) 
+                                Icon(Icons.Rounded.ContentCopy, null, Modifier.size(18.dp)) 
                             }
                         )
 
@@ -315,7 +315,7 @@ fun MessageItem(
                                 }
                             },
                             leadingIcon = {
-                                Icon(Icons.Default.AddCircle, null, Modifier.size(18.dp))
+                                Icon(Icons.Rounded.AddCircle, null, Modifier.size(18.dp))
                             }
                         )
 
@@ -327,7 +327,7 @@ fun MessageItem(
                                     onEdit()
                                 },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Edit, null, Modifier.size(18.dp))
+                                    Icon(Icons.Rounded.Edit, null, Modifier.size(18.dp))
                                 }
                             )
                         }
@@ -346,7 +346,7 @@ fun MessageItem(
                                 },
                                 leadingIcon = { 
                                     Icon(
-                                        Icons.Default.Delete, 
+                                        Icons.Rounded.Delete, 
                                         null, 
                                         Modifier.size(18.dp),
                                         tint = MaterialTheme.colorScheme.error
@@ -461,7 +461,7 @@ fun MessageItem(
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
-                            Icons.Default.History,
+                            Icons.Rounded.History,
                             null,
                             tint = colorScheme.outline,
                             modifier = Modifier.size(18.dp)
@@ -474,7 +474,7 @@ fun MessageItem(
                 // 评论按钮
                 TextButton(onClick = onReply) {
                     Icon(
-                        Icons.Default.ChatBubbleOutline, 
+                        Icons.Rounded.ChatBubbleOutline, 
                         null, 
                         modifier = Modifier.size(18.dp)
                     )
@@ -496,9 +496,9 @@ fun MessageItem(
                 ) {
                     Icon(
                         imageVector = if (message.is_liked) 
-                            Icons.Filled.ThumbUp 
+                            Icons.Rounded.ThumbUp
                         else 
-                            Icons.Default.ThumbUpOffAlt,
+                            Icons.Rounded.ThumbUpOffAlt,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )

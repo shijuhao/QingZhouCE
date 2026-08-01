@@ -10,11 +10,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.RotateLeft
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.RotateLeft
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,7 +83,7 @@ fun TimerDetailScreen(
                 title = { Text(timer.name) },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                     }
                 }
             )
@@ -122,7 +122,7 @@ fun TimerDetailScreen(
                                 modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.RotateLeft,
+                                    Icons.AutoMirrored.Rounded.RotateLeft,
                                     contentDescription = "重置",
                                     modifier = Modifier.size(28.dp)
                                 )
@@ -143,7 +143,7 @@ fun TimerDetailScreen(
                                 },
                                 modifier = Modifier.size(64.dp)
                             ) {
-                                Icon(Icons.Default.Stop, "暂停", modifier = Modifier.size(32.dp))
+                                Icon(Icons.Rounded.Stop, "暂停", modifier = Modifier.size(32.dp))
                             }
                         } else if (timerType == "stopwatch" || timer.elapsedTime > 0) {
                             FilledIconButton(
@@ -156,7 +156,7 @@ fun TimerDetailScreen(
                                 },
                                 modifier = Modifier.size(64.dp)
                             ) {
-                                Icon(Icons.Default.PlayArrow, "开始", modifier = Modifier.size(32.dp))
+                                Icon(Icons.Rounded.PlayArrow, "开始", modifier = Modifier.size(32.dp))
                             }
                         }
                     }
@@ -169,7 +169,7 @@ fun TimerDetailScreen(
                                 modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.Edit,
+                                    Icons.Rounded.Edit,
                                     contentDescription = "计次",
                                     modifier = Modifier.size(28.dp)
                                 )

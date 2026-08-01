@@ -9,10 +9,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Backspace
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Backspace
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -427,13 +427,13 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
             title = { Text("计算器") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as ComponentActivity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             },
             actions = {
                 IconButton(onClick = { isScientificMode = !isScientificMode }) {
                     Icon(
-                        if (isScientificMode) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        if (isScientificMode) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
                         if (isScientificMode) "收起科学模式" else "展开科学模式"
                     )
                 }
@@ -740,7 +740,7 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
                         onClick = { appendDecimal() }
                     )
                     CalculatorButton(
-                        icon = Icons.AutoMirrored.Filled.Backspace,
+                        icon = Icons.AutoMirrored.Rounded.Backspace,
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         onClick = { delete() }

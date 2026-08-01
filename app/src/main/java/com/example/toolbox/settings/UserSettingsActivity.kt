@@ -23,19 +23,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.TextSnippet
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.HourglassEmpty
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
+import androidx.compose.material.icons.automirrored.rounded.TextSnippet
+import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.HourglassEmpty
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -45,13 +45,11 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -549,7 +547,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
                             val image =
-                                if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                                if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(image, contentDescription = null)
                             }
@@ -566,7 +564,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
                             val image =
-                                if (checkPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                                if (checkPasswordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff
                             IconButton(onClick = { checkPasswordVisible = !checkPasswordVisible }) {
                                 Icon(image, contentDescription = null)
                             }
@@ -623,13 +621,9 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                 title = { Text("账号设置") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                     }
                 },
-                colors = topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                ),
                 scrollBehavior = scrollBehavior
             )
         }
@@ -697,7 +691,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                 items = listOf(
                                     {
                                         SettingsItemCell(
-                                            icon = Icons.Default.Edit,
+                                            icon = Icons.Rounded.Edit,
                                             title = "修改账号名称",
                                             subtitle = "更改您的显示名称",
                                             onClick = {
@@ -708,7 +702,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                     },
                                     {
                                         SettingsItemCell(
-                                            icon = Icons.AutoMirrored.Filled.TextSnippet,
+                                            icon = Icons.AutoMirrored.Rounded.TextSnippet,
                                             title = "修改账号简介",
                                             subtitle = "更改您的简介",
                                             onClick = {
@@ -719,7 +713,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                     },
                                     {
                                         SettingsItemCell(
-                                            icon = Icons.Default.Person,
+                                            icon = Icons.Rounded.Person,
                                             title = "修改头像直链",
                                             subtitle = "使用图片 URL 更新头像",
                                             onClick = {
@@ -730,7 +724,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                     },
                                     {
                                         SettingsItemCell(
-                                            icon = Icons.Default.CloudUpload,
+                                            icon = Icons.Rounded.CloudUpload,
                                             title = "上传头像",
                                             subtitle = "选取本地图片并更新头像",
                                             onClick = {
@@ -741,7 +735,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                                     },
                                     {
                                         SettingsItemCell(
-                                            icon = Icons.Default.Image,
+                                            icon = Icons.Rounded.Image,
                                             title = "修改背景图片",
                                             subtitle = "选取本地图片并更新背景",
                                             onClick = {
@@ -762,7 +756,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                         items = listOf(
                             {
                                 SettingsItemCell(
-                                    icon = Icons.Default.Key,
+                                    icon = Icons.Rounded.Key,
                                     title = "修改密码",
                                     subtitle = "修改账号密码",
                                     onClick = {
@@ -774,7 +768,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                             },
                             {
                                 SettingsSwitchItem(
-                                    icon = Icons.Default.TouchApp,
+                                    icon = Icons.Rounded.TouchApp,
                                     title = "启用一键登录",
                                     subtitle = "在登录过此账号的设备上无需密码即可登录",
                                     checked = onePointLoginEnabled,
@@ -793,7 +787,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                         items = listOf(
                             {
                                 SettingsItemCell(
-                                    icon = Icons.Default.Devices,
+                                    icon = Icons.Rounded.Devices,
                                     title = "设备管理",
                                     subtitle = "管理登录了此账号的设备",
                                     onClick = {
@@ -805,7 +799,7 @@ fun UserSettingsScreen(modifier: Modifier = Modifier) {
                             },
                             {
                                 SettingsItemCell(
-                                    icon = Icons.AutoMirrored.Filled.ExitToApp,
+                                    icon = Icons.AutoMirrored.Rounded.ExitToApp,
                                     title = "退出登录",
                                     subtitle = "退出当前账号",
                                     isDestructive = true,
@@ -837,7 +831,7 @@ fun EmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            Icons.Default.HourglassEmpty,
+            Icons.Rounded.HourglassEmpty,
             contentDescription = null,
             modifier = Modifier.size(60.dp)
         )

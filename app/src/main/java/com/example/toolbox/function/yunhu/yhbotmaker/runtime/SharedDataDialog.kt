@@ -4,9 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -120,7 +120,7 @@ fun SharedDataDialog(
                     style = MaterialTheme.typography.headlineSmall
                 )
                 IconButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, "添加")
+                    Icon(Icons.Rounded.Add, "添加")
                 }
             }
             
@@ -180,7 +180,7 @@ fun SharedDataDialog(
                                             editingValue = entry.value
                                         }
                                     ) {
-                                        Icon(Icons.Default.Edit, "编辑")
+                                        Icon(Icons.Rounded.Edit, "编辑")
                                     }
                                     IconButton(
                                         onClick = {
@@ -189,7 +189,7 @@ fun SharedDataDialog(
                                             toast(context, "已删除")
                                         }
                                     ) {
-                                        Icon(Icons.Default.Delete, "删除")
+                                        Icon(Icons.Rounded.Delete, "删除")
                                     }
                                 }
                             }

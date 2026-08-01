@@ -22,7 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -58,7 +58,7 @@ class ImageGetColorActivity : ComponentActivity() {
                             title = { Text("图片取色器") },
                             navigationIcon = {
                                 FilledTonalIconButton(onClick = { finish() }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                                 }
                             },
                         )

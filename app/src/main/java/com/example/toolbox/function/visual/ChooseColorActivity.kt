@@ -21,8 +21,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -196,7 +196,7 @@ fun ChooseColorScreen(modifier: Modifier = Modifier) {
             title = { Text("选色器") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -525,7 +525,7 @@ fun CopyRow(label: String, value: String, onCopy: () -> Unit) {
                 Text(value, style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 16.sp))
             }
             IconButton(onClick = onCopy) {
-                Icon(Icons.Filled.ContentCopy, "复制")
+                Icon(Icons.Rounded.ContentCopy, "复制")
             }
         }
     }

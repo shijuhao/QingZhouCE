@@ -2,19 +2,19 @@ package com.example.toolbox.functionPage
 
 import android.content.Context
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Functions
-import androidx.compose.material.icons.filled.Games
-import androidx.compose.material.icons.filled.MarkunreadMailbox
-import androidx.compose.material.icons.filled.Numbers
-import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Style
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.VideogameAsset
-import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.rounded.Calculate
+import androidx.compose.material.icons.rounded.Casino
+import androidx.compose.material.icons.rounded.Computer
+import androidx.compose.material.icons.rounded.Functions
+import androidx.compose.material.icons.rounded.Games
+import androidx.compose.material.icons.rounded.MarkunreadMailbox
+import androidx.compose.material.icons.rounded.Numbers
+import androidx.compose.material.icons.rounded.QrCode
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Style
+import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.material.icons.rounded.VideogameAsset
+import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.Code
@@ -116,7 +116,7 @@ val Int.asIcon: IconSource
 val functionData = listOf(
     FunctionCategory(
         name = "日常功能",
-        icon = Icons.Default.WbSunny.asIcon,
+        icon = Icons.Rounded.WbSunny.asIcon,
         iconColorName = "blue",
         functions = listOf(
             FunctionItem("浏览器", "com.example.toolbox.webview.WebViewActivity", Icons.Outlined.Public, "blue"),
@@ -124,17 +124,16 @@ val functionData = listOf(
             FunctionItem("秒表", "com.example.toolbox.function.daily.StopWatchActivity", Icons.Outlined.Timer, "orange"),
             FunctionItem("WebSocket测试", "com.example.toolbox.function.daily.WebSocketTestActivity", Icons.Outlined.Web, "purple"),
             FunctionItem("BMI指数", "com.example.toolbox.function.daily.BMIActivity", Icons.Outlined.Percent, "yellow"),
-            FunctionItem("随机抽选", "com.example.toolbox.function.daily.randomChoose.RandomChooseActivity", Icons.Default.Casino, "red"),
-            FunctionItem("计分板", "com.example.toolbox.function.daily.MarkBoardActivity", Icons.Default.MarkunreadMailbox, "gray"),
-            FunctionItem("模拟鼠标", "com.example.toolbox.function.mouse.MouseSimulatorActivity", Icons.Default.Computer, "blue"),
+            FunctionItem("随机抽选", "com.example.toolbox.function.daily.randomChoose.RandomChooseActivity", Icons.Rounded.Casino, "red"),
+            FunctionItem("计分板", "com.example.toolbox.function.daily.MarkBoardActivity", Icons.Rounded.MarkunreadMailbox, "gray"),
         )
     ),
     FunctionCategory(
         name = "视觉功能",
-        icon = Icons.Default.Style.asIcon,
+        icon = Icons.Rounded.Style.asIcon,
         iconColorName = "green",
         functions = listOf(
-            FunctionItem("条码生成", "com.example.toolbox.function.visual.BarcodeGeneratorActivity", Icons.Filled.QrCode, "purple"),
+            FunctionItem("条码生成", "com.example.toolbox.function.visual.BarcodeGeneratorActivity", Icons.Rounded.QrCode, "purple"),
             FunctionItem("防OCR", "com.example.toolbox.function.visual.AntiOCRActivity", Icons.Outlined.HideImage, "blue"),
             FunctionItem("图片取色器", "com.example.toolbox.function.visual.ImageGetColorActivity", Icons.Outlined.Image, "yellow"),
             FunctionItem("MD3 配色参考", "com.example.toolbox.function.visual.MDColorSchemeActivity", Icons.Outlined.Style, "green"),
@@ -145,7 +144,7 @@ val functionData = listOf(
     ),
     FunctionCategory(
         name = "文本功能",
-        icon = Icons.Default.TextFields.asIcon,
+        icon = Icons.Rounded.TextFields.asIcon,
         iconColorName = "orange",
         functions = listOf(
             FunctionItem("SHA256哈希", "com.example.toolbox.function.text.SHA256Activity", Icons.Outlined.TextFields, "blue"),
@@ -169,17 +168,17 @@ val functionData = listOf(
     ),
     FunctionCategory(
         name = "数学功能",
-        icon = Icons.Default.Numbers.asIcon,
+        icon = Icons.Rounded.Numbers.asIcon,
         iconColorName = "yellow",
         functions = listOf(
-            FunctionItem("函数图生成", "com.example.toolbox.function.math.FunctionImageActivity", Icons.Default.Functions, "orange"),
-            FunctionItem("计算器", "com.example.toolbox.function.math.CalculatorActivity", Icons.Default.Calculate, "green"),
-            FunctionItem("随机数生成", "com.example.toolbox.function.math.RandomNumberActivity", Icons.Default.Numbers, "yellow")
+            FunctionItem("函数图生成", "com.example.toolbox.function.math.FunctionImageActivity", Icons.Rounded.Functions, "orange"),
+            FunctionItem("计算器", "com.example.toolbox.function.math.CalculatorActivity", Icons.Rounded.Calculate, "green"),
+            FunctionItem("随机数生成", "com.example.toolbox.function.math.RandomNumberActivity", Icons.Rounded.Numbers, "yellow")
         )
     ),
     FunctionCategory(
         name = "系统功能",
-        icon = Icons.Default.Settings.asIcon,
+        icon = Icons.Rounded.Settings.asIcon,
         iconColorName = "gray",
         functions = listOf(
             FunctionItem("设备信息", "com.example.toolbox.function.system.DeviceInfoActivity", Icons.Outlined.Info, "gray"),
@@ -188,10 +187,10 @@ val functionData = listOf(
     ),
     FunctionCategory(
         name = "休闲游戏",
-        icon = Icons.Default.Games.asIcon,
+        icon = Icons.Rounded.Games.asIcon,
         iconColorName = "red",
         functions = listOf(
-            FunctionItem("2048", "com.example.toolbox.function.game.Game2048Activity", Icons.Default.VideogameAsset, "red")
+            FunctionItem("2048", "com.example.toolbox.function.game.Game2048Activity", Icons.Rounded.VideogameAsset, "red")
         )
     ),
     FunctionCategory(

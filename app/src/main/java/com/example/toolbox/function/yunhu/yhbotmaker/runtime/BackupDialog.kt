@@ -5,9 +5,9 @@ import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -139,7 +139,7 @@ fun BackupDialog(
                         onClick = { copyToClipboard() },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.ContentCopy, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("复制")
                     }
@@ -147,7 +147,7 @@ fun BackupDialog(
                         onClick = { shareBackup() },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.Share, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("分享")
                     }
@@ -157,7 +157,7 @@ fun BackupDialog(
                     onClick = { saveToFile() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Rounded.Send, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("保存到文件")
                 }

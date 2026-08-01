@@ -27,9 +27,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -263,7 +263,7 @@ fun MainNoticeScreen(
                 title = { Text("我的通知") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                     }
                 }
             )
@@ -334,7 +334,7 @@ fun MainNoticeScreen(
                                         @Composable {
                                             NoticeTypeRow(
                                                 text = "点赞通知",
-                                                icon = Icons.Default.Favorite,
+                                                icon = Icons.Rounded.Favorite,
                                                 color = Color(0xFFE57373),
                                                 unreadCount = likeUnreadCount,
                                                 onClick = { onNavigateToType("点赞通知", "2") }
@@ -343,7 +343,7 @@ fun MainNoticeScreen(
                                         @Composable {
                                             NoticeTypeRow(
                                                 text = "资源通知",
-                                                icon = Icons.Default.Inbox,
+                                                icon = Icons.Rounded.Inbox,
                                                 color = Color(0xFF81C784),
                                                 unreadCount = resourceUnreadCount,
                                                 onClick = { onNavigateToType("资源通知", "4,5") }
@@ -352,7 +352,7 @@ fun MainNoticeScreen(
                                         @Composable {
                                             NoticeTypeRow(
                                                 text = "关注通知",
-                                                icon = Icons.Default.Person,
+                                                icon = Icons.Rounded.Person,
                                                 color = Color(0xFF64B5F6),
                                                 unreadCount = followUnreadCount,
                                                 onClick = { onNavigateToType("关注通知", "6") }
@@ -361,7 +361,7 @@ fun MainNoticeScreen(
                                         @Composable {
                                             NoticeTypeRow(
                                                 text = "系统通知",
-                                                icon = Icons.Default.Key,
+                                                icon = Icons.Rounded.Key,
                                                 color = Color(0xFF9E9E9E),
                                                 unreadCount = systemUnreadCount,
                                                 onClick = { onNavigateToType("系统通知", "0,7,8,9,10") }
@@ -514,7 +514,7 @@ fun TypeNoticeScreen(
                 title = { Text(typeName) },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                     }
                 }
             )
@@ -674,7 +674,7 @@ fun NoticeTypeRow(
         }
 
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
             contentDescription = null,
             modifier = Modifier.size(16.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -774,16 +774,16 @@ fun NotificationItem(
 
 private fun getIconForType(type: Int): ImageVector {
     return when (type) {
-        0 -> Icons.Default.Key
-        1 -> Icons.Default.AlternateEmail
-        2 -> Icons.Default.Favorite
-        3 -> Icons.Default.ModeComment
-        4, 5 -> Icons.Default.Inbox
-        6 -> Icons.Default.Person
-        7 -> Icons.Default.Upgrade
-        8 -> Icons.Default.Warning
-        9 -> Icons.Default.Settings
-        else -> Icons.Default.Notifications
+        0 -> Icons.Rounded.Key
+        1 -> Icons.Rounded.AlternateEmail
+        2 -> Icons.Rounded.Favorite
+        3 -> Icons.Rounded.ModeComment
+        4, 5 -> Icons.Rounded.Inbox
+        6 -> Icons.Rounded.Person
+        7 -> Icons.Rounded.Upgrade
+        8 -> Icons.Rounded.Warning
+        9 -> Icons.Rounded.Settings
+        else -> Icons.Rounded.Notifications
     }
 }
 

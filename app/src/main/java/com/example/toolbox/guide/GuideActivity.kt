@@ -31,15 +31,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.TextSnippet
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.SettingsSuggest
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.TextSnippet
+import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.SettingsSuggest
 import androidx.compose.material.icons.rounded.Terrain
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -114,12 +114,12 @@ fun Greeting() {
             .clipToBounds()) {
             Icon(
                 imageVector = when (page) {
-                    1 -> Icons.Default.Build
-                    2 -> Icons.Default.Palette
-                    3 -> Icons.Default.Home
-                    4 -> Icons.AutoMirrored.Filled.TextSnippet
-                    5 -> Icons.Default.Person
-                    else -> Icons.Default.SettingsSuggest
+                    1 -> Icons.Rounded.Build
+                    2 -> Icons.Rounded.Palette
+                    3 -> Icons.Rounded.Home
+                    4 -> Icons.AutoMirrored.Rounded.TextSnippet
+                    5 -> Icons.Rounded.Person
+                    else -> Icons.Rounded.SettingsSuggest
                 },
                 contentDescription = null,
                 modifier = Modifier
@@ -179,7 +179,7 @@ fun Greeting() {
                                 }
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                     contentDescription = "Back"
                                 )
                             }
@@ -209,7 +209,7 @@ fun Greeting() {
                             }
                         ) {
                             Icon(
-                                imageVector = if (page != 6) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Check,
+                                imageVector = if (page != 6) Icons.AutoMirrored.Rounded.ArrowForward else Icons.Rounded.Check,
                                 contentDescription = "Next"
                             )
                         }
@@ -292,7 +292,7 @@ fun GuidePageContent(page: Int) {
 
                         Icon(
                             modifier = Modifier.size(30.dp),
-                            imageVector = Icons.Default.Palette,
+                            imageVector = Icons.Rounded.Palette,
                             tint = MaterialTheme.colorScheme.primary,
                             contentDescription = null
                         )
@@ -334,7 +334,7 @@ fun GuidePageContent(page: Int) {
                 ) {
                     Spacer(modifier = Modifier.height(10.dp))
                     Icon(
-                        imageVector = Icons.Default.Home,
+                        imageVector = Icons.Rounded.Home,
                         contentDescription = null,
                         modifier = Modifier.size(80.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -375,7 +375,7 @@ fun GuidePageContent(page: Int) {
 
                         Icon(
                             modifier = Modifier.size(30.dp),
-                            imageVector = Icons.Default.Person,
+                            imageVector = Icons.Rounded.Person,
                             tint = MaterialTheme.colorScheme.primary,
                             contentDescription = null
                         )
@@ -408,7 +408,7 @@ fun GuidePageContent(page: Int) {
             }
             5 -> {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector = Icons.Rounded.Person,
                     contentDescription = null,
                     modifier = Modifier.size(100.dp),
                     tint = MaterialTheme.colorScheme.primary
@@ -439,7 +439,7 @@ fun GuidePageContent(page: Int) {
             }
             6 -> {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = Icons.Rounded.Check,
                     contentDescription = null,
                     modifier = Modifier.size(100.dp),
                     tint = MaterialTheme.colorScheme.primary

@@ -7,7 +7,7 @@ import android.content.Context
 import android.graphics.Paint
 import android.os.Bundle
 import android.widget.Toast
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.rounded.Save
 import kotlinx.serialization.Serializable
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
@@ -44,16 +44,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.List
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Casino
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -488,10 +488,10 @@ fun RandomChooseScreen(
                                             viewModel.loadConfig(context, config)
                                             viewModel.closeSaveManagerDialog()
                                         }) {
-                                            Icon(Icons.Default.PlayArrow, "加载")
+                                            Icon(Icons.Rounded.PlayArrow, "加载")
                                         }
                                         IconButton(onClick = { viewModel.deleteConfig(context, config.id) }) {
-                                            Icon(Icons.Default.Delete, "删除")
+                                            Icon(Icons.Rounded.Delete, "删除")
                                         }
                                     }
                                 }
@@ -573,7 +573,7 @@ fun RandomChooseScreen(
             title = { Text("随机抽选") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             },
             actions = {
@@ -581,7 +581,7 @@ fun RandomChooseScreen(
                     onClick = { showAddItemDialog.value = true },
                     enabled = !viewModel.isSpinning
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("新建")
                 }
@@ -592,14 +592,14 @@ fun RandomChooseScreen(
                     onClick = { viewModel.saveCurrentList(context) },
                     enabled = viewModel.items.isNotEmpty() && !viewModel.isSpinning
                 ) {
-                    Icon(Icons.Default.Save, contentDescription = "保存")
+                    Icon(Icons.Rounded.Save, contentDescription = "保存")
                 }
 
                 IconButton(
                     onClick = { viewModel.openSaveManagerDialog(context) },
                     enabled = !viewModel.isSpinning
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "管理")
+                    Icon(Icons.AutoMirrored.Rounded.List, contentDescription = "管理")
                 }
             }
         )
@@ -616,7 +616,7 @@ fun RandomChooseScreen(
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Casino,
+                        imageVector = Icons.Rounded.Casino,
                         contentDescription = null,
                         modifier = Modifier.size(80.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
@@ -642,13 +642,13 @@ fun RandomChooseScreen(
                         modifier = Modifier.padding(top = 16.dp)
                     ) {
                         Button(onClick = { showAddItemDialog.value = true }) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("新建项目")
                         }
 
                         OutlinedButton(onClick = { viewModel.openSaveManagerDialog(context) }) {
-                            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("载入配置")
                         }
@@ -812,7 +812,7 @@ fun WheelCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        if (isSpinning) Icons.Default.Refresh else Icons.Default.PlayArrow,
+                        if (isSpinning) Icons.Rounded.Refresh else Icons.Rounded.PlayArrow,
                         null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
@@ -828,7 +828,7 @@ fun WheelCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    if (isSpinning) Icons.Default.Refresh else Icons.Default.Casino,
+                    if (isSpinning) Icons.Rounded.Refresh else Icons.Rounded.Casino,
                     null,
                     modifier = Modifier.size(20.dp)
                 )
@@ -1042,7 +1042,7 @@ fun ResultCard(
                     modifier = Modifier.weight(1f),
                     enabled = selectedResult.isNotEmpty()
                 ) {
-                    Icon(Icons.Filled.ContentCopy, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.ContentCopy, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("复制")
                 }
@@ -1054,7 +1054,7 @@ fun ResultCard(
                     modifier = Modifier.weight(1f),
                     enabled = items.isNotEmpty() && !isSpinning
                 ) {
-                    Icon(Icons.Filled.Casino, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Casino, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("再转一次")
                 }
@@ -1124,7 +1124,7 @@ fun ItemsListCard(
                                     enabled = !isSpinning
                                 ) {
                                     Icon(
-                                        Icons.Filled.Edit,
+                                        Icons.Rounded.Edit,
                                         null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
@@ -1136,7 +1136,7 @@ fun ItemsListCard(
                                     enabled = !isSpinning
                                 ) {
                                     Icon(
-                                        Icons.Filled.Delete,
+                                        Icons.Rounded.Delete,
                                         null,
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(20.dp)
@@ -1155,7 +1155,7 @@ fun ItemsListCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSpinning
             ) {
-                Icon(Icons.Filled.DeleteSweep, null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Rounded.DeleteSweep, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("清空所有")
             }

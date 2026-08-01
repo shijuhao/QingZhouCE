@@ -14,12 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,7 +46,7 @@ class ShellRunnerActivity : ComponentActivity() {
                             title = { Text("Shell运行器") },
                             navigationIcon = {
                                 FilledTonalIconButton(onClick = { finish() }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                                 }
                             }
                         )
@@ -127,7 +127,7 @@ fun ShellRunnerScreen(modifier: Modifier = Modifier) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Code,
+                            Icons.Rounded.Code,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
@@ -143,7 +143,7 @@ fun ShellRunnerScreen(modifier: Modifier = Modifier) {
                         onCheckedChange = { useRoot = it },
                         thumbContent = {
                             Icon(
-                                imageVector = if (useRoot) Icons.Default.Check else Icons.Default.Close,
+                                imageVector = if (useRoot) Icons.Rounded.Check else Icons.Rounded.Close,
                                 contentDescription = null,
                                 modifier = Modifier.size(SwitchDefaults.IconSize),
                                 tint = if (useRoot) {
@@ -172,7 +172,7 @@ fun ShellRunnerScreen(modifier: Modifier = Modifier) {
                 trailingIcon = {
                     if (command.isNotEmpty()) {
                         IconButton(onClick = { command = "" }) {
-                            Icon(Icons.Default.Clear, "清除")
+                            Icon(Icons.Rounded.Clear, "清除")
                         }
                     }
                 }
@@ -204,7 +204,7 @@ fun ShellRunnerScreen(modifier: Modifier = Modifier) {
                     enabled = !isRunning,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Icon(Icons.Rounded.PlayArrow, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(if (isRunning) "执行中..." else "执行命令")
                 }

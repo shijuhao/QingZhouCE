@@ -6,9 +6,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.VolumeDown
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -80,7 +80,7 @@ fun PlayerControllerPage(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.MusicNote,
+                        imageVector = Icons.Rounded.MusicNote,
                         contentDescription = null,
                         modifier = Modifier.size(100.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -154,7 +154,7 @@ fun PlayerControllerPage(
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Shuffle,
+                    imageVector = Icons.Rounded.Shuffle,
                     contentDescription = "随机播放",
                     tint = if (state.isShuffle) 
                         MaterialTheme.colorScheme.primary 
@@ -169,7 +169,7 @@ fun PlayerControllerPage(
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
-                    imageVector = if (state.isLooping) Icons.Default.RepeatOne else Icons.Default.Repeat,
+                    imageVector = if (state.isLooping) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                     contentDescription = "循环播放",
                     tint = if (state.isLooping) 
                         MaterialTheme.colorScheme.primary 
@@ -192,7 +192,7 @@ fun PlayerControllerPage(
                 modifier = Modifier.size(56.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.SkipPrevious,
+                    imageVector = Icons.Rounded.SkipPrevious,
                     contentDescription = "上一首",
                     modifier = Modifier.size(40.dp)
                 )
@@ -206,7 +206,7 @@ fun PlayerControllerPage(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = if (isPlaying) "暂停" else "播放",
                     modifier = Modifier.size(36.dp)
                 )
@@ -217,7 +217,7 @@ fun PlayerControllerPage(
                 modifier = Modifier.size(56.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.SkipNext,
+                    imageVector = Icons.Rounded.SkipNext,
                     contentDescription = "下一首",
                     modifier = Modifier.size(40.dp)
                 )
@@ -234,7 +234,7 @@ fun PlayerControllerPage(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.VolumeDown,
+                imageVector = Icons.AutoMirrored.Rounded.VolumeDown,
                 contentDescription = "减小音量",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -252,7 +252,7 @@ fun PlayerControllerPage(
             )
             
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
                 contentDescription = "增大音量",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

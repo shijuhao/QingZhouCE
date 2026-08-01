@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -226,7 +226,7 @@ fun FastBotDialog(
                         items = listOf(
                             {
                                 SettingsItemCell(
-                                    icon = Icons.Default.Chat,
+                                    icon = Icons.Rounded.Chat,
                                     title = "自动回复",
                                     subtitle = "收到关键词自动回复消息",
                                     onClick = { selectedType = "autoReply" }
@@ -234,7 +234,7 @@ fun FastBotDialog(
                             },
                             {
                                 SettingsItemCell(
-                                    icon = Icons.Default.Code,
+                                    icon = Icons.Rounded.Code,
                                     title = "快捷命令",
                                     subtitle = "收到机器人指令自动执行Lua代码",
                                     onClick = { selectedType = "quickCommand" }
@@ -242,7 +242,7 @@ fun FastBotDialog(
                             },
                             {
                                 SettingsItemCell(
-                                    icon = Icons.Default.PersonRemove,
+                                    icon = Icons.Rounded.PersonRemove,
                                     title = "群成员黑名单",
                                     subtitle = "自动撤回指定用户发言",
                                     onClick = { selectedType = "blockedUser" }
@@ -250,7 +250,7 @@ fun FastBotDialog(
                             },
                             {
                                 SettingsItemCell(
-                                    icon = Icons.Default.GppBad,
+                                    icon = Icons.Rounded.GppBad,
                                     title = "违禁词",
                                     subtitle = "自动撤回包含违禁词的消息",
                                     onClick = { selectedType = "bannedWord" }
@@ -369,10 +369,10 @@ fun AutoReplyCard(
                 Text("回复: ${item.reply} (${item.type})", style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, null)
+                Icon(Icons.Rounded.Edit, null)
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null)
+                Icon(Icons.Rounded.Delete, null)
             }
         }
     }
@@ -399,10 +399,10 @@ fun QuickCommandCard(
                 Text("代码: ${item.code.take(30)}${if (item.code.length > 30) "..." else ""}", style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, null)
+                Icon(Icons.Rounded.Edit, null)
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null)
+                Icon(Icons.Rounded.Delete, null)
             }
         }
     }
@@ -459,7 +459,7 @@ fun AutoReplyManageDialog(
                         modifier = Modifier.size(48.dp),
                         containerColor = MaterialTheme.colorScheme.primary
                     ) {
-                        Icon(Icons.Default.Add, "添加")
+                        Icon(Icons.Rounded.Add, "添加")
                     }
                 }
             }
@@ -523,7 +523,7 @@ fun QuickCommandManageDialog(
                         modifier = Modifier.size(48.dp),
                         containerColor = MaterialTheme.colorScheme.primary
                     ) {
-                        Icon(Icons.Default.Add, "添加")
+                        Icon(Icons.Rounded.Add, "添加")
                     }
                 }
             }
@@ -589,10 +589,10 @@ fun BlockedUserManageDialog(
                                         }
                                     }
                                     IconButton(onClick = { onEdit(index, item) }) {
-                                        Icon(Icons.Default.Edit, null)
+                                        Icon(Icons.Rounded.Edit, null)
                                     }
                                     IconButton(onClick = { onDelete(index) }) {
-                                        Icon(Icons.Default.Delete, null)
+                                        Icon(Icons.Rounded.Delete, null)
                                     }
                                 }
                             }
@@ -611,7 +611,7 @@ fun BlockedUserManageDialog(
                         modifier = Modifier.size(48.dp),
                         containerColor = MaterialTheme.colorScheme.primary
                     ) {
-                        Icon(Icons.Default.Add, "添加")
+                        Icon(Icons.Rounded.Add, "添加")
                     }
                 }
             }
@@ -672,10 +672,10 @@ fun BannedWordManageDialog(
                                         Text("动作: ${if (item.action == "delete") "删除消息" else "警告"}", style = MaterialTheme.typography.bodySmall)
                                     }
                                     IconButton(onClick = { onEdit(index, item) }) {
-                                        Icon(Icons.Default.Edit, null)
+                                        Icon(Icons.Rounded.Edit, null)
                                     }
                                     IconButton(onClick = { onDelete(index) }) {
-                                        Icon(Icons.Default.Delete, null)
+                                        Icon(Icons.Rounded.Delete, null)
                                     }
                                 }
                             }
@@ -694,7 +694,7 @@ fun BannedWordManageDialog(
                         modifier = Modifier.size(48.dp),
                         containerColor = MaterialTheme.colorScheme.primary
                     ) {
-                        Icon(Icons.Default.Add, "添加")
+                        Icon(Icons.Rounded.Add, "添加")
                     }
                 }
             }

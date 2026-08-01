@@ -46,9 +46,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Message
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -726,7 +726,7 @@ private fun UserInfoTopBarExtraContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.MonetizationOn,
+                        imageVector = Icons.Rounded.MonetizationOn,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
                         tint = MaterialTheme.colorScheme.onTertiaryContainer
@@ -982,7 +982,7 @@ fun UserInfoScreen(userId: Int) {
                     },
                     navigationIcon = {
                         IconButton(onClick = { (context as Activity).finish() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = Color.White)
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回", tint = Color.White)
                         }
                     },
                     actions = {
@@ -999,7 +999,7 @@ fun UserInfoScreen(userId: Int) {
                                     }
                                 }) {
                                     Icon(
-                                        imageVector = if (isFollowing) Icons.Filled.PersonRemove else Icons.Filled.PersonAddAlt1,
+                                        imageVector = if (isFollowing) Icons.Rounded.PersonRemove else Icons.Rounded.PersonAddAlt1,
                                         contentDescription = if (isFollowing) "取消关注" else "关注",
                                         tint = Color.White
                                     )
@@ -1013,26 +1013,26 @@ fun UserInfoScreen(userId: Int) {
                                     }
                                     context.startActivity(intent)
                                 }) {
-                                    Icon(Icons.AutoMirrored.Filled.Message, contentDescription = "私信", tint = Color.White)
+                                    Icon(Icons.AutoMirrored.Rounded.Message, contentDescription = "私信", tint = Color.White)
                                 }
                             }
                         } else {
                             IconButton(onClick = {
                                 context.startActivity(Intent(context, UserSettingsActivity::class.java))
                             }) {
-                                Icon(Icons.Filled.Edit, contentDescription = "编辑资料", tint = Color.White)
+                                Icon(Icons.Rounded.Edit, contentDescription = "编辑资料", tint = Color.White)
                             }
                         }
 
                         if (userStatus == 1 && notMyself) {
                             IconButton(onClick = { showBanDialog = true }) {
-                                Icon(Icons.Default.Block, contentDescription = "封禁", tint = Color.White)
+                                Icon(Icons.Rounded.Block, contentDescription = "封禁", tint = Color.White)
                             }
                         }
 
                         Box {
                             IconButton(onClick = { isMenuExpanded = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "更多", tint = Color.White)
+                                Icon(Icons.Rounded.MoreVert, contentDescription = "更多", tint = Color.White)
                             }
                             DropdownMenu(
                                 expanded = isMenuExpanded,
@@ -1045,7 +1045,7 @@ fun UserInfoScreen(userId: Int) {
                                         showReportDialog = true
                                     },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Flag, contentDescription = null)
+                                        Icon(Icons.Rounded.Flag, contentDescription = null)
                                     }
                                 )
                             }
@@ -1293,7 +1293,7 @@ fun MessageItem(
                 }
 
                 IconButton(onClick = onMenuClick) {
-                    Icon(Icons.Default.MoreVert, null, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Rounded.MoreVert, null, modifier = Modifier.size(20.dp))
                 }
             }
 
@@ -1388,7 +1388,7 @@ fun MessageItem(
                     )
                 ) {
                     Icon(
-                        imageVector = if (message.is_liked) Icons.Filled.ThumbUp else Icons.Default.ThumbUp,
+                        imageVector = if (message.is_liked) Icons.Rounded.ThumbUp else Icons.Rounded.ThumbUp,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )

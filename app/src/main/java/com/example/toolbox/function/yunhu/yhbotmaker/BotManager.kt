@@ -23,11 +23,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -157,13 +157,13 @@ fun BotManagerScreen(
                     FilledTonalIconButton(onClick = {
                         if (isMain) onMenuClick() else (context as Activity).finish()
                     }) {
-                        Icon(if (isMain) Icons.Default.Menu else Icons.AutoMirrored.Filled.ArrowBack, null)
+                        Icon(if (isMain) Icons.Rounded.Menu else Icons.AutoMirrored.Rounded.ArrowBack, null)
                     }
                 },
-                actions = { IconButton(onClick = onSettings) { Icon(Icons.Default.MoreVert, null) } }
+                actions = { IconButton(onClick = onSettings) { Icon(Icons.Rounded.MoreVert, null) } }
             )
         },
-        floatingActionButton = { FloatingActionButton(onClick = { showCreate = true }) { Icon(Icons.Default.Add, null) } }
+        floatingActionButton = { FloatingActionButton(onClick = { showCreate = true }) { Icon(Icons.Rounded.Add, null) } }
     ) { pad ->
         Box(Modifier.fillMaxSize().padding(pad)) {
             if (model.bots.isEmpty()) {
@@ -284,7 +284,7 @@ fun BotCard(
                     )
                 } else {
                     Icon(
-                        Icons.Default.Person,
+                        Icons.Rounded.Person,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize().padding(8.dp)
                     )
@@ -308,7 +308,7 @@ fun BotCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, null) }
+            IconButton(onClick = { showMenu = true }) { Icon(Icons.Rounded.MoreVert, null) }
 
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 listOfNotNull(
@@ -393,7 +393,7 @@ fun EditDialog(
                                 )
                             } else {
                                 Icon(
-                                    Icons.Default.Person,
+                                    Icons.Rounded.Person,
                                     null,
                                     modifier = Modifier.size(40.dp)
                                 )

@@ -29,15 +29,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.RotateLeft
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.RotateLeft
+import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
@@ -127,7 +127,7 @@ fun Greeting(
             title = { Text("秒表 & 倒计时") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -179,7 +179,7 @@ fun StopwatchTab(
                 .padding(16.dp),
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ) {
-            Icon(Icons.Default.Add, contentDescription = "添加秒表")
+            Icon(Icons.Rounded.Add, contentDescription = "添加秒表")
         }
     }
 }
@@ -220,11 +220,11 @@ fun StopwatchCard(
                     newName = stopwatch.name
                     showRenameDialog = true 
                 }) {
-                    Icon(Icons.Default.Edit, "重命名", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Rounded.Edit, "重命名", modifier = Modifier.size(20.dp))
                 }
                 
                 IconButton(onClick = { viewModel.removeStopwatch(stopwatch.id) }) {
-                    Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Rounded.Delete, "删除", tint = MaterialTheme.colorScheme.error)
                 }
             }
 
@@ -249,7 +249,7 @@ fun StopwatchCard(
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
-                            Icons.Default.PlayArrow,
+                            Icons.Rounded.PlayArrow,
                             contentDescription = if (stopwatch.elapsedTime == 0L) "开始" else "继续",
                             modifier = Modifier.size(28.dp)
                         )
@@ -261,7 +261,7 @@ fun StopwatchCard(
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
-                            Icons.AutoMirrored.Filled.RotateLeft,
+                            Icons.AutoMirrored.Rounded.RotateLeft,
                             contentDescription = "重置",
                             modifier = Modifier.size(28.dp)
                         )
@@ -272,7 +272,7 @@ fun StopwatchCard(
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
-                            Icons.Default.Stop,
+                            Icons.Rounded.Stop,
                             contentDescription = "暂停",
                             modifier = Modifier.size(28.dp)
                         )
@@ -283,7 +283,7 @@ fun StopwatchCard(
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
-                            Icons.Default.Edit,
+                            Icons.Rounded.Edit,
                             contentDescription = "计次",
                             modifier = Modifier.size(28.dp)
                         )
@@ -367,7 +367,7 @@ fun CountdownTab(
                 .padding(16.dp),
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ) {
-            Icon(Icons.Default.Add, contentDescription = "添加倒计时")
+            Icon(Icons.Rounded.Add, contentDescription = "添加倒计时")
         }
     }
 }
@@ -414,11 +414,11 @@ fun CountdownCard(
                     newName = countdown.name
                     showRenameDialog = true 
                 }) {
-                    Icon(Icons.Default.Edit, "重命名", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Rounded.Edit, "重命名", modifier = Modifier.size(20.dp))
                 }
                 
                 IconButton(onClick = { viewModel.removeCountdown(countdown.id) }) {
-                    Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Rounded.Delete, "删除", tint = MaterialTheme.colorScheme.error)
                 }
             }
 
@@ -449,7 +449,7 @@ fun CountdownCard(
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
-                            Icons.AutoMirrored.Filled.RotateLeft,
+                            Icons.AutoMirrored.Rounded.RotateLeft,
                             contentDescription = "重置",
                             modifier = Modifier.size(28.dp)
                         )
@@ -461,7 +461,7 @@ fun CountdownCard(
                             modifier = Modifier.size(56.dp)
                         ) {
                             Icon(
-                                Icons.Default.PlayArrow,
+                                Icons.Rounded.PlayArrow,
                                 contentDescription = "开始",
                                 modifier = Modifier.size(28.dp)
                             )
@@ -473,7 +473,7 @@ fun CountdownCard(
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
-                            Icons.Default.AccessTime,
+                            Icons.Rounded.AccessTime,
                             contentDescription = "设置时长",
                             modifier = Modifier.size(28.dp)
                         )
@@ -484,7 +484,7 @@ fun CountdownCard(
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
-                            Icons.Default.Stop,
+                            Icons.Rounded.Stop,
                             contentDescription = "暂停",
                             modifier = Modifier.size(28.dp)
                         )
@@ -616,7 +616,7 @@ fun NumberPicker(
             }
         ) {
             Icon(
-                imageVector = Icons.Default.Add,
+                imageVector = Icons.Rounded.Add,
                 contentDescription = "增加",
                 modifier = Modifier.size(24.dp)
             )
@@ -637,7 +637,7 @@ fun NumberPicker(
             }
         ) {
             Icon(
-                imageVector = Icons.Default.Remove,
+                imageVector = Icons.Rounded.Remove,
                 contentDescription = "减少",
                 modifier = Modifier.size(24.dp)
             )

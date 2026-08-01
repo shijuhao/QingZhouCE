@@ -13,7 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -45,7 +45,7 @@ class FriendRequestActivity : ComponentActivity() {
                             title = { Text("好友请求") },
                             navigationIcon = {
                                 FilledTonalIconButton(onClick = { finish() }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                                 }
                             }
                         )

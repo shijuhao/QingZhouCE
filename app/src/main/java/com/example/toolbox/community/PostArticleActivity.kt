@@ -44,10 +44,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -416,7 +416,7 @@ fun PostArticleScreen(
                                 onBack()
                             }
                         }
-                    }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+                    }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, null) }
                 },
                 actions = {
                     IconButton(
@@ -501,7 +501,7 @@ fun PostArticleScreen(
                         }
                     ) {
                         Icon(
-                            Icons.AutoMirrored.Filled.Send,
+                            Icons.AutoMirrored.Rounded.Send,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -581,7 +581,7 @@ fun PostArticleScreen(
                                 verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null)
+                                Icon(Icons.Rounded.Add, contentDescription = null)
                                 Text("添加", style = MaterialTheme.typography.labelMedium)
                             }
                         }
@@ -886,7 +886,7 @@ fun DraggableImageItem(
                 .clickable { onDelete() }
         ) {
             Icon(
-                imageVector = Icons.Default.Close,
+                imageVector = Icons.Rounded.Close,
                 contentDescription = "删除",
                 tint = Color.White,
                 modifier = Modifier.padding(4.dp)

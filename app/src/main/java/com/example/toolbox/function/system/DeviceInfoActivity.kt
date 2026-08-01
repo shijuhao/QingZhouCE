@@ -15,8 +15,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -73,7 +73,7 @@ class DeviceInfoActivity : ComponentActivity() {
                             title = { Text("设备信息") },
                             navigationIcon = {
                                 FilledTonalIconButton(onClick = { finish() }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                                 }
                             }
                         )
@@ -128,7 +128,7 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
                 when (page) {
                     0 -> { // 概览
                         item {
-                            InfoSection("核心摘要", Icons.Default.Info, Color(0xFF4285F4)) {
+                            InfoSection("核心摘要", Icons.Rounded.Info, Color(0xFF4285F4)) {
                                 InfoRow("品牌型号", "${deviceInfo.brand} ${deviceInfo.model}")
                                 InfoRow("Android版本", deviceInfo.androidVersion)
                                 InfoRow("处理器", deviceInfo.cpuModel)
@@ -138,14 +138,14 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
                     }
                     1 -> { // 硬件
                         item {
-                            InfoSection("处理器与存储", Icons.Default.Memory, Color(0xFFEA4335)) {
+                            InfoSection("处理器与存储", Icons.Rounded.Memory, Color(0xFFEA4335)) {
                                 InfoRow("架构", deviceInfo.cpuArchitecture)
                                 InfoRow("核心数", deviceInfo.cpuCores)
                                 InfoRow("内部存储", "${deviceInfo.availableInternalStorage} / ${deviceInfo.totalInternalStorage}")
                             }
                         }
                         item {
-                            InfoSection("屏幕参数", Icons.Default.DisplaySettings, Color(0xFF8E44AD)) {
+                            InfoSection("屏幕参数", Icons.Rounded.DisplaySettings, Color(0xFF8E44AD)) {
                                 InfoRow("分辨率", deviceInfo.screenResolution)
                                 InfoRow("刷新率", deviceInfo.refreshRate)
                                 InfoRow("屏幕尺寸", deviceInfo.screenSize)
@@ -155,7 +155,7 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
                     }
                     2 -> { // 系统
                         item {
-                            InfoSection("软件信息", Icons.Default.Android, Color(0xFF34A853)) {
+                            InfoSection("软件信息", Icons.Rounded.Android, Color(0xFF34A853)) {
                                 InfoRow("API级别", deviceInfo.apiLevel)
                                 InfoRow("构建ID", deviceInfo.buildId)
                                 InfoRow("安全补丁", deviceInfo.securityPatch)
@@ -165,7 +165,7 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
                     }
                     3 -> { // 网络与电池
                         item {
-                            InfoSection("电池状态", Icons.Default.BatteryChargingFull, Color(0xFFF4B400)) {
+                            InfoSection("电池状态", Icons.Rounded.BatteryChargingFull, Color(0xFFF4B400)) {
                                 InfoRow("当前电量", batteryInfo.level)
                                 InfoRow("健康度", batteryInfo.health)
                                 InfoRow("状态", batteryInfo.status)
@@ -174,7 +174,7 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
                             }
                         }
                         item {
-                            InfoSection("网络连接", Icons.Default.Wifi, Color(0xFF00ACC1)) {
+                            InfoSection("网络连接", Icons.Rounded.Wifi, Color(0xFF00ACC1)) {
                                 InfoRow("网络类型", networkInfo.type)
                                 InfoRow("IP地址", networkInfo.ipAddress)
                                 InfoRow("WiFi SSID", networkInfo.wifiSsid)
@@ -190,10 +190,11 @@ fun DeviceInfoTabScreen(modifier: Modifier = Modifier) {
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                             ) {
                                 ListItem(
-                                    headlineContent = { Text(sensor.name) },
                                     supportingContent = { Text(sensor.vendor) },
                                     trailingContent = { Text("Type: ${sensor.type}") }
-                                )
+                                ) {
+                                    Text(sensor.name)
+                                }
                             }
                         }
                     }

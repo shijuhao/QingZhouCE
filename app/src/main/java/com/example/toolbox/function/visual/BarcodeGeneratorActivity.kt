@@ -6,7 +6,7 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.rounded.Save
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.Toast
@@ -28,8 +28,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.QrCode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -232,7 +232,7 @@ fun BarcodeGeneratorScreen(modifier: Modifier = Modifier) {
             title = { Text("${currentType.name}生成器") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -341,7 +341,7 @@ fun BarcodeGeneratorScreen(modifier: Modifier = Modifier) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Filled.QrCode,
+                                Icons.Rounded.QrCode,
                                 contentDescription = "生成${currentType.name}",
                                 modifier = Modifier.size(ButtonDefaults.IconSize)
                             )
@@ -390,7 +390,7 @@ fun BarcodeGeneratorScreen(modifier: Modifier = Modifier) {
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        Icons.Filled.Save,
+                                        Icons.Rounded.Save,
                                         contentDescription = "保存图片",
                                         modifier = Modifier.size(ButtonDefaults.IconSize)
                                     )

@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.SettingsSuggest
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.SettingsSuggest
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -97,7 +97,7 @@ fun UserBottomSheet(
                             add {
                                 SettingsItemCell(
                                     title = "查看主页",
-                                    icon = Icons.Default.Person,
+                                    icon = Icons.Rounded.Person,
                                     subtitle = "查看我的主页",
                                     onClick = {
                                         onDismiss()
@@ -111,7 +111,7 @@ fun UserBottomSheet(
                             add {
                                 SettingsItemCell(
                                     title = "转到账号设置",
-                                    icon = Icons.Default.SettingsSuggest,
+                                    icon = Icons.Rounded.SettingsSuggest,
                                     subtitle = "编辑头像、名称、简介，退出登录等",
                                     onClick = {
                                         onDismiss()

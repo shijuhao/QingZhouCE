@@ -24,9 +24,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Casino
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -138,7 +138,7 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
             title = { Text("随机数生成器") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -230,7 +230,7 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Filled.Casino,
+                                    Icons.Rounded.Casino,
                                     contentDescription = "生成",
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )
@@ -291,7 +291,7 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Filled.ContentCopy,
+                                    Icons.Rounded.ContentCopy,
                                     contentDescription = "复制",
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )
@@ -311,7 +311,7 @@ fun RandomNumberScreen(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Filled.Casino,
+                                    Icons.Rounded.Casino,
                                     contentDescription = "重新生成",
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )

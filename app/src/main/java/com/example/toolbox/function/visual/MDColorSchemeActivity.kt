@@ -26,8 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -143,7 +143,7 @@ fun MDColorSchemeScreen(modifier: Modifier = Modifier) {
             title = { Text("MD3 配色参考") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -225,7 +225,7 @@ fun ColorCard(colorItem: ColorItem, onCopy: (String, String) -> Unit) {
                 )
             }
             Icon(
-                imageVector = Icons.Filled.ContentCopy,
+                imageVector = Icons.Rounded.ContentCopy,
                 contentDescription = "复制 ${colorItem.name} 颜色",
                 modifier = Modifier.size(24.dp),
                 tint = LocalContentColor.current

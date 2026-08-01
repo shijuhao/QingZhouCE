@@ -9,12 +9,14 @@
         android:maxSdkVersion="29" />
     
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:ignore="PhotoAndVideoPolicy,SelectedPhotoAccess" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:ignore="PhotoAndVideoPolicy,SelectedPhotoAccess" />
     
     <uses-permission 
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
+        tools:ignore="AllFilesAccessPolicy,ScopedStorage" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission
         android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"
@@ -27,13 +29,13 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE"
-        tools:ignore="ForegroundServicesPolicy" /> <!-- 检测无障碍服务是否已启用（需要查询设置） -->
+        tools:ignore="ForegroundServicesPolicy" />
     <uses-permission
         android:name="android.permission.WRITE_SETTINGS"
-        tools:ignore="ProtectedPermissions" /> <!-- 为了更好的兼容性，请求安装包列表权限 -->
+        tools:ignore="ProtectedPermissions" />
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" /> <!-- 确保应用兼容 Android 12+ 的启动限制 -->
+        tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />
     <queries>
         <intent>
             <action android:name="android.settings.MANAGE_OVERLAY_PERMISSION" />
@@ -45,25 +47,18 @@
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:mimeType="image/*" />
         </intent>
-        <!-- 浏览器：支持VIEW动作和https协议 -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:scheme="https" />
         </intent>
-        <!-- 邮件：支持SENDTO动作和mailto协议 -->
         <intent>
             <action android:name="android.intent.action.SENDTO" />
-
             <data android:scheme="mailto" />
         </intent>
-        <!-- 分享：支持SEND动作和文本类型 -->
         <intent>
             <action android:name="android.intent.action.SEND" />
-
             <data android:mimeType="text/plain" />
         </intent>
     </queries>
@@ -237,30 +232,6 @@
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
         <activity
-            android:name=".liFangCommunity.MailboxActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ToolBox" />
-        <activity
-            android:name=".liFangCommunity.PostDetailActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ToolBox" />
-        <activity
-            android:name=".liFangCommunity.PostActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ToolBox" />
-        <activity
-            android:name=".liFangCommunity.CommunityActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ToolBox" />
-        <activity
-            android:name=".liFangCommunity.RegisterActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ToolBox" />
-        <activity
-            android:name=".liFangCommunity.LoginActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ToolBox" />
-        <activity
             android:name=".function.visual.painter.PainterActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
@@ -400,23 +371,7 @@
             android:name=".function.daily.WebSocketTestActivity"
             android:exported="false"
             android:theme="@style/Theme.ToolBox" />
-        <activity
-            android:name=".function.mouse.MouseSimulatorActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ToolBox" />
-        
-        <!-- 模拟鼠标无障碍服务 -->
-        <service
-            android:name=".function.mouse.MouseAccessibilityService"
-            android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
+
         <activity
             android:name=".settings.InfoActivity"
             android:exported="true"
@@ -450,5 +405,4 @@
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
-
 </manifest>

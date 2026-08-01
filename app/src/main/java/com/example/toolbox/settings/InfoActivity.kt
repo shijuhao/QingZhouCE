@@ -30,14 +30,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.TextSnippet
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.TextSnippet
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,7 +49,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -150,15 +149,11 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "返回"
                         )
                     }
                 },
-                colors = topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                ),
                 scrollBehavior = scrollBehavior
             )
         },
@@ -210,7 +205,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Info,
+                                            imageVector = Icons.Rounded.Info,
                                             contentDescription = "提示",
                                             modifier = Modifier.size(20.dp),
                                             tint = MaterialTheme.colorScheme.primary
@@ -237,7 +232,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
 
                         add {
                             SettingsItemCell(
-                                icon = Icons.Default.Code,
+                                icon = Icons.Rounded.Code,
                                 title = "源代码仓库",
                                 subtitle = "https://github.com/shijuhao/QingZhouCE",
                                 onClick = {
@@ -252,7 +247,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
 
                         add {
                             SettingsItemCell(
-                                icon = Icons.Default.Update,
+                                icon = Icons.Rounded.Update,
                                 title = "检查更新",
                                 isEnabled = context.getAppVersionInfo().commitHash != "dev",
                                 subtitle = "检测是否有新版本",
@@ -311,7 +306,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                     items = listOf(
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Person,
+                                icon = Icons.Rounded.Person,
                                 title = "开发者",
                                 subtitle = "JuHao",
                                 onClick = {}
@@ -319,7 +314,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                         },
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Email,
+                                icon = Icons.Rounded.Email,
                                 title = "联系邮箱",
                                 subtitle = "juhaoluoye@outlook.com",
                                 onClick = {
@@ -341,7 +336,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                         },
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Share,
+                                icon = Icons.Rounded.Share,
                                 title = "分享应用",
                                 subtitle = "向好友推荐工具箱",
                                 onClick = {
@@ -367,7 +362,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                     items = listOf(
                         {
                             SettingsItemCell(
-                                icon = Icons.Default.Person,
+                                icon = Icons.Rounded.Person,
                                 title = "隐私政策",
                                 subtitle = "查看隐私政策条款",
                                 onClick = { showUserRulesDialog = true }
@@ -375,7 +370,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                         },
                         {
                             SettingsItemCell(
-                                icon = Icons.AutoMirrored.Filled.TextSnippet,
+                                icon = Icons.AutoMirrored.Rounded.TextSnippet,
                                 title = "更多信息",
                                 subtitle = "查看应用许可证、特别鸣谢等",
                                 onClick = {

@@ -22,7 +22,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import com.example.toolbox.ApiAddress
 import com.example.toolbox.AppJson
 import kotlinx.serialization.json.contentOrNull
@@ -107,7 +107,7 @@ class ForgetPasswordActivity : ComponentActivity() {
                         TopAppBar(
                             title = { Text("忘记密码") },
                             navigationIcon = {
-                                FilledTonalIconButton(onClick = { finish() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+                                FilledTonalIconButton(onClick = { finish() }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, null) }
                             }
                         )
                     },

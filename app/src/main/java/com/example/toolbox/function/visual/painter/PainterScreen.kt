@@ -33,15 +33,15 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Redo
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Redo
+import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.rounded.Brush
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
@@ -138,7 +138,7 @@ fun PainterScreen(
                 title = { Text("画板") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -159,7 +159,7 @@ fun PainterScreen(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.Save, contentDescription = "保存")
+                        Icon(Icons.Rounded.Save, contentDescription = "保存")
                     }
 
                     MenuButton(
@@ -190,19 +190,19 @@ fun PainterScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     IconButton(onClick = { viewModel.undo() }, enabled = canUndo) {
-                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "撤销")
+                        Icon(Icons.AutoMirrored.Rounded.Undo, contentDescription = "撤销")
                     }
                     IconButton(onClick = { viewModel.redo() }, enabled = canRedo) {
-                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "重做")
+                        Icon(Icons.AutoMirrored.Rounded.Redo, contentDescription = "重做")
                     }
                     IconButton(onClick = { showColorPicker = !showColorPicker; showBrushSizePicker = false }) {
-                        Icon(Icons.Default.Palette, contentDescription = "颜色")
+                        Icon(Icons.Rounded.Palette, contentDescription = "颜色")
                     }
                     IconButton(onClick = { showBrushSizePicker = !showBrushSizePicker; showColorPicker = false }) {
-                        Icon(Icons.Default.Brush, contentDescription = "画笔大小")
+                        Icon(Icons.Rounded.Brush, contentDescription = "画笔大小")
                     }
                     IconButton(onClick = { viewModel.clearCanvas() }) {
-                        Icon(Icons.Default.Clear, contentDescription = "清空")
+                        Icon(Icons.Rounded.Clear, contentDescription = "清空")
                     }
                 }
 
@@ -308,7 +308,7 @@ fun MenuButton(onSaveClick: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
         IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Default.MoreVert, contentDescription = "更多选项")
+            Icon(Icons.Rounded.MoreVert, contentDescription = "更多选项")
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
@@ -541,7 +541,7 @@ fun ColorPickerDialog(
                     },
                     enabled = customColorHex.isNotBlank()
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = "应用颜色")
+                    Icon(Icons.Rounded.Check, contentDescription = "应用颜色")
                 }
             }
 

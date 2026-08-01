@@ -14,11 +14,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AppShortcut
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AppShortcut
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -134,7 +134,7 @@ fun MyResourceScreen(onBack: () -> Unit) {
                 title = { Text("我的资源") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, null)
                     }
                 }
             )
@@ -145,13 +145,13 @@ fun MyResourceScreen(onBack: () -> Unit) {
                     val intent = Intent(context, ResourceSourceActivity::class.java)
                     context.startActivity(intent)
                 }) {
-                    Icon(Icons.Default.AppShortcut, contentDescription = null)
+                    Icon(Icons.Rounded.AppShortcut, contentDescription = null)
                 }
                 FloatingActionButton(onClick = {
                     val intent = Intent(context, ResourceUploadActivity::class.java)
                     context.startActivity(intent)
                 }) {
-                    Icon(Icons.Default.Add, contentDescription = null)
+                    Icon(Icons.Rounded.Add, contentDescription = null)
                 }
             }
         }
@@ -180,7 +180,7 @@ fun MyResourceScreen(onBack: () -> Unit) {
                 Column(modifier = Modifier.navigationBarsPadding().padding(bottom = 16.dp)) {
                     ListItem(
                         headlineContent = { Text("编辑资源") },
-                        leadingContent = { Icon(Icons.Default.Edit, null) },
+                        leadingContent = { Icon(Icons.Rounded.Edit, null) },
                         modifier = Modifier.clickable {
                             showSheet = false
                             selectedItem?.let { item ->
@@ -202,7 +202,7 @@ fun MyResourceScreen(onBack: () -> Unit) {
                     )
                     ListItem(
                         headlineContent = { Text("删除资源", color = MaterialTheme.colorScheme.error) },
-                        leadingContent = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                        leadingContent = { Icon(Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error) },
                         modifier = Modifier.clickable {
                             showSheet = false
                             deleteItem(selectedItem!!.id)

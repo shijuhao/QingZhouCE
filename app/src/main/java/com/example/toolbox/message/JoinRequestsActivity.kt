@@ -11,10 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,13 +80,13 @@ fun JoinRequestsScreen(
                 title = { Text(groupName) },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.loadJoinRequests() }) {
                         Icon(
-                            Icons.Default.Refresh,
+                            Icons.Rounded.Refresh,
                             contentDescription = "刷新"
                         )
                     }
@@ -182,7 +182,7 @@ fun JoinRequestItem(
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
-                        Icons.Default.Check,
+                        Icons.Rounded.Check,
                         contentDescription = "通过",
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -195,7 +195,7 @@ fun JoinRequestItem(
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
-                        Icons.Default.Close,
+                        Icons.Rounded.Close,
                         contentDescription = "拒绝",
                         tint = MaterialTheme.colorScheme.error
                     )

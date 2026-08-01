@@ -23,10 +23,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.RotateRight
-import androidx.compose.material.icons.automirrored.filled.RotateLeft
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.RotateRight
+import androidx.compose.material.icons.automirrored.rounded.RotateLeft
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -126,7 +126,7 @@ fun Base64Screen(modifier: Modifier = Modifier) {
             title = { Text("Base64 编码/解码") },
             navigationIcon = {
                 FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回")
                 }
             }
         )
@@ -198,7 +198,7 @@ fun Base64Screen(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.RotateLeft,
+                                    Icons.AutoMirrored.Rounded.RotateLeft,
                                     contentDescription = "编码",
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )
@@ -217,7 +217,7 @@ fun Base64Screen(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.RotateRight,
+                                    Icons.AutoMirrored.Rounded.RotateRight,
                                     contentDescription = "解码",
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )
@@ -270,7 +270,7 @@ fun Base64Screen(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Filled.ContentCopy,
+                                    Icons.Rounded.ContentCopy,
                                     contentDescription = "复制",
                                     modifier = Modifier.size(ButtonDefaults.IconSize)
                                 )

@@ -28,9 +28,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.Terrain
 import androidx.compose.material3.*
@@ -354,7 +354,7 @@ fun PostDetailScreen(
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "返回"
                         )
                     }
@@ -362,7 +362,7 @@ fun PostDetailScreen(
                 actions = {
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
-                            Icons.Default.MoreVert,
+                            Icons.Rounded.MoreVert,
                             null,
                             modifier = Modifier.size(20.dp)
                         )
@@ -385,7 +385,7 @@ fun PostDetailScreen(
                                     },
                                     leadingIcon = {
                                         Icon(
-                                            Icons.Default.ContentCopy,
+                                            Icons.Rounded.ContentCopy,
                                             null,
                                             Modifier.size(18.dp)
                                         )
@@ -398,7 +398,7 @@ fun PostDetailScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Share,
+                                        Icons.Rounded.Share,
                                         null,
                                         Modifier.size(18.dp)
                                     )
@@ -409,7 +409,7 @@ fun PostDetailScreen(
                                     onClick = { showMenu = false; editMessage() },
                                     leadingIcon = {
                                         Icon(
-                                            Icons.Default.Edit,
+                                            Icons.Rounded.Edit,
                                             null,
                                             Modifier.size(18.dp)
                                         )
@@ -424,7 +424,7 @@ fun PostDetailScreen(
                                     onClick = { showMenu = false; messageToDelete = true },
                                     leadingIcon = {
                                         Icon(
-                                            Icons.Default.Delete,
+                                            Icons.Rounded.Delete,
                                             null,
                                             Modifier.size(18.dp),
                                             tint = MaterialTheme.colorScheme.error
@@ -460,7 +460,7 @@ fun PostDetailScreen(
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
-                                imageVector = if (uiState.isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                imageVector = if (uiState.isLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
                                 contentDescription = "点赞",
                                 tint = if (uiState.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
@@ -508,7 +508,7 @@ fun PostDetailScreen(
                             )
                         } else {
                             Icon(
-                                Icons.AutoMirrored.Filled.Send,
+                                Icons.AutoMirrored.Rounded.Send,
                                 contentDescription = "发送",
                                 tint = if (replyText.isNotBlank())
                                     MaterialTheme.colorScheme.primary
@@ -533,7 +533,7 @@ fun PostDetailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        Icons.Default.Warning,
+                        Icons.Rounded.Warning,
                         contentDescription = null,
                         tint = Color.Gray,
                         modifier = Modifier.size(48.dp)
@@ -756,7 +756,7 @@ fun MessageContent(
         if (msg.is_private) {
             Row(Modifier.fillMaxWidth().padding(start = 8.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    Icons.Default.Lock,
+                    Icons.Rounded.Lock,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp)
                 )
@@ -820,7 +820,7 @@ fun MessageContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Favorite,
+                    Icons.Rounded.Favorite,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary
@@ -974,17 +974,17 @@ fun ShareBottomSheet(
                 )
             ) {
                 ShareActionCard(
-                    icon = Icons.Default.Link,
+                    icon = Icons.Rounded.Link,
                     label = "应用内链",
                     onClick = onCopyDeepLink
                 )
                 ShareActionCard(
-                    icon = Icons.Default.Link,
+                    icon = Icons.Rounded.Link,
                     label = "网页链接",
                     onClick = onCopyWebLink
                 )
                 ShareActionCard(
-                    icon = Icons.Default.Save,
+                    icon = Icons.Rounded.Save,
                     label = "保存图片",
                     onClick = {
                         val view = screenshotView
@@ -1077,7 +1077,7 @@ fun MessageMainLayout(
                     modifier = Modifier.padding(bottom = 12.dp)
                 ) {
                     Icon(
-                        Icons.Default.ChatBubbleOutline,
+                        Icons.Rounded.ChatBubbleOutline,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)

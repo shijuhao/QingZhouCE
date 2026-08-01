@@ -28,11 +28,11 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.RotateLeft
-import androidx.compose.material.icons.filled.FormatColorFill
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.RotateLeft
+import androidx.compose.material.icons.rounded.FormatColorFill
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
@@ -45,7 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.rememberTopAppBarState
@@ -135,7 +134,7 @@ class ThemeActivity : ComponentActivity() {
                             navigationIcon = {
                                 FilledTonalIconButton(onClick = { finish() }) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                         contentDescription = "返回"
                                     )
                                 }
@@ -143,15 +142,11 @@ class ThemeActivity : ComponentActivity() {
                             actions = {
                                 IconButton(onClick = { openDialog = true }) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.RotateLeft,
+                                        imageVector = Icons.AutoMirrored.Rounded.RotateLeft,
                                         contentDescription = "重启"
                                     )
                                 }
                             },
-                            colors = topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                scrolledContainerColor = MaterialTheme.colorScheme.surface
-                            ),
                             scrollBehavior = scrollBehavior
                         )
                     },
@@ -371,7 +366,7 @@ fun ThemeSwitchScreen(
                 items = listOf(
                     {
                         SettingsSwitchItem(
-                            icon = Icons.Default.Palette,
+                            icon = Icons.Rounded.Palette,
                             title = "开启莫奈取色",
                             subtitle = if (isMonetSupported) {
                                 "使用系统动态配色方案（开启后将禁用颜色主题选择）"
@@ -385,7 +380,7 @@ fun ThemeSwitchScreen(
                     },
                     {
                         SettingsSwitchItem(
-                            icon = Icons.Default.FormatColorFill,
+                            icon = Icons.Rounded.FormatColorFill,
                             title = "启用功能图标多彩颜色",
                             subtitle = "关闭后将统一使用主题色",
                             checked = iconColorEnabled,
@@ -425,7 +420,7 @@ fun ThemeSwitchScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Info,
+                        imageVector = Icons.Rounded.Info,
                         contentDescription = "提示",
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.primary

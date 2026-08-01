@@ -36,10 +36,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Photo
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -385,7 +385,7 @@ private fun ResourceUploadScreen(
                 title = { Text("资源投稿") },
                 navigationIcon = {
                     FilledTonalIconButton(onClick = { showExitDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
                     }
                 }
             )
@@ -395,7 +395,7 @@ private fun ResourceUploadScreen(
                 onClick = {
                     showLanzouDialog = true
                 },
-                icon = { Icon(Icons.Default.CloudUpload, contentDescription = null) },
+                icon = { Icon(Icons.Rounded.CloudUpload, contentDescription = null) },
                 text = { Text(if (submitting || lanzouUploadState.isUploading) "投稿中..." else "确认投稿") }
             )
         }
@@ -502,7 +502,7 @@ private fun ResourceUploadScreen(
             ) {
                 ListItem(
                     headlineContent = { Text("选择图片") },
-                    leadingContent = { Icon(Icons.Default.Photo, contentDescription = null) },
+                    leadingContent = { Icon(Icons.Rounded.Photo, contentDescription = null) },
                     modifier = Modifier.clickable {
                         showIconSheet = false
                         photoPicker.launch("image/*")
@@ -510,7 +510,7 @@ private fun ResourceUploadScreen(
                 )
                 ListItem(
                     headlineContent = { Text("填写图床链接") },
-                    leadingContent = { Icon(Icons.Default.Link, contentDescription = null) },
+                    leadingContent = { Icon(Icons.Rounded.Link, contentDescription = null) },
                     modifier = Modifier.clickable {
                         showIconSheet = false
                         showUrlDialog = true

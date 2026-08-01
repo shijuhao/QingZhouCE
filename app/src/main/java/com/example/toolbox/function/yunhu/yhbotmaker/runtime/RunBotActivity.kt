@@ -2,9 +2,6 @@
 
 package com.example.toolbox.function.yunhu.yhbotmaker.runtime
 
-import android.os.PowerManager
-import android.provider.Settings
-import android.net.Uri
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -17,13 +14,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,7 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.toolbox.function.yunhu.yhbotmaker.toast
 import com.example.toolbox.ui.theme.ToolBoxTheme
 import kotlinx.coroutines.launch
@@ -50,10 +45,15 @@ import kotlinx.serialization.json.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.automirrored.rounded.Chat
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import java.io.File
+import androidx.core.net.toUri
+import kotlin.time.Duration.Companion.milliseconds
 
 private fun jsonObjectToMap(jsonObject: JsonObject): Map<String, Any> {
     val result = mutableMapOf<String, Any>()
@@ -128,8 +128,7 @@ fun BotRuntimeScreen(
     val currentLoopCode by viewModel.currentLoopCode.collectAsState()
     
     var showRestartDialog by remember { mutableStateOf(false) }
-    var pendingConnect by remember { mutableStateOf(false) }
-    
+
     var isBlackout by remember { mutableStateOf(false) }
 
     var showFastBotDialog by remember { mutableStateOf(false) }
@@ -157,7 +156,7 @@ fun BotRuntimeScreen(
                     TextButton(
                         onClick = {
                             val intent = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                                data = android.net.Uri.parse("package:${context.packageName}")
+                                data = "package:${context.packageName}".toUri()
                             }
                             context.startActivity(intent)
                         }
@@ -197,7 +196,7 @@ fun BotRuntimeScreen(
 
     LaunchedEffect(messagesState.size) {
         if (messagesState.isNotEmpty()) {
-            delay(50)
+            delay(50.milliseconds)
             listState.animateScrollToItem(messagesState.size - 1)
         }
     }
@@ -657,7 +656,7 @@ fun BotRuntimeScreen(
         AlertDialog(
             onDismissRequest = { showCodeTypeSelector = false },
             icon = {
-                Icon(Icons.Default.Edit, contentDescription = null)
+                Icon(Icons.Rounded.Edit, contentDescription = null)
             },
             title = { Text("编辑代码") },
             text = {
@@ -669,7 +668,7 @@ fun BotRuntimeScreen(
                             items = listOf(
                                 {
                                     SettingsItemCell(
-                                        icon = Icons.Default.Chat,
+                                        icon = Icons.AutoMirrored.Rounded.Chat,
                                         title = "初始化代码",
                                         subtitle = "启动机器人时运行的代码",
                                         onClick = {
@@ -682,7 +681,7 @@ fun BotRuntimeScreen(
                                 },
                                 {
                                     SettingsItemCell(
-                                        icon = Icons.Default.Code,
+                                        icon = Icons.Rounded.Code,
                                         title = "事件代码",
                                         subtitle = "收到事件运行的代码",
                                         onClick = {
@@ -707,8 +706,9 @@ fun BotRuntimeScreen(
     }
 
     if (showCodeEditor) {
-        val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
+        val sheetState = rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
             confirmValueChange = { newValue ->
                 newValue != SheetValue.Hidden
             }
@@ -729,7 +729,7 @@ fun BotRuntimeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { showCodeEditor = false }) {
-                        Icon(Icons.Default.Close, contentDescription = "关闭")
+                        Icon(Icons.Rounded.Close, contentDescription = "关闭")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -742,7 +742,7 @@ fun BotRuntimeScreen(
                             saveCode(currentCodeType, codeContent.text)
                             showCodeEditor = false
                     }) {
-                        Icon(Icons.Default.Check, contentDescription = "保存")
+                        Icon(Icons.Rounded.Check, contentDescription = "保存")
                     }
                 }
                 
@@ -824,7 +824,7 @@ fun BotRuntimeScreen(
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
             icon = {
-                Icon(Icons.Default.Info, contentDescription = null)
+                Icon(Icons.Rounded.Info, contentDescription = null)
             },
             title = { Text("初始化代码已修改") },
             text = { Text("检测到初始化代码已变更，是否重新运行初始化代码？") },
@@ -916,7 +916,7 @@ fun BotRuntimeScreen(
                         },
                         icon = { 
                             Icon(
-                                if (isWsConnected) Icons.Default.Close else Icons.Default.Sync, 
+                                if (isWsConnected) Icons.Rounded.Close else Icons.Rounded.Sync, 
                                 null,
                                 tint = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                             ) 
@@ -927,42 +927,42 @@ fun BotRuntimeScreen(
                         label = { Text("编辑代码") },
                         selected = false,
                         onClick = { showCodeTypeSelector = true },
-                        icon = { Icon(Icons.Default.Code, null) },
+                        icon = { Icon(Icons.Rounded.Code, null) },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     NavigationDrawerItem(
                         label = { Text("FastBot") },
                         selected = false,
                         onClick = { showFastBotDialog = true },
-                        icon = { Icon(Icons.Default.Bolt, null) },
+                        icon = { Icon(Icons.Rounded.Bolt, null) },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     NavigationDrawerItem(
                         label = { Text("SharedData") },
                         selected = false,
                         onClick = { showSharedDataDialog = true },
-                        icon = { Icon(Icons.Default.Storage, null) },
+                        icon = { Icon(Icons.Rounded.Storage, null) },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     NavigationDrawerItem(
                         label = { Text("导入配置") },
                         selected = false,
                         onClick = { showImportDialog = true },
-                        icon = { Icon(Icons.Default.Download, null) },
+                        icon = { Icon(Icons.Rounded.Download, null) },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     NavigationDrawerItem(
                         label = { Text("备份代码") },
                         selected = false,
                         onClick = { showBackupDialog = true },
-                        icon = { Icon(Icons.Default.Upload, null) },
+                        icon = { Icon(Icons.Rounded.Upload, null) },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     NavigationDrawerItem(
                         label = { Text("帮助文档") },
                         selected = false,
                         onClick = { showHelpDialog = true },
-                        icon = { Icon(Icons.AutoMirrored.Filled.Help, null) },
+                        icon = { Icon(Icons.AutoMirrored.Rounded.Help, null) },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 }
@@ -988,7 +988,7 @@ fun BotRuntimeScreen(
                                 )
                             } else {
                                 Icon(
-                                    Icons.Default.Person,
+                                    Icons.Rounded.Person,
                                     contentDescription = "默认头像",
                                     modifier = Modifier.size(32.dp)
                                 )
@@ -1005,12 +1005,12 @@ fun BotRuntimeScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                         }
                     },
                     actions = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "菜单")
+                            Icon(Icons.Rounded.Menu, contentDescription = "菜单")
                         }
                     }
                 )
@@ -1068,7 +1068,7 @@ fun BotRuntimeScreen(
                     modifier = Modifier.size(120.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Lightbulb,
+                        imageVector = Icons.Rounded.Lightbulb,
                         contentDescription = "关闭黑屏",
                         tint = Color.White.copy(alpha = 0.2f),
                         modifier = Modifier.fillMaxSize()
@@ -1082,11 +1082,11 @@ fun BotRuntimeScreen(
 @Composable
 fun MessageItem(message: ChatMessage) {
     val (icon, iconTint) = when (message.type) {
-        1 -> Icons.AutoMirrored.Filled.CallReceived to Color.Cyan           // 收到消息
-        2 -> Icons.Default.Check to Color.Green                       // 操作成功
-        3 -> Icons.Default.Info to Color.White                              // 系统消息
-        4 -> Icons.Default.Close to Color.Red                               // 报错
-        else -> Icons.Default.Android to MaterialTheme.colorScheme.primary  // 其他
+        1 -> Icons.AutoMirrored.Rounded.CallReceived to Color.Cyan           // 收到消息
+        2 -> Icons.Rounded.Check to Color.Green                       // 操作成功
+        3 -> Icons.Rounded.Info to Color.White                              // 系统消息
+        4 -> Icons.Rounded.Close to Color.Red                               // 报错
+        else -> Icons.Rounded.Android to MaterialTheme.colorScheme.primary  // 其他
     }
     
     Card(
@@ -1138,17 +1138,17 @@ fun BottomActionBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onSendClick) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "发送")
+                Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "发送")
             }
             IconButton(onClick = onFullscreenClick) {
-                Icon(Icons.Default.Lightbulb, contentDescription = "黑屏模式")
+                Icon(Icons.Rounded.Lightbulb, contentDescription = "黑屏模式")
             }
             IconButton(onClick = onClearClick) {
-                Icon(Icons.Default.Delete, "清空日志")
+                Icon(Icons.Rounded.Delete, "清空日志")
             }
             IconButton(onClick = onConnectClick) {
                 Icon(
-                    if (isWsConnected) Icons.Default.Close else Icons.Default.Sync,
+                    if (isWsConnected) Icons.Rounded.Close else Icons.Rounded.Sync,
                     contentDescription = if (isWsConnected) "断开" else "连接",
                     tint = if (isWsConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )

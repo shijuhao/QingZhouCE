@@ -16,11 +16,11 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.MilitaryTech
-import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.MilitaryTech
+import androidx.compose.material.icons.rounded.MonetizationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,7 +77,7 @@ fun RankScreen() {
                     navigationIcon = {
                         FilledTonalIconButton(onClick = { (context as Activity).finish() }) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                 contentDescription = "返回"
                             )
                         }
@@ -92,10 +92,10 @@ fun RankScreen() {
                             selected = pagerState.currentPage == index,
                             icon = {
                                 val icon = when(index) {
-                                    0 -> Icons.Default.MilitaryTech
-                                    1 -> Icons.Default.MonetizationOn
-                                    2 -> Icons.Default.LocalFireDepartment
-                                    else -> Icons.Default.CloudUpload
+                                    0 -> Icons.Rounded.MilitaryTech
+                                    1 -> Icons.Rounded.MonetizationOn
+                                    2 -> Icons.Rounded.LocalFireDepartment
+                                    else -> Icons.Rounded.CloudUpload
                                 }
                                 Icon(icon, contentDescription = null)
                             },
